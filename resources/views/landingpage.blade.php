@@ -63,8 +63,7 @@
         .nav-brand .collaboration-logos img { 
             height: 45px; 
             width: auto; 
-            border-radius: 6px; 
-            border: 2px solid var(--green-soft);
+            border-radius: 6px;
         }
         .nav-brand .system-name { 
             font-size: 1.5rem; 
