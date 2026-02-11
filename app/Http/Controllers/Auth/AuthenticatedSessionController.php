@@ -36,18 +36,14 @@ class AuthenticatedSessionController extends Controller
             // Ignore if last_login column doesn't exist
         }
 
-        // Redirect based on role - with fallback
-        try {
-            $redirectRoute = $user->getDashboardRoute();
-            return redirect()->intended($redirectRoute);
-        } catch (\Exception $e) {
-            // Fallback redirect
-            if ($user->isAdmin()) {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->isOwner()) {
-                return redirect()->route('owner.dashboard');
-            }
-            return redirect()->route('dashboard');
+        // Redirect based on role - Clients go directly to Properties page
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->isOwner()) {
+            return redirect()->route('owner.dashboard');
+        } else {
+            // Clients go directly to properties listing
+            return redirect()->route('accommodations.index');
         }
     }
 
