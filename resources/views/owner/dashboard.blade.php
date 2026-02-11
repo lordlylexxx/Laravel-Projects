@@ -617,25 +617,14 @@
                 </ul>
             </div>
             
-            <div class="sidebar-section">
-                <h3 class="sidebar-title" style="font-weight: 600;">Account</h3>
-                <ul class="sidebar-menu">
-                    <li>
-                        <a href="{{ route('profile.edit') }}">
-                            <span class="icon">👤</span>
-                            Profile
-                        </a>
-                    </li>
-                    <li>
-                        <form action="{{ route('logout') }}" method="POST" style="margin: 0; padding: 0;">
-                            @csrf
-                            <button type="submit" style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 25px; background: none; border: none; cursor: pointer; color: #C62828; font: inherit; border-left: 4px solid transparent; transition: all 0.3s ease;">
-                                <span class="icon">🚪</span>
-                                Logout
-                            </button>
-                        </form>
-                    </li>
-                </ul>
+            <!-- Settings Icon at Lower-Left Corner -->
+            <div style="position: absolute; bottom: 20px; left: 25px; padding: 12px; background: var(--green-soft); border-radius: 10px;">
+                <a href="{{ route('profile.edit') }}" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: var(--green-dark); text-decoration: none; transition: all 0.3s;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </a>
             </div>
         </aside>
         
