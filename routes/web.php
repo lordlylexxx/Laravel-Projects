@@ -67,8 +67,10 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 
-    // Profile routes (accessible to all authenticated users)
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    // Profile routes - Using custom profile page for all users
+    Route::get('/profile', function () {
+        return view('profile.new-edit');
+    })->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
