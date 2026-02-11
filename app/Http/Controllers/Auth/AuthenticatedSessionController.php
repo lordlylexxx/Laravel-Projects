@@ -29,11 +29,26 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Update last login
-        $request->user()->updateLastLogin();
-
-        // Redirect based on role
         $user = $request->user();
-        return redirect($user->getDashboardRoute());
+        try {
+            $user->update(['last_login' => now()]);
+        } catch (\Exception $e) {
+            // Ignore if last_login column doesn't exist
+        }
+
+        // Redirect based on role - with fallback
+        try {
+            $redirectRoute = $user->getDashboardRoute();
+            return redirect()->intended($redirectRoute);
+        } catch (\Exception $e) {
+            // Fallback redirect
+            if ($user->isAdmin()) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->isOwner()) {
+                return redirect()->route('owner.dashboard');
+            }
+            return redirect()->route('dashboard');
+        }
     }
 
     /**
