@@ -291,7 +291,7 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
-            <img src="/SYSTEMLOGO.jpg" alt="VerdeVistas Logo">
+            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
             <div>
                 <span class="system-name">VerdeVistas</span>
                 <span class="tagline">| Impasugong Accommodations</span>

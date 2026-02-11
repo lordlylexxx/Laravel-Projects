@@ -279,7 +279,7 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.jpg" alt="VerdeVistas Logo">
+            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
             <span>VerdeVistas</span>
         </a>
         
