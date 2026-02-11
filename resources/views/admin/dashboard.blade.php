@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Impasugong Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -52,7 +54,6 @@
         .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.primary:hover { background: var(--green-dark); }
-        .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
         
         /* Main Layout */
         .dashboard-layout { display: flex; padding-top: 80px; }
@@ -85,124 +86,85 @@
         .page-header h1 { font-size: 2rem; color: var(--green-dark); margin-bottom: 5px; }
         .page-header p { color: var(--gray-500); }
         
-        /* KPI Cards Grid */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card {
-            background: var(--white);
+        /* Dashboard Cards */
+        .dashboard-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .dashboard-card h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* KPI Widget */
+        .kpi-widget {
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: white;
             padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            transition: all 0.3s;
+            border-radius: 12px;
+            text-align: center;
         }
-        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15); }
-        .kpi-icon { width: 55px; height: 55px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .kpi-icon.green { background: var(--green-soft); }
-        .kpi-icon.blue { background: #E3F2FD; }
-        .kpi-icon.orange { background: #FFF3E0; }
-        .kpi-icon.purple { background: #F3E5F5; }
-        .kpi-icon.red { background: #FFEBEE; }
-        .kpi-info h3 { font-size: 1.8rem; color: var(--green-dark); margin-bottom: 3px; }
-        .kpi-info p { color: var(--gray-500); font-size: 0.85rem; }
         
-        /* Section Cards */
-        .section-card {
+        .kpi-widget .icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .kpi-widget .value { font-size: 2rem; font-weight: bold; margin-bottom: 5px; }
+        .kpi-widget .label { font-size: 0.9rem; opacity: 0.9; }
+        
+        /* Stat Cards Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card {
             background: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);
-            margin-bottom: 25px;
-            overflow: hidden;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
         }
-        .section-header { padding: 20px 25px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
-        .section-header h3 { font-size: 1.1rem; color: var(--gray-800); font-weight: 600; }
-        .section-header .tabs { display: flex; gap: 10px; }
-        .section-header .tab { padding: 8px 16px; border-radius: 8px; border: none; background: var(--gray-100); color: var(--gray-600); cursor: pointer; font-weight: 500; transition: all 0.3s; }
-        .section-header .tab.active { background: var(--green-primary); color: white; }
-        .section-body { padding: 25px; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.5rem; font-weight: bold; color: var(--green-dark); margin-bottom: 5px; }
+        .stat-card .label { font-size: 0.85rem; color: var(--gray-500); }
         
-        /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-box {
-            background: var(--white);
-            padding: 25px;
-            border-radius: 14px;
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);
-        }
-        .stat-box h4 { font-size: 0.85rem; color: var(--gray-500); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-box .value { font-size: 2rem; font-weight: 700; color: var(--green-dark); margin-bottom: 5px; }
-        .stat-box .trend { font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
-        .stat-box .trend.up { color: var(--green-primary); }
-        .stat-box .trend.down { color: var(--red-500); }
-        .stat-box .subtext { font-size: 0.8rem; color: var(--gray-400); margin-top: 8px; }
+        /* Layout Grid */
+        .content-grid { display: grid; grid-template-columns: 300px 1fr; gap: 25px; }
+        .content-left { display: flex; flex-direction: column; gap: 20px; }
+        .content-right { display: flex; flex-direction: column; gap: 20px; }
         
-        /* Charts Container */
-        .chart-container { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px; }
-        .chart-box { background: var(--white); padding: 25px; border-radius: 14px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); }
-        .chart-box h4 { font-size: 1rem; color: var(--gray-800); margin-bottom: 20px; font-weight: 600; }
+        /* Chart Containers */
+        .chart-container { position: relative; height: 300px; }
+        .chart-container-sm { position: relative; height: 250px; }
         
-        /* CSS Line Chart */
-        .line-chart { height: 250px; position: relative; display: flex; align-items: flex-end; gap: 8px; padding-bottom: 30px; }
-        .chart-bar { flex: 1; background: linear-gradient(to top, var(--green-primary), var(--green-medium)); border-radius: 6px 6px 0 0; position: relative; transition: all 0.3s; min-height: 20px; }
-        .chart-bar:hover { background: linear-gradient(to top, var(--green-dark), var(--green-primary)); }
-        .chart-bar span { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--gray-500); white-space: nowrap; }
-        
-        /* CSS Pie Chart */
-        .pie-container { display: flex; align-items: center; gap: 30px; justify-content: center; }
-        .pie-chart { width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(var(--green-primary) 0deg 120deg, var(--blue-500) 120deg 200deg, var(--orange-500) 200deg 280deg, var(--purple-500) 280deg 340deg, var(--gray-300) 340deg 360deg); position: relative; }
-        .pie-chart::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; background: white; border-radius: 50%; }
-        .pie-legend { display: flex; flex-direction: column; gap: 12px; }
-        .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
-        .legend-color { width: 14px; height: 14px; border-radius: 4px; }
-        
-        /* Tables */
+        /* Table Styles */
         .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th, .data-table td { padding: 14px; text-align: left; border-bottom: 1px solid var(--gray-200); }
-        .data-table th { font-weight: 600; color: var(--gray-600); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; background: var(--cream); }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+        .data-table th { font-weight: 600; color: var(--gray-600); font-size: 0.85rem; text-transform: uppercase; background: var(--cream); }
         .data-table tr:hover { background: var(--green-white); }
-        .data-table td { color: var(--gray-700); font-size: 0.9rem; }
         
         /* Status Badges */
-        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+        .status-badge.active { background: var(--green-soft); color: var(--green-dark); }
         .status-badge.pending { background: #FFF3E0; color: #E65100; }
         .status-badge.confirmed { background: var(--green-soft); color: var(--green-dark); }
-        .status-badge.completed { background: #E3F2FD; color: #1565C0; }
         .status-badge.cancelled { background: #FFEBEE; color: #C62828; }
-        .status-badge.active { background: var(--green-soft); color: var(--green-dark); }
-        .status-badge.inactive { background: var(--gray-200); color: var(--gray-600); }
-        
-        /* Role Badges */
-        .role-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
-        .role-badge.admin { background: #FEE2E2; color: #991B1B; }
-        .role-badge.owner { background: #FEF3C7; color: #92400E; }
-        .role-badge.client { background: #D1FAE5; color: #065F46; }
-        
-        /* Quick Actions */
-        .quick-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .quick-stat { background: var(--cream); padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .quick-stat:hover { background: var(--green-soft); }
-        .quick-stat .icon { font-size: 2rem; margin-bottom: 10px; }
-        .quick-stat h4 { color: var(--green-dark); font-size: 1.3rem; margin-bottom: 5px; }
-        .quick-stat p { color: var(--gray-600); font-size: 0.85rem; }
-        
-        /* Messages List */
-        .message-item { display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid var(--gray-200); transition: all 0.3s; }
-        .message-item:hover { background: var(--green-white); }
-        .message-item:last-child { border-bottom: none; }
-        .message-avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--green-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
-        .message-content { flex: 1; }
-        .message-content h4 { color: var(--gray-800); font-size: 0.95rem; margin-bottom: 3px; }
-        .message-content p { color: var(--gray-500); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .message-time { font-size: 0.75rem; color: var(--gray-400); }
+        .status-badge.completed { background: #E3F2FD; color: #1565C0; }
         
         /* Progress Bar */
         .progress-bar { height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; margin-top: 10px; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-primary), var(--green-medium)); border-radius: 4px; transition: width 0.5s ease; }
         
+        /* Growth Rate */
+        .growth-rate { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; }
+        .growth-rate.up { color: var(--green-primary); }
+        .growth-rate.down { color: var(--red-500); }
+        
         /* Responsive */
         @media (max-width: 1200px) {
-            .chart-container { grid-template-columns: 1fr; }
+            .content-grid { grid-template-columns: 1fr; }
         }
         
         @media (max-width: 1024px) {
@@ -214,8 +176,7 @@
             .navbar { padding: 15px 20px; }
             .nav-links { display: none; }
             .main-content { padding: 20px; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
         /* Animations */
@@ -257,10 +218,10 @@
             <div class="sidebar-section">
                 <h3 class="sidebar-title">Analytics</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <li><a href="{{ route('admin.dashboard') }}" class="active">
                         <span class="icon">📊</span> Dashboard
                     </a></li>
-                    <li><a href="{{ route('admin.bookings') }}" class="{{ request()->routeIs('admin.bookings') ? 'active' : '' }}">
+                    <li><a href="{{ route('admin.bookings') }}">
                         <span class="icon">📅</span> Bookings
                     </a></li>
                 </ul>
@@ -269,16 +230,13 @@
             <div class="sidebar-section">
                 <h3 class="sidebar-title">Management</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">
+                    <li><a href="{{ route('admin.users') }}">
                         <span class="icon">👥</span> Users <span class="badge">{{ $kpis['total_users'] ?? 0 }}</span>
                     </a></li>
-                    <li><a href="{{ route('admin.bookings') }}" class="{{ request()->routeIs('admin.bookings') ? 'active' : '' }}">
-                        <span class="icon">📅</span> Bookings <span class="badge">{{ $kpis['pending_bookings'] ?? 0 }}</span>
-                    </a></li>
-                    <li><a href="{{ route('owner.accommodations.index') }}" class="{{ request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">
+                    <li><a href="{{ route('owner.accommodations.index') }}">
                         <span class="icon">🏠</span> Properties
                     </a></li>
-                    <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">
+                    <li><a href="{{ route('messages.index') }}">
                         <span class="icon">💬</span> Messages
                     </a></li>
                 </ul>
@@ -299,256 +257,284 @@
         <main class="main-content">
             <!-- Page Header -->
             <div class="page-header animate">
-                <h1>Admin Dashboard</h1>
-                <p>Welcome back! Here's your business overview.</p>
+                <h1>Sales Monitoring Dashboard</h1>
+                <p>Business performance metrics and analytics</p>
             </div>
             
-            <!-- KPI Cards -->
-            <div class="kpi-grid">
-                <div class="kpi-card animate delay-1">
-                    <div class="kpi-icon green">👥</div>
-                    <div class="kpi-info">
-                        <h3>{{ number_format($kpis['total_users'] ?? 0) }}</h3>
-                        <p>Total Users</p>
-                    </div>
+            <!-- KPI Stats Grid -->
+            <div class="stats-grid animate delay-1">
+                <div class="stat-card">
+                    <div class="icon" style="color: var(--green-primary);">💰</div>
+                    <div class="value">₱{{ number_format($kpis['total_revenue'] ?? 0, 0, '.', ',') }}</div>
+                    <div class="label">Total Revenue</div>
                 </div>
-                <div class="kpi-card animate delay-2">
-                    <div class="kpi-icon blue">🏠</div>
-                    <div class="kpi-info">
-                        <h3>{{ number_format($kpis['total_accommodations'] ?? 0) }}</h3>
-                        <p>Properties</p>
-                    </div>
-                </div>
-                <div class="kpi-card animate delay-3">
-                    <div class="kpi-icon orange">📅</div>
-                    <div class="kpi-info">
-                        <h3>{{ number_format($kpis['total_bookings'] ?? 0) }}</h3>
-                        <p>Total Bookings</p>
-                    </div>
-                </div>
-                <div class="kpi-card animate delay-4">
-                    <div class="kpi-icon purple">💰</div>
-                    <div class="kpi-info">
-                        <h3>₱{{ number_format($kpis['total_revenue'] ?? 0, 0, '.', ',') }}</h3>
-                        <p>Total Revenue</p>
-                    </div>
-                </div>
-                <div class="kpi-card animate delay-1">
-                    <div class="kpi-icon red">⏳</div>
-                    <div class="kpi-info">
-                        <h3>{{ number_format($kpis['pending_bookings'] ?? 0) }}</h3>
-                        <p>Pending Bookings</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Weekly Stats -->
-            <div class="stats-grid animate delay-2">
-                <div class="stat-box">
-                    <h4>📅 This Week</h4>
-                    <div class="value">{{ number_format($weeklyBookings ?? 0) }}</div>
-                    <div class="trend up">Bookings</div>
-                    <div class="subtext">Occupancy Rate: {{ $weeklyOccupancyRate ?? 0 }}%</div>
-                </div>
-                <div class="stat-box">
-                    <h4>💵 Weekly Revenue</h4>
+                <div class="stat-card">
+                    <div class="icon" style="color: var(--blue-500);">📅</div>
                     <div class="value">₱{{ number_format($weeklyRevenue ?? 0, 0, '.', ',') }}</div>
-                    <div class="trend up">↑ Growing</div>
-                    <div class="subtext">Most booked: {{ $weeklyMostBooked->accommodation->name ?? 'N/A' }}</div>
+                    <div class="label">Weekly Revenue</div>
                 </div>
-                <div class="stat-box">
-                    <h4>📈 Monthly Revenue</h4>
+                <div class="stat-card">
+                    <div class="icon" style="color: var(--orange-500);">📆</div>
                     <div class="value">₱{{ number_format($monthlyRevenue ?? 0, 0, '.', ',') }}</div>
-                    <div class="trend {{ $monthlyGrowthRate >= 0 ? 'up' : 'down' }}">
-                        {{ $monthlyGrowthRate >= 0 ? '↑' : '↓' }} {{ abs($monthlyGrowthRate ?? 0) }}%
-                    </div>
-                    <div class="subtext">vs last month</div>
+                    <div class="label">Monthly Revenue</div>
                 </div>
-                <div class="stat-box">
-                    <h4>📅 Monthly Bookings</h4>
-                    <div class="value">{{ number_format($monthlyBookings ?? 0) }}</div>
-                    <div class="trend up">Active</div>
-                    <div class="subtext">{{ $clientActivity ?? 0 }} new clients</div>
+                <div class="stat-card">
+                    <div class="icon" style="color: var(--purple-500);">📈</div>
+                    <div class="value">₱{{ number_format($yearlyRevenue ?? 0, 0, '.', ',') }}</div>
+                    <div class="label">Yearly Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="color: #E91E63;">📋</div>
+                    <div class="value">{{ number_format($kpis['total_bookings'] ?? 0) }}</div>
+                    <div class="label">Total Bookings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="color: #00BCD4;">👥</div>
+                    <div class="value">{{ number_format($kpis['active_clients'] ?? 0) }}</div>
+                    <div class="label">Active Clients</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="color: #FF9800;">📊</div>
+                    <div class="value">{{ $occupancyRate ?? 0 }}%</div>
+                    <div class="label">Occupancy Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="color: #9C27B0;">🏆</div>
+                    <div class="value" style="font-size: 1rem;">{{ $topProperty->accommodation->name ?? 'N/A' }}</div>
+                    <div class="label">Top Performing Unit</div>
                 </div>
             </div>
             
-            <!-- Charts Row -->
-            <div class="chart-container animate delay-3">
-                <!-- Revenue Chart -->
-                <div class="chart-box">
-                    <h4>📊 Revenue & Bookings (Last 12 Months)</h4>
-                    <div class="line-chart">
-                        @if(isset($revenueChartData) && count($revenueChartData) > 0)
-                            @foreach($revenueChartData as $index => $revenue)
-                                @php
-                                    $maxRevenue = max($revenueChartData);
-                                    $height = $maxRevenue > 0 ? ($revenue / $maxRevenue) * 200 : 10;
-                                    $bookingHeight = $maxRevenue > 0 ? (($bookingsChartData[$index] / max($bookingsChartData)) * 200) : 10;
-                                @endphp
-                                <div class="chart-bar" style="height: {{ $height + 20 }}px;" title="Revenue: ₱{{ number_format($revenue, 0, '.', ',') }}">
-                                    <span>{{ substr($monthLabels[$index] ?? '', 0, 3) }}</span>
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Left Column -->
+                <div class="content-left">
+                    <!-- Business KPI Overview -->
+                    <div class="dashboard-card animate delay-2">
+                        <h3>📊 Business KPI Overview</h3>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="color: var(--green-primary); font-size: 1.5rem; margin-bottom: 8px;">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="value" style="font-size: 1.2rem;">{{ $growthRate ?? 0 }}%</div>
+                                    <div class="label">Growth Rate</div>
                                 </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="color: var(--blue-500); font-size: 1.5rem; margin-bottom: 8px;">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="value" style="font-size: 1.2rem;">{{ number_format($kpis['average_booking_value'] ?? 0, 0) }}</div>
+                                    <div class="label">Avg Booking (₱)</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="color: var(--orange-500); font-size: 1.5rem; margin-bottom: 8px;">
+                                        <i class="fas fa-home"></i>
+                                    </div>
+                                    <div class="value" style="font-size: 1.2rem;">{{ number_format($kpis['total_accommodations'] ?? 0) }}</div>
+                                    <div class="label">Total Units</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="color: var(--purple-500); font-size: 1.5rem; margin-bottom: 8px;">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="value" style="font-size: 1.2rem;">{{ number_format($kpis['verified_properties'] ?? 0) }}</div>
+                                    <div class="label">Verified Units</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue Distribution -->
+                    <div class="dashboard-card animate delay-3">
+                        <h3>💰 Revenue Distribution</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="revenueDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="content-right">
+                    <!-- Monthly Revenue Trend -->
+                    <div class="dashboard-card animate delay-2">
+                        <h3>📈 Monthly Revenue Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Bookings Per Month -->
+                    <div class="dashboard-card animate delay-3">
+                        <h3>📅 Bookings Per Month</h3>
+                        <div class="chart-container">
+                            <canvas id="bookingsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="dashboard-card animate delay-4">
+                <h3>📋 Recent Bookings</h3>
+                @if(isset($recentBookings) && count($recentBookings) > 0)
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Client</th>
+                                <th>Check-In</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($recentBookings as $booking)
+                                <tr>
+                                    <td>{{ $booking->accommodation->name ?? 'N/A' }}</td>
+                                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d, Y') }}</td>
+                                    <td>₱{{ number_format($booking->total_price, 0, '.', ',') }}</td>
+                                    <td><span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span></td>
+                                </tr>
                             @endforeach
-                        @else
-                            <p style="color: var(--gray-400); text-align: center; width: 100%;">No data available</p>
-                        @endif
-                    </div>
-                    <div style="display: flex; justify-content: center; gap: 30px; margin-top: 15px;">
-                        <span style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--gray-600);">
-                            <span style="width: 12px; height: 12px; background: var(--green-primary); border-radius: 3px;"></span>
-                            Revenue (PHP)
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Occupancy Chart -->
-                <div class="chart-box">
-                    <h4>🏠 Properties by Type</h4>
-                    <div class="pie-container">
-                        <div class="pie-chart"></div>
-                        <div class="pie-legend">
-                            <div class="legend-item">
-                                <span class="legend-color" style="background: var(--green-primary);"></span>
-                                <span>Traveller-Inn ({{ $occupancyByType['traveller-inn'] ?? 0 }})</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background: var(--blue-500);"></span>
-                                <span>Airbnb ({{ $occupancyByType['airbnb'] ?? 0 }})</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color" style="background: var(--orange-500);"></span>
-                                <span>Daily Rental ({{ $occupancyByType['daily-rental'] ?? 0 }})</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Yearly Stats -->
-            <div class="section-card animate delay-4">
-                <div class="section-header">
-                    <h3>📈 Yearly Business Insights</h3>
-                </div>
-                <div class="section-body">
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <h4>💰 Annual Revenue</h4>
-                            <div class="value">₱{{ number_format($yearlyRevenue ?? 0, 0, '.', ',') }}</div>
-                            <div class="trend {{ $yearlyGrowthRate >= 0 ? 'up' : 'down' }}">
-                                {{ $yearlyGrowthRate >= 0 ? '↑' : '↓' }} {{ abs($yearlyGrowthRate ?? 0) }}%
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ min(100, ($yearlyRevenue / 5000000) * 100) }}%"></div>
-                            </div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>📅 Total Bookings</h4>
-                            <div class="value">{{ number_format($yearlyBookings ?? 0) }}</div>
-                            <div class="trend up">vs {{ number_format($lastYearBookings ?? 0) }} last year</div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>🏆 Top Property</h4>
-                            <div class="value" style="font-size: 1.2rem;">{{ $yearlyMostProfitable->accommodation->name ?? 'N/A' }}</div>
-                            <div class="subtext">Most profitable this year</div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>📊 Avg Booking Value</h4>
-                            <div class="value">₱{{ number_format($kpis['average_booking_value'] ?? 0, 0, '.', ',') }}</div>
-                            <div class="subtext">Per transaction</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Bottom Grid -->
-            <div class="stats-grid">
-                <!-- Recent Bookings -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3>📅 Recent Bookings</h3>
-                        <a href="{{ route('admin.bookings') }}" style="color: var(--green-primary); text-decoration: none; font-size: 0.9rem;">View All →</a>
-                    </div>
-                    <div class="section-body" style="padding: 0;">
-                        @if(isset($recentBookings) && count($recentBookings) > 0)
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Property</th>
-                                        <th>Guest</th>
-                                        <th>Status</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($recentBookings as $booking)
-                                        <tr>
-                                            <td>{{ $booking->accommodation->name ?? 'N/A' }}</td>
-                                            <td>{{ $booking->client->name ?? 'N/A' }}</td>
-                                            <td><span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span></td>
-                                            <td>₱{{ number_format($booking->total_price, 0, '.', ',') }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <p style="padding: 25px; color: var(--gray-400); text-align: center;">No bookings yet</p>
-                        @endif
-                    </div>
-                </div>
-                
-                <!-- Recent Users -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3>👥 Recent Users</h3>
-                        <a href="{{ route('admin.users') }}" style="color: var(--green-primary); text-decoration: none; font-size: 0.9rem;">View All →</a>
-                    </div>
-                    <div class="section-body" style="padding: 0;">
-                        @if(isset($recentUsers) && count($recentUsers) > 0)
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($recentUsers as $user)
-                                        <tr>
-                                            <td>
-                                                <div style="display: flex; align-items: center; gap: 10px;">
-                                                    <div style="width: 35px; height: 35px; border-radius: 50%; background: var(--green-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem;">
-                                                        {{ substr($user->name, 0, 2) }}
-                                                    </div>
-                                                    <div>
-                                                        <div style="font-weight: 500;">{{ $user->name }}</div>
-                                                        <div style="font-size: 0.8rem; color: var(--gray-500);">{{ $user->email }}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td><span class="role-badge {{ $user->role }}">{{ ucfirst($user->role) }}</span></td>
-                                            <td><span class="status-badge {{ $user->is_active ? 'active' : 'inactive' }}">{{ $user->is_active ? 'Active' : 'Inactive' }}</span></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <p style="padding: 25px; color: var(--gray-400); text-align: center;">No users yet</p>
-                        @endif
-                    </div>
-                </div>
+                        </tbody>
+                    </table>
+                @else
+                    <p style="text-align: center; color: var(--gray-400); padding: 20px;">No recent bookings</p>
+                @endif
             </div>
         </main>
     </div>
     
     <script>
-        // Add hover effects to sidebar menu
-        document.querySelectorAll('.sidebar-menu li a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                if (this.getAttribute('href') === '#') {
-                    e.preventDefault();
-                    document.querySelectorAll('.sidebar-menu li a').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Monthly Revenue Line Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue (₱)',
+                        data: [
+                            {{ $monthlyRevenueData['jan'] ?? 0 }},
+                            {{ $monthlyRevenueData['feb'] ?? 0 }},
+                            {{ $monthlyRevenueData['mar'] ?? 0 }},
+                            {{ $monthlyRevenueData['apr'] ?? 0 }},
+                            {{ $monthlyRevenueData['may'] ?? 0 }},
+                            {{ $monthlyRevenueData['jun'] ?? 0 }},
+                            {{ $monthlyRevenueData['jul'] ?? 0 }},
+                            {{ $monthlyRevenueData['aug'] ?? 0 }},
+                            {{ $monthlyRevenueData['sep'] ?? 0 }},
+                            {{ $monthlyRevenueData['oct'] ?? 0 }},
+                            {{ $monthlyRevenueData['nov'] ?? 0 }},
+                            {{ $monthlyRevenueData['dec'] ?? 0 }}
+                        ],
+                        borderColor: 'rgb(46, 125, 50)',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₱' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Bookings Per Month Bar Chart
+            const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+            new Chart(bookingsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Bookings',
+                        data: [
+                            {{ $monthlyBookingsData['jan'] ?? 0 }},
+                            {{ $monthlyBookingsData['feb'] ?? 0 }},
+                            {{ $monthlyBookingsData['mar'] ?? 0 }},
+                            {{ $monthlyBookingsData['apr'] ?? 0 }},
+                            {{ $monthlyBookingsData['may'] ?? 0 }},
+                            {{ $monthlyBookingsData['jun'] ?? 0 }},
+                            {{ $monthlyBookingsData['jul'] ?? 0 }},
+                            {{ $monthlyBookingsData['aug'] ?? 0 }},
+                            {{ $monthlyBookingsData['sep'] ?? 0 }},
+                            {{ $monthlyBookingsData['oct'] ?? 0 }},
+                            {{ $monthlyBookingsData['nov'] ?? 0 }},
+                            {{ $monthlyBookingsData['dec'] ?? 0 }}
+                        ],
+                        backgroundColor: 'rgba(67, 160, 71, 0.8)',
+                        borderColor: 'rgb(46, 125, 50)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Revenue Distribution Doughnut Chart
+            const distributionCtx = document.getElementById('revenueDistributionChart').getContext('2d');
+            new Chart(distributionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Traveller-Inn', 'Airbnb', 'Daily Rental'],
+                    datasets: [{
+                        data: [
+                            {{ $revenueByType['traveller-inn'] ?? 0 }},
+                            {{ $revenueByType['airbnb'] ?? 0 }},
+                            {{ $revenueByType['daily-rental'] ?? 0 }}
+                        ],
+                        backgroundColor: [
+                            'rgb(46, 125, 50)',
+                            'rgb(59, 162, 246)',
+                            'rgb(249, 115, 22)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
                 }
             });
         });

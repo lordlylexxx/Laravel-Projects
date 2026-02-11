@@ -14,7 +14,7 @@ use Carbon\Carbon;
 class DashboardController extends Controller
 {
     /**
-     * Display the admin dashboard with analytics.
+     * Display the admin dashboard with sales monitoring analytics.
      */
     public function index()
     {
@@ -29,27 +29,22 @@ class DashboardController extends Controller
         $lastYearStart = $now->copy()->subYear()->startOfYear();
         $lastYearEnd = $now->copy()->subYear()->endOfYear();
 
-        // ============ WEEKLY INSIGHTS ============
-        $weeklyBookings = Booking::whereBetween('created_at', [$startOfWeek, $endOfWeek])->count();
+        // ============ REVENUE METRICS ============
+        $totalRevenue = Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->sum('total_price');
+        
         $weeklyRevenue = Booking::whereBetween('created_at', [$startOfWeek, $endOfWeek])
             ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
         
-        $weeklyMostBooked = Booking::whereBetween('created_at', [$startOfWeek, $endOfWeek])
-            ->select('accommodation_id', DB::raw('count(*) as total'))
-            ->groupBy('accommodation_id')
-            ->orderByDesc('total')
-            ->with('accommodation')
-            ->first();
-        
-        $weeklyOccupancyRate = $this->calculateOccupancyRate($startOfWeek, $endOfWeek);
-
-        // ============ MONTHLY INSIGHTS ============
-        $monthlyBookings = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
         $monthlyRevenue = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
         
+        $yearlyRevenue = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
+            ->sum('total_price');
+        
+        // Growth rate calculation
         $lastMonthRevenue = Booking::whereBetween('created_at', [
             $now->copy()->subMonth()->startOfMonth(),
             $now->copy()->subMonth()->endOfMonth()
@@ -57,36 +52,20 @@ class DashboardController extends Controller
             ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
         
-        $monthlyGrowthRate = $lastMonthRevenue > 0 
+        $growthRate = $lastMonthRevenue > 0 
             ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
             : 0;
 
-        $monthlyMostBooked = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->select('accommodation_id', DB::raw('count(*) as total'))
-            ->groupBy('accommodation_id')
-            ->orderByDesc('total')
-            ->with('accommodation')
-            ->first();
-
-        $clientActivity = User::clients()->whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
-
-        // ============ YEARLY INSIGHTS ============
-        $yearlyRevenue = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
+        // ============ BOOKING METRICS ============
+        $totalBookings = Booking::count();
+        $activeClients = User::clients()->where('is_active', true)->count();
         
-        $lastYearRevenue = Booking::whereBetween('created_at', [$lastYearStart, $lastYearEnd])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
-        
-        $yearlyGrowthRate = $lastYearRevenue > 0 
-            ? round((($yearlyRevenue - $lastYearRevenue) / $lastYearRevenue) * 100, 1)
-            : 0;
+        // Calculate occupancy rate
+        $totalAccommodations = Accommodation::count();
+        $occupancyRate = $this->calculateOccupancyRate($startOfMonth, $endOfMonth);
 
-        $yearlyBookings = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])->count();
-        $lastYearBookings = Booking::whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count();
-
-        $yearlyMostProfitable = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])
+        // ============ TOP PERFORMING UNIT ============
+        $topProperty = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->select('accommodation_id', DB::raw('sum(total_price) as revenue'))
             ->groupBy('accommodation_id')
@@ -94,39 +73,42 @@ class DashboardController extends Controller
             ->with('accommodation')
             ->first();
 
-        // ============ CHART DATA ============
-        // Monthly revenue chart (last 12 months)
-        $revenueChartData = [];
-        $bookingsChartData = [];
-        $monthLabels = [];
+        // ============ MONTHLY CHART DATA ============
+        $monthlyRevenueData = [];
+        $monthlyBookingsData = [];
         
-        for ($i = 11; $i >= 0; $i--) {
-            $monthStart = $now->copy()->subMonths($i)->startOfMonth();
-            $monthEnd = $now->copy()->subMonths($i)->endOfMonth();
-            $monthLabels[] = $monthStart->format('M Y');
+        for ($i = 1; $i <= 12; $i++) {
+            $monthStart = $now->copy()->month($i)->startOfMonth();
+            $monthEnd = $now->copy()->month($i)->endOfMonth();
             
-            $revenueChartData[] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
+            $monthKey = strtolower($monthStart->format('M'));
+            $monthlyRevenueData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
                 ->whereIn('status', ['confirmed', 'completed', 'paid'])
                 ->sum('total_price');
             
-            $bookingsChartData[] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])->count();
+            $monthlyBookingsData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])->count();
         }
 
-        // Occupancy distribution by type
-        $occupancyByType = Accommodation::select('type', DB::raw('count(*) as total'))
-            ->groupBy('type')
-            ->pluck('total', 'type')
-            ->toArray();
+        // ============ REVENUE BY PROPERTY TYPE ============
+        $revenueByType = [];
+        foreach (['traveller-inn', 'airbnb', 'daily-rental'] as $type) {
+            $revenueByType[$type] = Booking::whereHas('accommodation', function($query) use ($type) {
+                $query->where('type', $type);
+            })
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
+            ->sum('total_price');
+        }
 
         // ============ KPI SUMMARY ============
         $kpis = [
             'total_users' => User::count(),
-            'total_accommodations' => Accommodation::count(),
-            'total_bookings' => Booking::count(),
-            'total_revenue' => Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->sum('total_price'),
+            'total_accommodations' => $totalAccommodations,
+            'total_bookings' => $totalBookings,
+            'total_revenue' => $totalRevenue,
             'pending_bookings' => Booking::where('status', 'pending')->count(),
-            'active_owners' => User::owners()->count(),
-            'new_clients_this_month' => User::clients()->whereBetween('created_at', [$startOfMonth, $endOfMonth])->count(),
+            'active_clients' => $activeClients,
+            'verified_properties' => Accommodation::where('is_verified', true)->count(),
             'average_booking_value' => Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->avg('total_price') ?? 0,
         ];
 
@@ -136,20 +118,11 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $recentUsers = User::latest()
-            ->take(5)
-            ->get();
-
-        $unreadMessages = Message::where('receiver_id', auth()->id())
-            ->where('is_unread', true)
-            ->count();
-
         return view('admin.dashboard', compact(
-            'weeklyBookings', 'weeklyRevenue', 'weeklyMostBooked', 'weeklyOccupancyRate',
-            'monthlyBookings', 'monthlyRevenue', 'monthlyGrowthRate', 'monthlyMostBooked', 'clientActivity',
-            'yearlyRevenue', 'yearlyGrowthRate', 'yearlyBookings', 'lastYearBookings', 'yearlyMostProfitable',
-            'revenueChartData', 'bookingsChartData', 'monthLabels', 'occupancyByType',
-            'kpis', 'recentBookings', 'recentUsers', 'unreadMessages'
+            'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue', 'totalRevenue',
+            'totalBookings', 'activeClients', 'occupancyRate', 'topProperty', 'growthRate',
+            'monthlyRevenueData', 'monthlyBookingsData', 'revenueByType',
+            'kpis', 'recentBookings'
         ));
     }
 

@@ -5,28 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard - Impasugong Accommodations</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            --green-dark: #1B5E20;
-            --green-primary: #2E7D32;
-            --green-medium: #43A047;
-            --green-light: #66BB6A;
-            --green-pale: #81C784;
-            --green-soft: #C8E6C9;
-            --green-white: #E8F5E9;
-            --white: #FFFFFF;
-            --cream: #F1F8E9;
+            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
+            --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
+            --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
+            --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
+            --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
+            --blue-500: #3B82F6; --orange-500: #F97316; --purple-500: #8B5CF6;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
             min-height: 100vh;
+            color: var(--gray-800);
         }
         
         /* Navigation */
@@ -43,98 +38,21 @@
             z-index: 1000;
         }
         
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); }
+        .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
         
-        .nav-logo img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid var(--green-primary);
-        }
+        .nav-links { display: flex; gap: 25px; list-style: none; }
+        .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
         
-        .nav-logo span {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--green-dark);
-        }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
+        .nav-btn.primary { background: var(--green-primary); color: var(--white); }
+        .nav-btn.primary:hover { background: var(--green-dark); }
         
-        .nav-links {
-            display: flex;
-            gap: 30px;
-            list-style: none;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--green-primary);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--green-dark);
-        }
-        
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .notification-btn {
-            position: relative;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.5rem;
-            color: var(--green-primary);
-            text-decoration: none;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #dc3545;
-            color: white;
-            font-size: 0.7rem;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--green-primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-        
-        /* Sidebar Layout */
-        .dashboard-layout {
-            display: flex;
-            padding-top: 80px;
-        }
+        /* Main Layout */
+        .dashboard-layout { display: flex; padding-top: 80px; }
         
         /* Sidebar */
         .sidebar {
@@ -143,477 +61,164 @@
             min-height: calc(100vh - 80px);
             padding: 30px 0;
             box-shadow: 2px 0 20px rgba(27, 94, 32, 0.1);
+            position: fixed;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
         }
         
-        .sidebar-section {
-            margin-bottom: 30px;
-        }
-        
-        .sidebar-title {
-            font-size: 0.8rem;
-            color: var(--green-medium);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0 25px;
-            margin-bottom: 15px;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-        }
-        
-        .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px 25px;
-            color: var(--green-dark);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        
-        .sidebar-menu li a:hover,
-        .sidebar-menu li a.active {
-            background: var(--green-soft);
-            border-left-color: var(--green-primary);
-        }
-        
-        .sidebar-menu li a .icon {
-            font-size: 1.3rem;
-        }
+        .sidebar-section { margin-bottom: 25px; }
+        .sidebar-title { font-size: 0.75rem; color: var(--green-medium); text-transform: uppercase; letter-spacing: 1.5px; padding: 0 25px; margin-bottom: 12px; font-weight: 600; }
+        .sidebar-menu { list-style: none; }
+        .sidebar-menu li a { display: flex; align-items: center; gap: 15px; padding: 14px 25px; color: var(--gray-700); text-decoration: none; transition: all 0.3s; border-left: 4px solid transparent; }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: var(--green-soft); border-left-color: var(--green-primary); color: var(--green-dark); }
+        .sidebar-menu li a .icon { font-size: 1.3rem; }
+        .sidebar-menu li a .badge { margin-left: auto; background: var(--orange-500); color: white; padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; }
         
         /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 30px 40px;
-        }
+        .main-content { flex: 1; padding: 30px 40px; margin-left: 280px; min-height: calc(100vh - 80px); }
         
-        /* Welcome Section */
-        .welcome-section {
-            margin-bottom: 30px;
-        }
-        
-        .welcome-section h1 {
-            font-size: 2rem;
-            color: var(--green-dark);
-            margin-bottom: 8px;
-        }
-        
-        .welcome-section p {
-            color: var(--green-medium);
-        }
+        /* Page Header */
+        .page-header { margin-bottom: 30px; }
+        .page-header h1 { font-size: 2rem; color: var(--green-dark); margin-bottom: 5px; }
+        .page-header p { color: var(--gray-500); }
         
         /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card {
             background: var(--white);
             padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 30px rgba(27, 94, 32, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            transition: all 0.3s ease;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
         }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card .icon { font-size: 2rem; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: bold; color: var(--green-dark); margin-bottom: 5px; }
+        .stat-card .label { font-size: 0.85rem; color: var(--gray-500); }
         
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15);
-        }
-        
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-        }
-        
-        .stat-icon.green {
-            background: var(--green-soft);
-        }
-        
-        .stat-icon.blue {
-            background: #E3F2FD;
-        }
-        
-        .stat-icon.orange {
-            background: #FFF3E0;
-        }
-        
-        .stat-icon.purple {
-            background: #F3E5F5;
-        }
-        
-        .stat-info h3 {
-            font-size: 1.8rem;
-            color: var(--green-dark);
-            margin-bottom: 5px;
-        }
-        
-        .stat-info p {
-            color: var(--green-medium);
-            font-size: 0.9rem;
-        }
-        
-        /* Cards */
-        .card {
+        /* Dashboard Card */
+        .dashboard-card {
             background: var(--white);
-            border-radius: 15px;
-            box-shadow: 0 8px 30px rgba(27, 94, 32, 0.1);
-            margin-bottom: 30px;
-        }
-        
-        .card-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid var(--green-soft);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .card-header h3 {
-            font-size: 1.2rem;
-            color: var(--green-dark);
-        }
-        
-        .card-body {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 25px;
+            margin-bottom: 25px;
         }
+        .dashboard-card h3 { font-size: 1.1rem; color: var(--gray-800); margin-bottom: 20px; font-weight: 600; }
         
-        /* Button Styles */
-        .btn {
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+        /* Property Table */
+        .property-table { width: 100%; border-collapse: collapse; }
+        .property-table th, .property-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+        .property-table th { font-weight: 600; color: var(--gray-600); font-size: 0.85rem; text-transform: uppercase; background: var(--cream); }
+        .property-table tr:hover { background: var(--green-white); }
         
-        .btn-primary {
-            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
-            color: var(--white);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
-        }
-        
-        .btn-secondary {
-            background: var(--green-soft);
-            color: var(--green-dark);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--green-pale);
-        }
-        
-        .btn-sm {
-            padding: 8px 15px;
-            font-size: 0.85rem;
-        }
-        
-        /* Table Styles */
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--green-soft);
-        }
-        
-        th {
-            font-weight: 600;
-            color: var(--green-dark);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        td {
-            color: var(--green-medium);
-        }
-        
-        tr:hover {
-            background: var(--cream);
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .status-badge.pending {
-            background: #FFF3E0;
-            color: #E65100;
-        }
-        
-        .status-badge.confirmed {
-            background: var(--green-soft);
-            color: var(--green-dark);
-        }
-        
-        .status-badge.cancelled {
-            background: #FFEBEE;
-            color: #C62828;
-        }
-        
-        .status-badge.completed {
-            background: #E3F2FD;
-            color: #1565C0;
-        }
-        
-        .status-badge.paid {
-            background: #E8F5E9;
-            color: #2E7D32;
-        }
-        
-        /* Property Card in Table */
-        .property-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .property-thumb {
-            width: 60px;
-            height: 60px;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-        
-        .property-details h4 {
-            color: var(--green-dark);
-            margin-bottom: 3px;
-        }
-        
-        .property-details p {
-            font-size: 0.85rem;
-        }
-        
-        /* Action Buttons */
-        .action-btns {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .action-btn {
-            width: 35px;
-            height: 35px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-        
-        .action-btn.view {
-            background: var(--green-soft);
-            color: var(--green-primary);
-        }
-        
-        .action-btn.edit {
-            background: #E3F2FD;
-            color: #1976D2;
-        }
-        
-        .action-btn.delete {
-            background: #FFEBEE;
-            color: #C62828;
-        }
-        
-        .action-btn:hover {
-            transform: scale(1.1);
-        }
+        /* Status Badges */
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+        .status-badge.active { background: var(--green-soft); color: var(--green-dark); }
+        .status-badge.inactive { background: var(--gray-200); color: var(--gray-600); }
+        .status-badge.pending { background: #FFF3E0; color: #E65100; }
+        .status-badge.confirmed { background: var(--green-soft); color: var(--green-dark); }
+        .status-badge.cancelled { background: #FFEBEE; color: #C62828; }
         
         /* Quick Actions */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .quick-action-card {
             background: var(--white);
             padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 30px rgba(27, 94, 32, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
             text-decoration: none;
+            display: block;
+        }
+        .quick-action-card:hover { border-color: var(--green-primary); transform: translateY(-5px); }
+        .quick-action-card .icon { font-size: 2.5rem; margin-bottom: 15px; }
+        .quick-action-card h4 { color: var(--green-dark); margin-bottom: 8px; font-size: 1rem; }
+        .quick-action-card p { color: var(--gray-500); font-size: 0.85rem; }
+        
+        /* Revenue Card */
+        .revenue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .revenue-card {
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .revenue-card .icon { font-size: 2rem; margin-bottom: 10px; }
+        .revenue-card .value { font-size: 2rem; font-weight: bold; margin-bottom: 5px; }
+        .revenue-card .label { font-size: 0.9rem; opacity: 0.9; }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
         }
         
-        .quick-action-card:hover {
-            border-color: var(--green-primary);
-            transform: translateY(-5px);
-        }
-        
-        .quick-action-card .icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-        }
-        
-        .quick-action-card h4 {
-            color: var(--green-dark);
-            margin-bottom: 8px;
-        }
-        
-        .quick-action-card p {
-            color: var(--green-medium);
-            font-size: 0.9rem;
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; }
+            .nav-links { display: none; }
+            .main-content { padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
         /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .animate {
-            animation: fadeInUp 0.6s ease forwards;
-        }
-        
-        .delay-1 { animation-delay: 0.2s; }
-        .delay-2 { animation-delay: 0.4s; }
-        .delay-3 { animation-delay: 0.6s; }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 15px 20px;
-            }
-            
-            .nav-links {
-                display: none;
-            }
-            
-            .dashboard-layout {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                min-height: auto;
-            }
-            
-            .main-content {
-                padding: 20px;
-            }
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate { animation: fadeInUp 0.6s ease forwards; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
     </style>
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="nav-logo">
-            <a href="{{ route('owner.dashboard') }}" style="display: flex; align-items: center; gap: 15px; text-decoration: none;">
-                <img src="/1.jpg" alt="Municipality Logo">
-                <span>Impasugong</span>
-            </a>
-        </div>
+        <a href="{{ route('owner.dashboard') }}" class="nav-logo">
+            <img src="/1.jpg" alt="Logo">
+            <span>Impasugong</span>
+        </a>
+        
         <ul class="nav-links">
-            <a href="{{ route('owner.dashboard') }}" class="active">Dashboard</a>
-            <a href="{{ route('owner.accommodations.index') }}">My Properties</a>
-            <a href="{{ route('bookings.index') }}">Bookings</a>
-            <a href="{{ route('messages.index') }}">Messages</a>
+            <li><a href="{{ route('owner.dashboard') }}" class="active">Dashboard</a></li>
+            <li><a href="{{ route('owner.accommodations.index') }}">My Units</a></li>
+            <li><a href="{{ route('bookings.index') }}">Bookings</a></li>
+            <li><a href="{{ route('messages.index') }}">Messages</a></li>
         </ul>
+        
         <div class="nav-actions">
-            <a href="{{ route('messages.index') }}" class="notification-btn">
-                🔔
-                @if(isset($unread_messages) && $unread_messages > 0)
-                    <span class="notification-badge">{{ $unread_messages }}</span>
-                @endif
-            </a>
-            <div class="user-menu" onclick="event.preventDefault(); document.getElementById('profile-form').submit();" style="cursor: pointer;">
-                @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" 
-                         alt="{{ Auth::user()->name }}" 
-                         class="user-avatar" 
-                         style="width: 40px; height: 40px; object-fit: cover; border: 2px solid var(--white);">
-                @else
-                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
-                @endif
-            </div>
-            <form id="logout-form-nav" action="{{ route('logout') }}" method="POST" style="display: none;">
+            <form action="{{ route('logout') }}" method="POST">
                 @csrf
+                <button type="submit" class="nav-btn primary">Logout</button>
             </form>
-            <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form-nav').submit();" 
-               style="padding: 8px 16px; background: var(--green-dark); color: white; border-radius: 8px; text-decoration: none; font-size: 0.9rem;">
-               Logout
-            </a>
         </div>
     </nav>
-    
-    <form id="profile-form" action="{{ route('profile.edit') }}" method="GET" style="display: none;"></form>
     
     <!-- Dashboard Layout -->
     <div class="dashboard-layout">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-section">
-                <h3 class="sidebar-title" style="font-weight: 600;">Main Menu</h3>
+                <h3 class="sidebar-title">Management</h3>
                 <ul class="sidebar-menu">
-                    <li>
-                        <a href="{{ route('owner.dashboard') }}" class="active">
-                            <span class="icon">📊</span>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('owner.accommodations.index') }}">
-                            <span class="icon">🏠</span>
-                            My Properties
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('bookings.index') }}">
-                            <span class="icon">📅</span>
-                            Bookings
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('messages.index') }}">
-                            <span class="icon">💬</span>
-                            Messages
-                        </a>
-                    </li>
+                    <li><a href="{{ route('owner.dashboard') }}" class="active">
+                        <span class="icon">📊</span> Dashboard
+                    </a></li>
+                    <li><a href="{{ route('owner.accommodations.index') }}">
+                        <span class="icon">🏠</span> My Units
+                    </a></li>
+                    <li><a href="{{ route('bookings.index') }}">
+                        <span class="icon">📅</span> Bookings
+                        @if(($stats['pending_bookings'] ?? 0) > 0)
+                            <span class="badge">{{ $stats['pending_bookings'] }}</span>
+                        @endif
+                    </a></li>
+                    <li><a href="{{ route('messages.index') }}">
+                        <span class="icon">💬</span> Messages
+                    </a></li>
                 </ul>
             </div>
             
@@ -630,141 +235,174 @@
         
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Welcome Section -->
-            <div class="welcome-section animate">
-                <h1>Welcome back, {{ Auth::user()->name }}!</h1>
-                <p>Here's what's happening with your properties today.</p>
+            <!-- Page Header -->
+            <div class="page-header animate">
+                <h1>Unit Management Dashboard</h1>
+                <p>Monitor your properties and booking performance</p>
             </div>
             
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card animate delay-1">
-                    <div class="stat-icon green">🏠</div>
-                    <div class="stat-info">
-                        <h3>{{ $stats['active_properties'] ?? 0 }}</h3>
-                        <p>Active Properties</p>
-                    </div>
+            <!-- Quick Stats -->
+            <div class="stats-grid animate delay-1">
+                <div class="stat-card">
+                    <div class="icon">🏠</div>
+                    <div class="value">{{ $stats['total_properties'] ?? 0 }}</div>
+                    <div class="label">Total Units</div>
                 </div>
-                
-                <div class="stat-card animate delay-2">
-                    <div class="stat-icon blue">📅</div>
-                    <div class="stat-info">
-                        <h3>{{ $stats['total_bookings'] ?? 0 }}</h3>
-                        <p>Total Bookings</p>
-                    </div>
+                <div class="stat-card">
+                    <div class="icon">✅</div>
+                    <div class="value">{{ $stats['active_properties'] ?? 0 }}</div>
+                    <div class="label">Active Units</div>
                 </div>
-                
-                <div class="stat-card animate delay-3">
-                    <div class="stat-icon orange">⏳</div>
-                    <div class="stat-info">
-                        <h3>{{ $stats['pending_bookings'] ?? 0 }}</h3>
-                        <p>Pending Requests</p>
-                    </div>
+                <div class="stat-card">
+                    <div class="icon">📅</div>
+                    <div class="value">{{ $stats['total_bookings'] ?? 0 }}</div>
+                    <div class="label">Total Bookings</div>
                 </div>
-                
-                <div class="stat-card animate delay-1">
-                    <div class="stat-icon purple">💰</div>
-                    <div class="stat-info">
-                        <h3>₱{{ number_format($stats['total_earnings'] ?? 0, 0) }}</h3>
-                        <p>Total Earnings</p>
-                    </div>
+                <div class="stat-card">
+                    <div class="icon">⏳</div>
+                    <div class="value">{{ $stats['pending_bookings'] ?? 0 }}</div>
+                    <div class="label">Pending Requests</div>
+                </div>
+            </div>
+            
+            <!-- Revenue Overview -->
+            <div class="revenue-grid animate delay-2">
+                <div class="revenue-card">
+                    <div class="icon">💰</div>
+                    <div class="value">₱{{ number_format($stats['total_earnings'] ?? 0, 0, '.', ',') }}</div>
+                    <div class="label">Total Earnings</div>
+                </div>
+                <div class="revenue-card">
+                    <div class="icon">📈</div>
+                    <div class="value">{{ $stats['confirmed_bookings'] ?? 0 }}</div>
+                    <div class="label">Confirmed Bookings</div>
+                </div>
+                <div class="revenue-card">
+                    <div class="icon">⭐</div>
+                    <div class="value">{{ number_format($properties->avg('rating') ?? 0, 1) }}</div>
+                    <div class="label">Avg Rating</div>
                 </div>
             </div>
             
             <!-- Quick Actions -->
-            <div class="card animate delay-2">
-                <div class="card-header">
-                    <h3>Quick Actions</h3>
-                </div>
-                <div class="card-body">
-                    <div class="quick-actions">
-                        <a href="{{ route('owner.accommodations.create') }}" class="quick-action-card">
-                            <span class="icon">➕</span>
-                            <h4>Add Property</h4>
-                            <p>List a new accommodation</p>
-                        </a>
-                        <a href="{{ route('bookings.index') }}" class="quick-action-card">
-                            <span class="icon">📅</span>
-                            <h4>View Bookings</h4>
-                            <p>Manage reservations</p>
-                        </a>
-                        <a href="{{ route('messages.index') }}" class="quick-action-card">
-                            <span class="icon">💬</span>
-                            <h4>Messages</h4>
-                            <p>Respond to inquiries</p>
-                        </a>
-                        <a href="{{ route('profile.edit') }}" class="quick-action-card">
-                            <span class="icon">👤</span>
-                            <h4>Edit Profile</h4>
-                            <p>Update your details</p>
-                        </a>
-                    </div>
-                </div>
+            <div class="quick-actions animate delay-2">
+                <a href="{{ route('owner.accommodations.create') }}" class="quick-action-card">
+                    <div class="icon">➕</div>
+                    <h4>Add New Unit</h4>
+                    <p>List a new accommodation</p>
+                </a>
+                <a href="{{ route('owner.accommodations.index') }}" class="quick-action-card">
+                    <div class="icon">📋</div>
+                    <h4>Manage Units</h4>
+                    <p>Edit property details</p>
+                </a>
+                <a href="{{ route('bookings.index') }}" class="quick-action-card">
+                    <div class="icon">📅</div>
+                    <h4>Booking Requests</h4>
+                    <p>Review pending bookings</p>
+                </a>
+                <a href="{{ route('messages.index') }}" class="quick-action-card">
+                    <div class="icon">💬</div>
+                    <h4>Messages</h4>
+                    <p>Respond to inquiries</p>
+                </a>
             </div>
             
-            <!-- Recent Bookings -->
-            <div class="card animate delay-3">
-                <div class="card-header">
-                    <h3>Recent Booking Requests</h3>
-                    <a href="{{ route('bookings.index') }}" class="btn btn-secondary btn-sm">View All</a>
-                </div>
-                <div class="card-body">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Property</th>
-                                    <th>Guest</th>
-                                    <th>Dates</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($recent_bookings as $booking)
+            <!-- My Units Table -->
+            <div class="dashboard-card animate delay-3">
+                <h3>📋 My Units</h3>
+                @if(isset($properties) && count($properties) > 0)
+                    <table class="property-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Bookings</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($properties as $property)
                                 <tr>
                                     <td>
-                                        <div class="property-info">
-                                            @if($booking->accommodation && $booking->accommodation->primary_image)
-                                                <img src="{{ asset('storage/' . $booking->accommodation->primary_image) }}" alt="{{ $booking->accommodation->name }}" class="property-thumb">
+                                        <div style="display: flex; align-items: center; gap: 15px;">
+                                            @if($property->primary_image)
+                                                <img src="{{ asset('storage/' . $property->primary_image) }}" alt="{{ $property->name }}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
                                             @else
-                                                <img src="/COMMUNAL.jpg" alt="Property" class="property-thumb">
+                                                <img src="/COMMUNAL.jpg" alt="{{ $property->name }}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
                                             @endif
-                                            <div class="property-details">
-                                                <h4>{{ $booking->accommodation->name ?? 'N/A' }}</h4>
-                                                <p>{{ ucfirst($booking->accommodation->type ?? '') }}</p>
+                                            <div>
+                                                <div style="font-weight: 600; color: var(--gray-800);">{{ $property->name }}</div>
+                                                <div style="font-size: 0.85rem; color: var(--gray-500);">{{ $property->address }}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d') }} - {{ \Carbon\Carbon::parse($booking->check_out_date)->format('M d, Y') }}</td>
-                                    <td>₱{{ number_format($booking->total_price, 2) }}</td>
-                                    <td><span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span></td>
+                                    <td>{{ ucfirst(str_replace('-', ' ', $property->type)) }}</td>
+                                    <td>₱{{ number_format($property->price_per_night, 0, '.', ',') }}</td>
+                                    <td>{{ $property->bookings_count ?? 0 }}</td>
                                     <td>
-                                        <div class="action-btns">
-                                            <a href="{{ route('bookings.show', $booking) }}" class="action-btn view" title="View">👁️</a>
-                                        </div>
+                                        @if($property->rating > 0)
+                                            ⭐ {{ number_format($property->rating, 1) }}
+                                        @else
+                                            <span style="color: var(--gray-400);">No ratings</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="status-badge {{ $property->is_available ? 'active' : 'inactive' }}">
+                                            {{ $property->is_available ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('owner.accommodations.edit', $property) }}" style="padding: 8px 15px; background: var(--green-soft); color: var(--green-dark); border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 500;">Edit</a>
                                     </td>
                                 </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" style="text-align: center; padding: 30px;">
-                                        <p style="color: var(--green-medium);">No recent bookings found.</p>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div style="text-align: center; padding: 40px; color: var(--gray-400);">
+                        <p>No properties yet. Add your first property!</p>
+                        <a href="{{ route('owner.accommodations.create') }}" style="display: inline-block; margin-top: 15px; padding: 12px 25px; background: var(--green-primary); color: white; border-radius: 8px; text-decoration: none;">Add Property</a>
                     </div>
-                </div>
+                @endif
+            </div>
+            
+            <!-- Recent Booking Requests -->
+            <div class="dashboard-card animate delay-4">
+                <h3>📅 Recent Booking Requests</h3>
+                @if(isset($recent_bookings) && count($recent_bookings) > 0)
+                    <table class="property-table">
+                        <thead>
+                            <tr>
+                                <th>Guest</th>
+                                <th>Property</th>
+                                <th>Check-In</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($recent_bookings as $booking)
+                                <tr>
+                                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
+                                    <td>{{ $booking->accommodation->name ?? 'N/A' }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d, Y') }}</td>
+                                    <td>₱{{ number_format($booking->total_price, 0, '.', ',') }}</td>
+                                    <td><span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div style="text-align: center; padding: 40px; color: var(--gray-400);">
+                        <p>No booking requests yet</p>
+                    </div>
+                @endif
             </div>
         </main>
     </div>
-    
-    <!-- Logout Form -->
-    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-        @csrf
-    </form>
 </body>
 </html>
