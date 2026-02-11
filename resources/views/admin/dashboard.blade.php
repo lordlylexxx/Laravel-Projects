@@ -261,27 +261,46 @@
             <div class="sidebar-section">
                 <h3 class="sidebar-title">Analytics</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="#" class="active"><span class="icon">📊</span> Dashboard</a></li>
-                    <li><a href="#"><span class="icon">📈</span> Reports</a></li>
-                    <li><a href="#"><span class="icon">📉</span> Performance</a></li>
+                    <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <span class="icon">📊</span> Dashboard
+                    </a></li>
+                    <li><a href="{{ route('admin.bookings') }}" class="{{ request()->routeIs('admin.bookings') ? 'active' : '' }}">
+                        <span class="icon">📅</span> Bookings
+                    </a></li>
                 </ul>
             </div>
             
             <div class="sidebar-section">
                 <h3 class="sidebar-title">Management</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.users') }}"><span class="icon">👥</span> Users <span class="badge">{{ $kpis['total_users'] ?? 0 }}</span></a></li>
-                    <li><a href="{{ route('admin.bookings') }}"><span class="icon">📅</span> Bookings <span class="badge">{{ $kpis['pending_bookings'] ?? 0 }}</span></a></li>
-                    <li><a href="{{ route('owner.accommodations.index') }}"><span class="icon">🏠</span> Properties</a></li>
-                    <li><a href="{{ route('messages.index') }}"><span class="icon">💬</span> Messages</a></li>
+                    <li><a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">
+                        <span class="icon">👥</span> Users <span class="badge">{{ $kpis['total_users'] ?? 0 }}</span>
+                    </a></li>
+                    <li><a href="{{ route('admin.bookings') }}" class="{{ request()->routeIs('admin.bookings') ? 'active' : '' }}">
+                        <span class="icon">📅</span> Bookings <span class="badge">{{ $kpis['pending_bookings'] ?? 0 }}</span>
+                    </a></li>
+                    <li><a href="{{ route('owner.accommodations.index') }}" class="{{ request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">
+                        <span class="icon">🏠</span> Properties
+                    </a></li>
+                    <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">
+                        <span class="icon">💬</span> Messages
+                    </a></li>
                 </ul>
             </div>
             
             <div class="sidebar-section">
-                <h3 class="sidebar-title">Quick Stats</h3>
+                <h3 class="sidebar-title">Account</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="#"><span class="icon">💰</span> Revenue: ₱{{ number_format($kpis['total_revenue'] ?? 0, 0, '.', ',') }}</a></li>
-                    <li><a href="#"><span class="icon">📆</span> This Month: ₱{{ number_format($monthlyRevenue ?? 0, 0, '.', ',') }}</a></li>
+                    <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                        <span class="icon">👤</span> My Profile
+                    </a></li>
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" style="display: flex; align-items: center; gap: 15px; padding: 14px 25px; margin: 0; cursor: pointer; color: #C62828; text-decoration: none; transition: all 0.3s; border-left: 4px solid transparent;">
+                            @csrf
+                            <span class="icon">🚪</span>
+                            <button type="submit" style="background: none; border: none; cursor: pointer; color: inherit; font: inherit; padding: 0; margin: 0;">Logout</button>
+                        </form>
+                    </li>
                 </ul>
             </div>
         </aside>

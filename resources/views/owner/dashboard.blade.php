@@ -627,10 +627,13 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            <span class="icon">🚪</span>
-                            Logout
-                        </a>
+                        <form action="{{ route('logout') }}" method="POST" style="margin: 0; padding: 0;">
+                            @csrf
+                            <button type="submit" style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 25px; background: none; border: none; cursor: pointer; color: #C62828; font: inherit; border-left: 4px solid transparent; transition: all 0.3s ease;">
+                                <span class="icon">🚪</span>
+                                Logout
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </div>
