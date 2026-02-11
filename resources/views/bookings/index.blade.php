@@ -142,16 +142,16 @@
         <ul class="nav-links">
             @auth
                 @if(Auth::user()->isAdmin())
-                    <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a></li>
                 @elseif(Auth::user()->isOwner())
-                    <li><a href="{{ route('owner.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ route('owner.dashboard') }}" class="{{ request()->routeIs('owner.dashboard') ? 'active' : '' }}">Dashboard</a></li>
                 @else
-                    <li><a href="{{ route('dashboard') }}" class="active">Browse</a></li>
+                    <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Browse</a></li>
                 @endif
             @endauth
-            <li><a href="{{ route('accommodations.index') }}">Properties</a></li>
-            <li><a href="{{ route('bookings.index') }}" class="active">My Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('accommodations.index') }}" class="{{ request()->routeIs('accommodations.*') ? 'active' : '' }}">Properties</a></li>
+            <li><a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') ? 'active' : '' }}">My Bookings</a></li>
+            <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
         </ul>
         
         <div class="nav-actions">
