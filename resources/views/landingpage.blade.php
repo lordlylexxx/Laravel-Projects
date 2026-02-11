@@ -39,10 +39,46 @@
             box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
         }
         
-        .nav-brand { display: flex; align-items: center; gap: 15px; }
-        .nav-brand img { height: 50px; width: auto; border-radius: 8px; }
-        .nav-brand .system-name { font-size: 1.6rem; font-weight: 700; color: var(--green-dark); letter-spacing: -0.5px; }
-        .nav-brand .tagline { font-size: 0.75rem; color: var(--green-medium); margin-left: 10px; }
+        .nav-brand { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        .nav-brand img.main-logo { 
+            height: 55px; 
+            width: auto; 
+            border-radius: 8px; 
+        }
+        .nav-brand .logo-divider { 
+            height: 45px; 
+            width: 3px; 
+            background: linear-gradient(180deg, var(--green-dark), var(--green-primary), var(--green-medium)); 
+            border-radius: 2px; 
+        }
+        .nav-brand .collaboration-logos { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .nav-brand .collaboration-logos img { 
+            height: 45px; 
+            width: auto; 
+            border-radius: 6px; 
+            border: 2px solid var(--green-soft);
+        }
+        .nav-brand .system-name { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            color: var(--green-dark); 
+            letter-spacing: -0.5px; 
+        }
+        .nav-brand .tagline { 
+            font-size: 0.7rem; 
+            color: var(--green-medium); 
+            margin-left: 8px; 
+            display: block;
+            line-height: 1.2;
+        }
         
         .nav-links { display: flex; gap: 30px; list-style: none; }
         .nav-links a { 
@@ -291,7 +327,12 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
+            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo" class="main-logo">
+            <div class="logo-divider"></div>
+            <div class="collaboration-logos">
+                <img src="/1.jpg" alt="Municipality of Impasugong" title="Municipality of Impasugong">
+                <img src="/2.jpg" alt="Impasugong Tourism" title="Impasugong Tourism">
+            </div>
             <div>
                 <span class="system-name">VerdeVistas</span>
                 <span class="tagline">| Impasugong Accommodations</span>
