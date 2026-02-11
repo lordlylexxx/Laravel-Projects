@@ -29,20 +29,17 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Update last login
-        $user = $request->user();
-        try {
-            $user->update(['last_login' => now()]);
-        } catch (\Exception $e) {
-            // Ignore if last_login column doesn't exist
-        }
+        $request->user()->updateLastLogin();
 
-        // Redirect based on role - Clients go directly to Properties page
+        // Redirect based on role - PROPER DASHBOARD REDIRECTION
+        $user = $request->user();
+        
         if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->isOwner()) {
             return redirect()->route('owner.dashboard');
         } else {
-            // Clients go directly to properties listing
+            // Client redirects to Properties page (not My Bookings)
             return redirect()->route('accommodations.index');
         }
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Impasugong Accommodations</title>
+    <title>Admin Dashboard - VerdeVistas</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -251,7 +251,7 @@
         .quick-stat-card h4 { font-size: 1.4rem; color: var(--green-dark); margin-bottom: 5px; font-weight: 700; }
         .quick-stat-card p { color: var(--gray-600); font-size: 0.85rem; }
         
-        /* Settings Icon */
+        /* Gear Icon (Settings) - Icon Only */
         .settings-icon {
             width: 44px;
             height: 44px;
@@ -264,6 +264,7 @@
             font-size: 1.2rem;
             transition: all 0.3s;
             cursor: pointer;
+            border: none;
         }
         .settings-icon:hover {
             background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
@@ -299,8 +300,8 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('landing') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
-            <span>Impasugong</span>
+            <img src="/SYSTEMLOGO.jpg" alt="VerdeVistas Logo">
+            <span>VerdeVistas</span>
         </a>
         
         <ul class="nav-links">
@@ -339,7 +340,7 @@
                 </ul>
             </div>
             
-            <!-- Settings Icon at Lower-Left Corner -->
+            <!-- Gear Icon Only (Settings) - Lower-Left Corner -->
             <div style="position: absolute; bottom: 20px; left: 25px;">
                 <a href="{{ route('profile.edit') }}" class="settings-icon" title="Settings">
                     <i class="fas fa-cog"></i>

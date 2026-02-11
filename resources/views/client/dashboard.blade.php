@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Dashboard - Impasugong Accommodations</title>
+    <title>Client Dashboard - VerdeVistas</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -279,8 +279,8 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
-            <span>Impasugong</span>
+            <img src="/SYSTEMLOGO.jpg" alt="VerdeVistas Logo">
+            <span>VerdeVistas</span>
         </a>
         
         <ul class="nav-links">
@@ -530,7 +530,7 @@
         
         <!-- Footer -->
         <footer class="footer">
-            <p><i class="fas fa-copyright"></i> 2024 Municipality of Impasugong. All Rights Reserved.</p>
+            <p><i class="fas fa-copyright"></i> 2024 VerdeVistas. Impasugong Accommodations Platform.</p>
         </footer>
     </div>
     

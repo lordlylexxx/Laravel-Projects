@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Dashboard - Impasugong Accommodations</title>
+    <title>Owner Dashboard - VerdeVistas</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -259,7 +259,7 @@
         .status-badge.confirmed { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: #1D4ED8; }
         .status-badge.cancelled { background: linear-gradient(135deg, #FEE2E2, #FECACA); color: #DC2626; }
         
-        /* Settings Icon */
+        /* Gear Icon (Settings) - Icon Only */
         .settings-icon {
             width: 44px;
             height: 44px;
@@ -304,8 +304,8 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('owner.dashboard') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
-            <span>Impasugong</span>
+            <img src="/SYSTEMLOGO.jpg" alt="VerdeVistas Logo">
+            <span>VerdeVistas</span>
         </a>
         
         <ul class="nav-links">
@@ -341,7 +341,7 @@
                 </ul>
             </div>
             
-            <!-- Settings Icon at Lower-Left Corner -->
+            <!-- Gear Icon Only (Settings) - Lower-Left Corner -->
             <div style="position: absolute; bottom: 20px; left: 25px;">
                 <a href="{{ route('profile.edit') }}" class="settings-icon" title="Settings">
                     <i class="fas fa-cog"></i>
