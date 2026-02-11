@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\User;
