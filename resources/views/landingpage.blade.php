@@ -74,8 +74,8 @@
         .nav-brand .tagline { 
             font-size: 0.7rem; 
             color: var(--green-medium); 
-            margin-left: 8px; 
-            display: block;
+            margin-left: 8px;
+            display: inline;
             line-height: 1.2;
         }
         
