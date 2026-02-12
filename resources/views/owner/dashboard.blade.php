@@ -355,7 +355,7 @@
             <!-- User Display -->
             <div class="user-display">
                 @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
+                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
                 @else
                     <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
                 @endif
