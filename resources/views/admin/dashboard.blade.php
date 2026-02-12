@@ -350,7 +350,11 @@
         <div class="nav-actions">
             <!-- User Display -->
             <div class="user-display">
-                <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
+                @if(Auth::user()->avatar)
+                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
+                @else
+                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
+                @endif
                 <div class="user-info">
                     <div class="user-name">{{ Auth::user()->name }}</div>
                     <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
