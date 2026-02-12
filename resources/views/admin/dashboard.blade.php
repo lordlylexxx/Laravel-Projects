@@ -65,12 +65,48 @@
             box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
         }
         
-        .nav-actions { display: flex; gap: 12px; align-items: center; }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .user-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, var(--green-soft), var(--green-white));
+            border-radius: 10px;
+            border: 1px solid var(--green-soft);
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .user-info {
+            text-align: left;
+        }
+        .user-name {
+            font-weight: 700;
+            color: var(--green-dark);
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--green-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         .nav-btn { 
             padding: 10px 20px; 
             border-radius: 8px; 
             font-weight: 600; 
-            text-decoration: none; 
+            text-decoration: none;
             transition: all 0.3s; 
             cursor: pointer; 
             border: none;
@@ -312,6 +348,14 @@
         </ul>
         
         <div class="nav-actions">
+            <!-- User Display -->
+            <div class="user-display">
+                <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ Auth::user()->name }}</div>
+                    <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
+                </div>
+            </div>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
