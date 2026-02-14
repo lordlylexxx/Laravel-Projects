@@ -341,7 +341,7 @@
     <nav class="navbar">
         <a href="{{ route('owner.dashboard') }}" class="nav-logo">
             <img src="/SYSTEMLOGO.jpg" alt="System Logo">
-            <span>Dashboard</span>
+            <span>VerdeVistas</span>
         </a>
         
         <ul class="nav-links">

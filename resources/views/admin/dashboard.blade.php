@@ -337,7 +337,7 @@
     <nav class="navbar">
         <a href="{{ route('admin.dashboard') }}" class="nav-logo">
             <img src="/SYSTEMLOGO.jpg" alt="System Logo">
-            <span>Dashboard</span>
+            <span>VerdeVistas</span>
         </a>
         
         <ul class="nav-links">
