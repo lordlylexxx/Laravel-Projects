@@ -18,7 +18,7 @@
         /* Navigation */
         .navbar { background: var(--white); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(27, 94, 32, 0.1); position: fixed; width: 100%; top: 0; z-index: 1000; }
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); }
+        .nav-logo img { width: 80px; height: 60px; border-radius: 8px; object-fit: contain; background: white; padding: 3px; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 25px; list-style: none; }
@@ -87,7 +87,7 @@
 <body>
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo">
             <span>Impasugong</span>
         </a>
         

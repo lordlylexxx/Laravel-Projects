@@ -41,7 +41,7 @@
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 3px solid var(--green-primary); }
+        .nav-logo img { width: 80px; height: 60px; border-radius: 8px; object-fit: contain; background: white; padding: 3px; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -315,7 +315,7 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo">
             <span>VerdeVistas</span>
         </a>
         
@@ -351,7 +351,7 @@
         <section class="hero">
             <div class="hero-content">
                 <h1><i class="fas fa-home" style="margin-right: 12px;"></i>Find Your Perfect Stay</h1>
-                <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
+                <p>Discover traveller-inns, Airbnb stays, and daily rentals in VerdeVistas</p>
                 
                 <div class="search-section">
                     <form action="{{ route('accommodations.index') }}" method="GET">
@@ -578,7 +578,7 @@
         
         <!-- Footer -->
         <footer class="footer">
-            <p><i class="fas fa-copyright"></i> 2024 VerdeVistas. Impasugong Accommodations Platform.</p>
+            <p><i class="fas fa-copyright"></i> 2024 VerdeVistas. VerdeVistas Accommodations Platform.</p>
         </footer>
     </div>
     

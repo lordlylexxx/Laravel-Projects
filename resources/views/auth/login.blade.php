@@ -67,11 +67,16 @@
         }
         
         .municipality-logo {
-            width: 100px;
+            width: 150px;
             height: 100px;
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
+            border-radius: 12px;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            object-fit: contain;
+            background: #ffffff;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .logo-divider {
@@ -293,7 +298,7 @@
             <div class="logo-container">
                 <img src="/1.jpg" alt="Municipality Logo" class="municipality-logo">
                 <div class="logo-divider"></div>
-                <img src="/2.jpg" alt="Municipality Logo" class="municipality-logo">
+                <img src="/SYSTEMLOGO.jpg" alt="System Logo" class="municipality-logo">
             </div>
             
             <h1>Impasugong Accommodations</h1>
