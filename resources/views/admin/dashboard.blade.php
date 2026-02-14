@@ -44,7 +44,7 @@
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 3px solid var(--green-primary); }
+        .nav-logo img { width: 80px; height: 60px; border-radius: 8px; object-fit: contain; background: white; padding: 3px; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -335,9 +335,9 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <a href="{{ route('landing') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
-            <span>VerdeVistas</span>
+        <a href="{{ route('admin.dashboard') }}" class="nav-logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo">
+            <span>Dashboard</span>
         </a>
         
         <ul class="nav-links">

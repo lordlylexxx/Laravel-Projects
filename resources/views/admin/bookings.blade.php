@@ -14,7 +14,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%); min-height: 100vh; }
         .navbar { background: var(--green-dark); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; position: fixed; width: 100%; top: 0; z-index: 1000; }
         .nav-logo { display: flex; align-items: center; gap: 15px; }
-        .nav-logo img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid var(--green-light); }
+        .nav-logo img { width: 80px; height: 60px; border-radius: 8px; object-fit: contain; background: white; padding: 3px; }
         .nav-logo span { font-size: 1.4rem; font-weight: 700; color: var(--white); }
         .dashboard-layout { display: flex; padding-top: 80px; }
         .sidebar { width: 300px; background: var(--white); min-height: calc(100vh - 80px); padding: 30px 0; box-shadow: 2px 0 20px rgba(27, 94, 32, 0.1); }
@@ -55,7 +55,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-logo">
-            <img src="/1.jpg" alt="Municipality Logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo">
             <span>Admin Panel</span>
         </div>
     </nav>

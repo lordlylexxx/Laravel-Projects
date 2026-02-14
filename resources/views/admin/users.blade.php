@@ -53,10 +53,12 @@
         }
         
         .nav-logo img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 3px solid var(--green-light);
+            width: 80px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: white;
+            padding: 3px;
         }
         
         .nav-logo span {
@@ -364,7 +366,7 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-logo">
-            <img src="/1.jpg" alt="Municipality Logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo">
             <span>Admin Panel</span>
         </div>
     </nav>

@@ -326,15 +326,10 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo" class="main-logo">
+            <img src="/SYSTEMLOGO.jpg" alt="System Logo" class="main-logo">
             <div class="logo-divider"></div>
             <div class="collaboration-logos">
                 <img src="/1.jpg" alt="Municipality of Impasugong" title="Municipality of Impasugong">
-                <img src="/2.jpg" alt="Impasugong Tourism" title="Impasugong Tourism">
-            </div>
-            <div>
-                <span class="system-name">VerdeVistas</span>
-                <span class="tagline">| Impasugong Accommodations</span>
             </div>
         </div>
         <ul class="nav-links">
