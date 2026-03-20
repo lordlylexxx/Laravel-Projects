@@ -39,10 +39,10 @@
         .municipality-logo {
             width: 120px;
             height: 120px;
-            border-radius: 50%;
-            border: 4px solid #2E7D32;
+            border-radius: 14px;
+            border: none;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-            object-fit: cover;
+            object-fit: contain;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
@@ -232,9 +232,9 @@
     <div class="landing-container">
         <!-- Municipality Logos Section -->
         <div class="logo-section animate-in">
-            <img src="/1.jpg" alt="Municipality Logo 1" class="municipality-logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
             <div class="logo-divider"></div>
-            <img src="/2.jpg" alt="Municipality Logo 2" class="municipality-logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
         </div>
         
         <!-- Main Title -->

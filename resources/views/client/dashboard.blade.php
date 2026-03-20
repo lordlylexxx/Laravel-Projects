@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Dashboard - VerdeVistas</title>
+    <title>Client Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,7 +29,8 @@
         /* Navigation */
         .navbar {
             background: var(--white);
-            padding: 15px 40px;
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -37,11 +38,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 3px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -295,7 +298,7 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; }
+            .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .hero { padding: 40px 20px; }
             .hero h1 { font-size: 1.8rem; }
@@ -315,14 +318,16 @@
     <!-- Navigation -->
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
-            <span>VerdeVistas</span>
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
+            <span>ImpaStay</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="{{ route('accommodations.index') }}" class="active"><i class="fas fa-search"></i> Browse</a></li>
+            <li><a href="{{ route('dashboard') }}" class="active"><i class="fas fa-search"></i> Browse</a></li>
+            <li><a href="{{ route('accommodations.index') }}"><i class="fas fa-building"></i> Accommodations</a></li>
             <li><a href="{{ route('bookings.index') }}"><i class="fas fa-calendar-alt"></i> My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}"><i class="fas fa-envelope"></i> Messages</a></li>
+            <li><a href="{{ route('profile.edit') }}"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         
         <div class="nav-actions">
@@ -578,7 +583,7 @@
         
         <!-- Footer -->
         <footer class="footer">
-            <p><i class="fas fa-copyright"></i> 2024 VerdeVistas. Impasugong Accommodations Platform.</p>
+            <p><i class="fas fa-copyright"></i> 2024 ImpaStay. Impasugong Accommodations Platform.</p>
         </footer>
     </div>
     

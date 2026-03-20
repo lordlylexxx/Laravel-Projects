@@ -35,18 +35,15 @@ class BookingController extends Controller
     /**
      * Store a new booking.
      */
-    public function store(Request $request)
+    public function store(Request $request, Accommodation $accommodation)
     {
         $validated = $request->validate([
-            'accommodation_id' => 'required|exists:accommodations,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
             'number_of_guests' => 'required|integer|min:1',
             'special_requests' => 'nullable|string',
             'client_message' => 'nullable|string',
         ]);
-
-        $accommodation = Accommodation::findOrFail($validated['accommodation_id']);
 
         // Validate guests
         if ($validated['number_of_guests'] > $accommodation->max_guests) {
@@ -64,6 +61,7 @@ class BookingController extends Controller
         $totalPrice = $accommodation->calculateTotalPrice($checkIn, $checkOut, $validated['number_of_guests']);
 
         $validated['client_id'] = $request->user()->id;
+        $validated['accommodation_id'] = $accommodation->id;
         $validated['total_price'] = $totalPrice;
         $validated['status'] = Booking::STATUS_PENDING;
 

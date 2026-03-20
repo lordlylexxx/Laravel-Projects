@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Accommodation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class AccommodationController extends Controller
 {
@@ -91,13 +90,20 @@ class AccommodationController extends Controller
             'bedrooms' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
             'max_guests' => 'nullable|integer|min:1',
-            'amenities' => 'nullable|array',
+            'amenities' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (!is_array($value) && !is_string($value)) {
+                        $fail('The amenities field must be a valid list.');
+                    }
+                },
+            ],
             'house_rules' => 'nullable|string',
             'check_in_instructions' => 'nullable|string',
         ]);
 
         $validated['owner_id'] = $request->user()->id;
-        $validated['amenities'] = $request->amenities ?? [];
+        $validated['amenities'] = $this->normalizeAmenities($request->input('amenities', []));
         
         // Handle image upload
         if ($request->hasFile('primary_image')) {
@@ -138,13 +144,20 @@ class AccommodationController extends Controller
             'bedrooms' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
             'max_guests' => 'nullable|integer|min:1',
-            'amenities' => 'nullable|array',
+            'amenities' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (!is_array($value) && !is_string($value)) {
+                        $fail('The amenities field must be a valid list.');
+                    }
+                },
+            ],
             'house_rules' => 'nullable|string',
             'check_in_instructions' => 'nullable|string',
             'is_available' => 'nullable|boolean',
         ]);
 
-        $validated['amenities'] = $request->amenities ?? [];
+        $validated['amenities'] = $this->normalizeAmenities($request->input('amenities', []));
         $validated['is_available'] = $request->has('is_available');
 
         // Handle image upload
@@ -205,6 +218,33 @@ class AccommodationController extends Controller
 
         $status = $accommodation->is_available ? 'available' : 'unavailable';
         return back()->with('success', "Accommodation is now {$status}.");
+    }
+
+    /**
+     * Normalize amenities input from either array fields or textarea text.
+     */
+    private function normalizeAmenities($amenities): array
+    {
+        if (is_string($amenities)) {
+            $amenities = preg_split('/\r\n|\r|\n|,/', $amenities) ?: [];
+        }
+
+        if (!is_array($amenities)) {
+            return [];
+        }
+
+        return collect($amenities)
+            ->flatMap(function ($item) {
+                if (!is_string($item)) {
+                    return [];
+                }
+
+                return preg_split('/\r\n|\r|\n|,/', $item) ?: [];
+            })
+            ->map(fn ($item) => trim($item))
+            ->filter()
+            ->values()
+            ->all();
     }
 }
 

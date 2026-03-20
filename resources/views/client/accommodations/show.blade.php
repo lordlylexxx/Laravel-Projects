@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $accommodation->name }} - Impasugong Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -28,7 +29,8 @@
         /* Navigation */
         .navbar {
             background: var(--white);
-            padding: 15px 40px;
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -36,11 +38,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 25px; list-style: none; }
@@ -182,12 +186,16 @@
         }
         
         @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; }
+            .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .main-image { height: 300px; }
             .form-row { grid-template-columns: 1fr; }
             .property-header { flex-direction: column; gap: 15px; }
         }
+
+        @if(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
         
         /* Animations */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -199,22 +207,29 @@
 </head>
 <body>
     <!-- Navigation -->
+    @if(auth()->user()?->isClient())
+    @include('client.partials.top-navbar', ['active' => 'accommodations'])
+    @else
     <nav class="navbar">
-        <a href="{{ route('landing') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
+        <a href="{{ route('dashboard') }}" class="nav-logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="{{ route('accommodations.index') }}" class="active">Browse</a></li>
+            <li><a href="{{ route('dashboard') }}">Browse</a></li>
+            <li><a href="{{ route('accommodations.index') }}" class="active">Accommodations</a></li>
             @auth
                 @if(Auth::user()->role === 'owner')
                     <li><a href="{{ route('owner.dashboard') }}">Dashboard</a></li>
-                @else
+                @elseif(Auth::user()->role === 'admin')
+                    <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                @elseif(Auth::user()->role !== 'client')
                     <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
                 @endif
                 <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
                 <li><a href="{{ route('messages.index') }}">Messages</a></li>
+                <li><a href="{{ route('profile.edit') }}">Settings</a></li>
             @endauth
         </ul>
         
@@ -232,6 +247,7 @@
         </div>
         @endauth
     </nav>
+    @endif
     
     <!-- Main Container -->
     <div class="main-container">

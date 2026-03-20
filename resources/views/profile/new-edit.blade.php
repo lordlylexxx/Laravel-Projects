@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Impasugong Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -27,7 +28,8 @@
         /* Navigation */
         .navbar {
             background: var(--white);
-            padding: 15px 40px;
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -35,11 +37,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 25px; list-style: none; }
@@ -225,13 +229,25 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; }
+            .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .main-container { padding: 80px 15px 30px; }
             .form-row { grid-template-columns: 1fr; }
             .user-card { flex-direction: column; text-align: center; }
             .avatar-upload { flex-direction: column; }
         }
+
+        body.owner-nav-page .main-container.with-owner-nav {
+            padding-top: 100px;
+        }
+
+        @if(auth()->user()?->isOwner())
+            @include('owner.partials.top-navbar-styles')
+        @elseif(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @elseif(auth()->user()?->isAdmin())
+            @include('admin.partials.top-navbar-styles')
+        @endif
         
         /* Breadcrumb */
         .breadcrumb { display: flex; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; }
@@ -240,11 +256,18 @@
         .breadcrumb span { color: var(--gray-500); }
     </style>
 </head>
-<body>
+<body class="{{ auth()->user()?->isOwner() ? 'owner-nav-page' : '' }}">
     <!-- Navigation -->
+    @if(auth()->user()?->isOwner())
+    @include('owner.partials.top-navbar')
+    @elseif(auth()->user()?->isClient())
+        @include('client.partials.top-navbar', ['active' => 'settings'])
+    @elseif(auth()->user()?->isAdmin())
+        @include('admin.partials.top-navbar', ['active' => 'settings'])
+    @else
     <nav class="navbar">
         <a href="{{ route('landing') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
@@ -254,18 +277,14 @@
                 <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ route('admin.users') }}">Users</a></li>
                 <li><a href="{{ route('admin.bookings') }}">Bookings</a></li>
-            @elseif(Auth::user()->role === 'owner')
-                <li><a href="{{ route('owner.dashboard') }}">Dashboard</a></li>
-                <li><a href="{{ route('owner.accommodations.index') }}">Properties</a></li>
             @else
-                <li><a href="{{ route('accommodations.index') }}">Browse</a></li>
-                <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
+                <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
             @endif
             <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('profile.edit') }}" class="active">Settings</a></li>
         </ul>
         
         <div class="nav-actions">
-            <a href="{{ route('profile.edit') }}" class="nav-btn secondary">Settings</a>
             <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                 @csrf
                 <button type="submit" class="nav-btn primary">Logout</button>
@@ -273,9 +292,10 @@
         </div>
         @endauth
     </nav>
+    @endif
     
     <!-- Main Content -->
-    <div class="main-container">
+    <div class="main-container {{ auth()->user()?->isOwner() ? 'with-owner-nav' : '' }}">
         <!-- Breadcrumb -->
         <div class="breadcrumb">
             <a href="{{ route('landing') }}">Home</a>

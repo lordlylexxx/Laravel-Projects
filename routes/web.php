@@ -84,6 +84,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/{message}/archive', [\App\Http\Controllers\MessageController::class, 'archive'])->name('archive');
         Route::delete('/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('destroy');
     });
+
+    // Browse accommodations - accessible to all authenticated users
+    Route::prefix('accommodations')->name('accommodations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AccommodationController::class, 'index'])->name('index');
+        Route::get('/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])->name('show');
+    });
 });
 
 // ============ CLIENT ROUTES ============
@@ -94,12 +100,9 @@ Route::middleware(['auth', 'client'])->group(function () {
         return view('client.dashboard');
     })->name('dashboard');
     
-    // Client Accommodation Routes
-    Route::prefix('accommodations')->name('accommodations.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\AccommodationController::class, 'index'])->name('index');
-        Route::get('/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])->name('show');
-        Route::post('/{accommodation}/book', [\App\Http\Controllers\BookingController::class, 'store'])->name('book');
-    });
+    // Client Accommodation Booking Route
+    Route::post('/accommodations/{accommodation}/book', [\App\Http\Controllers\BookingController::class, 'store'])
+        ->name('accommodations.book');
     
     // Client Booking Routes
     Route::prefix('bookings')->name('bookings.')->group(function () {
@@ -122,10 +125,13 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(fun
     Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
     
     // Owner Accommodation Management
-    Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class);
+    Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])
+        ->name('accommodations.index');
+    Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class)
+        ->except(['index']);
     
     // Owner Booking Management
-    Route::prefix('../bookings')->name('bookings.')->group(function () {
+    Route::prefix('bookings')->name('bookings.')->group(function () {
         Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
         Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
         Route::put('/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('update-status');

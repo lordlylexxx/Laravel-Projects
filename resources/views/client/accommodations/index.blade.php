@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Properties - Impasugong Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -39,11 +40,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); object-fit: cover; }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -402,20 +405,29 @@
             .filter-btn { margin-left: 0; }
             .properties-grid { grid-template-columns: 1fr; }
         }
+
+        @if(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
     </style>
 </head>
 <body>
     <!-- Navigation -->
+    @if(auth()->user()?->isClient())
+    @include('client.partials.top-navbar', ['active' => 'accommodations'])
+    @else
     <nav class="navbar">
-        <a href="{{ route('accommodations.index') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
+        <a href="{{ route('dashboard') }}" class="nav-logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="{{ route('accommodations.index') }}" class="active">Properties</a></li>
+            <li><a href="{{ route('dashboard') }}">Browse</a></li>
+            <li><a href="{{ route('accommodations.index') }}" class="active">Accommodations</a></li>
             <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('profile.edit') }}">Settings</a></li>
         </ul>
         
         <div class="nav-actions">
@@ -431,6 +443,7 @@
             </form>
         </div>
     </nav>
+    @endif
     
     <!-- Main Content -->
     <main class="main-content">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Dashboard - VerdeVistas</title>
+    <title>Owner Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,11 +36,12 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 3px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -122,64 +123,8 @@
         /* Main Layout */
         .dashboard-layout { display: flex; padding-top: 80px; }
         
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: var(--white);
-            min-height: calc(100vh - 80px);
-            padding: 25px 0;
-            box-shadow: 4px 0 20px rgba(27, 94, 32, 0.1);
-            position: fixed;
-            height: calc(100vh - 80px);
-            overflow-y: auto;
-        }
-        
-        .sidebar-section { margin-bottom: 20px; }
-        .sidebar-title { 
-            font-size: 0.7rem; 
-            color: var(--green-medium); 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            padding: 0 25px; 
-            margin-bottom: 10px; 
-            font-weight: 700; 
-        }
-        .sidebar-menu { list-style: none; }
-        .sidebar-menu li a { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            padding: 14px 25px; 
-            color: var(--gray-700); 
-            text-decoration: none; 
-            transition: all 0.3s; 
-            border-left: 4px solid transparent;
-            margin: 4px 8px;
-            border-radius: 8px;
-        }
-        .sidebar-menu li a:hover, .sidebar-menu li a.active { 
-            background: linear-gradient(135deg, var(--green-soft), var(--green-white)); 
-            border-left-color: var(--green-primary);
-            color: var(--green-dark);
-            transform: translateX(4px);
-        }
-        .sidebar-menu li a .icon { 
-            font-size: 1.2rem; 
-            width: 24px;
-            text-align: center;
-        }
-        .sidebar-menu li a .badge { 
-            margin-left: auto; 
-            background: linear-gradient(135deg, var(--orange-500), #EA580C); 
-            color: white; 
-            padding: 4px 10px; 
-            border-radius: 50px; 
-            font-size: 0.7rem; 
-            font-weight: 700;
-        }
-        
         /* Main Content */
-        .main-content { flex: 1; padding: 30px 40px; margin-left: 280px; min-height: calc(100vh - 80px); }
+        .main-content { flex: 1; padding: 30px 40px; min-height: calc(100vh - 80px); }
         
         /* Page Header */
         .page-header { margin-bottom: 30px; }
@@ -316,10 +261,6 @@
         }
         
         /* Responsive */
-        @media (max-width: 1024px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; }
-        }
         @media (max-width: 768px) {
             .navbar { padding: 15px 20px; }
             .nav-links { display: none; }
@@ -334,69 +275,15 @@
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
         .delay-4 { animation-delay: 0.4s; }
+
+        @include('owner.partials.top-navbar-styles')
     </style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <a href="{{ route('owner.dashboard') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
-            <span>VerdeVistas</span>
-        </a>
-        
-        <ul class="nav-links">
-            <li><a href="{{ route('owner.dashboard') }}" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
-            <li><a href="{{ route('owner.accommodations.index') }}"><i class="fas fa-building"></i> My Units</a></li>
-            <li><a href="{{ route('bookings.index') }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        </ul>
-        
-        <div class="nav-actions">
-            <!-- User Display -->
-            <div class="user-display">
-                @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
-                @else
-                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
-                @endif
-                <div class="user-info">
-                    <div class="user-name">{{ Auth::user()->name }}</div>
-                    <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
-                </div>
-            </div>
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </form>
-        </div>
-    </nav>
+<body class="owner-nav-page">
+    @include('owner.partials.top-navbar')
     
     <!-- Dashboard Layout -->
     <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">Management</h3>
-                <ul class="sidebar-menu">
-                    <li><a href="{{ route('owner.dashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="{{ route('owner.accommodations.index') }}"><i class="fas fa-building"></i> My Units</a></li>
-                    <li><a href="{{ route('bookings.index') }}"><i class="fas fa-calendar-alt"></i> Bookings
-                        @if(($stats['pending_bookings'] ?? 0) > 0)
-                            <span class="badge">{{ $stats['pending_bookings'] }}</span>
-                        @endif
-                    </a></li>
-                    <li><a href="{{ route('messages.index') }}"><i class="fas fa-comments"></i> Messages</a></li>
-                </ul>
-            </div>
-            
-            <!-- Gear Icon Only (Settings) - Lower-Left Corner -->
-            <div style="position: absolute; bottom: 20px; left: 25px;">
-                <a href="{{ route('profile.edit') }}" class="settings-icon" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </a>
-            </div>
-        </aside>
-        
         <!-- Main Content -->
         <main class="main-content">
             <!-- Page Header -->
@@ -460,7 +347,7 @@
                     <h4>Manage Units</h4>
                     <p>Edit property details</p>
                 </a>
-                <a href="{{ route('bookings.index') }}" class="quick-action-card">
+                <a href="{{ route('owner.bookings.index') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-tasks"></i></div>
                     <h4>Booking Requests</h4>
                     <p>Review pending bookings</p>

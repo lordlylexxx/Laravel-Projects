@@ -91,12 +91,18 @@ class MessageController extends Controller
      */
     public function reply(Request $request, Message $message)
     {
+        $user = $request->user();
+
+        if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'content' => 'required|string',
         ]);
 
         // Create reply
-        $reply = $message->reply($validated['content'], $request->user());
+        $reply = $message->reply($validated['content'], $user);
 
         return redirect()->route('messages.show', $reply)
             ->with('success', 'Reply sent successfully!');

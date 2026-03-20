@@ -22,9 +22,14 @@
             --white: #FFFFFF;
         }
         
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             background: linear-gradient(135deg, var(--green-white) 0%, var(--white) 50%, var(--green-soft) 100%);
         }
@@ -62,23 +67,16 @@
         .logo-container {
             display: flex;
             align-items: center;
-            gap: 20px;
+            justify-content: center;
             margin-bottom: 30px;
         }
         
         .municipality-logo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
-        }
-        
-        .logo-divider {
-            width: 3px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 2px;
+            width: 400px;
+            height: 400px;
+            border-radius: 12px;
+            border: none;
+            object-fit: contain;
         }
         
         .branding-content h1 {
@@ -268,19 +266,15 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-            }
-            
-            .branding-section {
-                padding: 30px;
-            }
+            .branding-section { display: none; }
             
             .form-section {
+                flex: 1;
                 padding: 20px;
             }
             
             .form-container {
+                max-width: 100%;
                 padding: 30px;
             }
         }
@@ -291,9 +285,7 @@
     <div class="branding-section">
         <div class="branding-content">
             <div class="logo-container">
-                <img src="/1.jpg" alt="Municipality Logo" class="municipality-logo">
-                <div class="logo-divider"></div>
-                <img src="/2.jpg" alt="Municipality Logo" class="municipality-logo">
+                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
             </div>
             
             <h1>Impasugong Accommodations</h1>

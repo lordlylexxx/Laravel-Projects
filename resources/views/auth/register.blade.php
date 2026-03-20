@@ -69,9 +69,9 @@
         .municipality-logo {
             width: 100px;
             height: 100px;
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
+            border-radius: 12px;
+            border: none;
+            object-fit: contain;
         }
         
         .logo-divider {
@@ -323,9 +323,9 @@
     <div class="branding-section">
         <div class="branding-content">
             <div class="logo-container">
-                <img src="/1.jpg" alt="Municipality Logo" class="municipality-logo">
+                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
                 <div class="logo-divider"></div>
-                <img src="/2.jpg" alt="Municipality Logo" class="municipality-logo">
+                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
             </div>
             
             <h1>Join Impasugong</h1>

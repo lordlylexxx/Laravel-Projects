@@ -119,9 +119,13 @@ class Message extends Model
 
     public function reply($content, $sender)
     {
+        $receiverId = (int) $sender->id === (int) $this->sender_id
+            ? $this->receiver_id
+            : $this->sender_id;
+
         return self::create([
             'sender_id' => $sender->id,
-            'receiver_id' => $this->sender_id,
+            'receiver_id' => $receiverId,
             'booking_id' => $this->booking_id,
             'subject' => 'Re: ' . ($this->subject ?? ''),
             'content' => $content,

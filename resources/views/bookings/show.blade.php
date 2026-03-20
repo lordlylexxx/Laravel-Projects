@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking Details - Impasugong Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -26,7 +27,8 @@
         /* Navigation */
         .navbar {
             background: var(--white);
-            padding: 15px 40px;
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -34,11 +36,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 25px; list-style: none; }
@@ -109,7 +113,7 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; }
+            .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .main-content { padding: 100px 20px 40px; }
             .property-info { flex-direction: column; }
@@ -117,13 +121,20 @@
             .booking-header-top { flex-direction: column; gap: 15px; }
             .action-btns { flex-direction: column; }
         }
+
+        @if(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
     </style>
 </head>
 <body>
     <!-- Navigation -->
+    @if(auth()->user()?->isClient())
+    @include('client.partials.top-navbar', ['active' => 'bookings'])
+    @else
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
-            <img src="/1.jpg" alt="Logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
@@ -137,9 +148,10 @@
                     <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Browse</a></li>
                 @endif
             @endauth
-            <li><a href="{{ route('accommodations.index') }}" class="{{ request()->routeIs('accommodations.*') ? 'active' : '' }}">Properties</a></li>
-            <li><a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') ? 'active' : '' }}">My Bookings</a></li>
+            <li><a href="{{ route('accommodations.index') }}" class="{{ request()->routeIs('accommodations.*') ? 'active' : '' }}">Browse</a></li>
+            <li><a href="{{ Auth::check() && Auth::user()->isOwner() ? route('owner.bookings.index') : route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') || request()->routeIs('owner.bookings.*') ? 'active' : '' }}">My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
+            <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
         
         <div class="nav-actions">
@@ -153,10 +165,15 @@
             </form>
         </div>
     </nav>
+    @endif
     
     <!-- Main Content -->
     <main class="main-content">
-        <a href="{{ route('bookings.index') }}" class="back-link">← Back to My Bookings</a>
+        @php
+            $bookingsIndexRoute = Auth::check() && Auth::user()->isOwner() ? 'owner.bookings.index' : 'bookings.index';
+        @endphp
+
+        <a href="{{ route($bookingsIndexRoute) }}" class="back-link">← Back to My Bookings</a>
         
         @if(isset($booking))
             <div class="booking-card">
@@ -244,11 +261,32 @@
                     @endif
                     
                     <!-- Action Buttons -->
-                    @if($booking->status == 'pending' || $booking->status == 'confirmed')
+                    @if(Auth::check() && Auth::user()->isOwner() && $booking->status === 'pending')
                         <div class="action-btns">
-                            <a href="{{ route('bookings.cancel', $booking) }}" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this booking? This action cannot be undone.')">
-                                Cancel Booking
-                            </a>
+                            <form action="{{ route('owner.bookings.update-status', $booking) }}" method="POST" style="display: inline;">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="status" value="confirmed">
+                                <button type="submit" class="btn btn-primary">Approve Booking</button>
+                            </form>
+                            <form action="{{ route('owner.bookings.update-status', $booking) }}" method="POST" style="display: inline;">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Decline this booking request?')">
+                                    Decline Booking
+                                </button>
+                            </form>
+                        </div>
+                    @elseif(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
+                        <div class="action-btns">
+                            <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this booking? This action cannot be undone.')">
+                                    Cancel Booking
+                                </button>
+                            </form>
                             <a href="{{ route('messages.index') }}" class="btn btn-outline">
                                 Contact Host
                             </a>
@@ -260,7 +298,7 @@
             <div class="booking-card" style="padding: 60px; text-align: center;">
                 <h2 style="color: var(--gray-700); margin-bottom: 15px;">Booking Not Found</h2>
                 <p style="color: var(--gray-500); margin-bottom: 25px;">The booking you're looking for doesn't exist or has been removed.</p>
-                <a href="{{ route('bookings.index') }}" class="btn btn-primary">Back to My Bookings</a>
+                <a href="{{ route($bookingsIndexRoute) }}" class="btn btn-primary">Back to My Bookings</a>
             </div>
         @endif
     </main>

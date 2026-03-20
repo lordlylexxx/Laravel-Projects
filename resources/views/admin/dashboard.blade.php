@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - VerdeVistas</title>
+    <title>Admin Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -32,7 +32,8 @@
         /* Navigation */
         .navbar {
             background: var(--white);
-            padding: 15px 40px;
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -40,11 +41,13 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 3px solid var(--green-primary); }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
         
         .nav-links { display: flex; gap: 8px; list-style: none; }
@@ -126,64 +129,8 @@
         /* Main Layout */
         .dashboard-layout { display: flex; padding-top: 80px; }
         
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: var(--white);
-            min-height: calc(100vh - 80px);
-            padding: 25px 0;
-            box-shadow: 4px 0 20px rgba(27, 94, 32, 0.1);
-            position: fixed;
-            height: calc(100vh - 80px);
-            overflow-y: auto;
-        }
-        
-        .sidebar-section { margin-bottom: 20px; }
-        .sidebar-title { 
-            font-size: 0.7rem; 
-            color: var(--green-medium); 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
-            padding: 0 25px; 
-            margin-bottom: 10px; 
-            font-weight: 700; 
-        }
-        .sidebar-menu { list-style: none; }
-        .sidebar-menu li a { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            padding: 14px 25px; 
-            color: var(--gray-700); 
-            text-decoration: none; 
-            transition: all 0.3s; 
-            border-left: 4px solid transparent;
-            margin: 4px 8px;
-            border-radius: 8px;
-        }
-        .sidebar-menu li a:hover, .sidebar-menu li a.active { 
-            background: linear-gradient(135deg, var(--green-soft), var(--green-white)); 
-            border-left-color: var(--green-primary);
-            color: var(--green-dark);
-            transform: translateX(4px);
-        }
-        .sidebar-menu li a .icon { 
-            font-size: 1.2rem; 
-            width: 24px;
-            text-align: center;
-        }
-        .sidebar-menu li a .badge { 
-            margin-left: auto; 
-            background: linear-gradient(135deg, var(--red-500), #DC2626); 
-            color: white; 
-            padding: 4px 10px; 
-            border-radius: 50px; 
-            font-size: 0.7rem; 
-            font-weight: 700;
-        }
-        
         /* Main Content */
-        .main-content { flex: 1; padding: 30px 40px; margin-left: 280px; min-height: calc(100vh - 80px); }
+        .main-content { flex: 1; padding: 30px 40px; min-height: calc(100vh - 80px); }
         
         /* Page Header */
         .page-header { margin-bottom: 30px; }
@@ -312,12 +259,8 @@
         @media (max-width: 1200px) {
             .content-grid { grid-template-columns: 1fr; }
         }
-        @media (max-width: 1024px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; }
-        }
         @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; }
+            .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .main-content { padding: 20px; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -330,72 +273,16 @@
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
         .delay-4 { animation-delay: 0.4s; }
+
+        @include('admin.partials.top-navbar-styles')
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar">
-        <a href="{{ route('landing') }}" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo">
-            <span>VerdeVistas</span>
-        </a>
-        
-        <ul class="nav-links">
-            <li><a href="{{ route('admin.dashboard') }}" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-            <li><a href="{{ route('admin.users') }}"><i class="fas fa-users"></i> Users</a></li>
-            <li><a href="{{ route('admin.bookings') }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        </ul>
-        
-        <div class="nav-actions">
-            <!-- User Display -->
-            <div class="user-display">
-                @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
-                @else
-                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
-                @endif
-                <div class="user-info">
-                    <div class="user-name">{{ Auth::user()->name }}</div>
-                    <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
-                </div>
-            </div>
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </form>
-        </div>
-    </nav>
+    @include('admin.partials.top-navbar', ['active' => 'dashboard'])
     
     <!-- Dashboard Layout -->
     <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">Analytics</h3>
-                <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.dashboard') }}" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                    <li><a href="{{ route('admin.bookings') }}"><i class="fas fa-calendar-alt"></i> Bookings</a></li>
-                </ul>
-            </div>
-            
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">Management</h3>
-                <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.users') }}"><i class="fas fa-users-cog"></i> Users <span class="badge">{{ $kpis['total_users'] ?? 0 }}</span></a></li>
-                    <li><a href="{{ route('owner.accommodations.index') }}"><i class="fas fa-building"></i> Properties</a></li>
-                    <li><a href="{{ route('messages.index') }}"><i class="fas fa-comments"></i> Messages</a></li>
-                </ul>
-            </div>
-            
-            <!-- Gear Icon Only (Settings) - Lower-Left Corner -->
-            <div style="position: absolute; bottom: 20px; left: 25px;">
-                <a href="{{ route('profile.edit') }}" class="settings-icon" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </a>
-            </div>
-        </aside>
-        
         <!-- Main Content -->
         <main class="main-content">
             <!-- Page Header -->

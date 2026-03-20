@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VerdeVistas | Impasugong Accommodations</title>
+    <title>ImpaStay | Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,6 +34,8 @@
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             border-bottom: 2px solid var(--green-soft);
             box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
@@ -167,22 +169,8 @@
             line-height: 1.7;
         }
         
-        .hero-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 50px; }
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 0; }
         .hero-buttons .btn { padding: 14px 32px; font-size: 1rem; }
-        
-        .hero-stats { 
-            display: flex; 
-            gap: 50px; 
-            justify-content: center; 
-            flex-wrap: wrap;
-            background: var(--white);
-            padding: 30px 50px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(27, 94, 32, 0.1);
-        }
-        .stat-item { text-align: center; }
-        .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--green-dark); }
-        .stat-label { font-size: 0.85rem; color: var(--green-medium); text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; }
         
         /* Carousel Section */
         .carousel-section { 
@@ -256,29 +244,85 @@
         }
         .carousel-btn:hover { background: var(--green-primary); color: var(--white); transform: scale(1.1); }
         
-        /* Features Section */
-        .features-section { 
+        /* Pricing Section */
+        .pricing-section {
             padding: 100px 40px; 
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            background: transparent;
         }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; }
-        
-        .feature-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px 30px;
+
+        .pricing-header {
             text-align: center;
+            color: var(--green-dark);
+            max-width: 760px;
+            margin: 0 auto 45px;
+        }
+        .pricing-header h2 {
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .pricing-header p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--green-dark);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.14);
+            border-radius: 20px;
+            padding: 36px 30px;
             transition: all 0.4s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(4px);
         }
-        .feature-card:hover { transform: translateY(-10px); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2); }
-        .feature-icon { 
-            font-size: 3rem; 
-            color: var(--green-primary); 
-            margin-bottom: 20px; 
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
         }
-        .feature-card h3 { font-size: 1.25rem; color: var(--green-dark); margin-bottom: 12px; font-weight: 700; }
-        .feature-card p { color: var(--green-medium); line-height: 1.7; font-size: 0.95rem; }
+        .pricing-card.featured {
+            border: 2px solid var(--green-primary);
+            transform: scale(1.03);
+        }
+        .plan-name {
+            font-size: 1.25rem;
+            color: var(--green-dark);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .plan-price {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--green-dark);
+            margin-bottom: 20px;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: var(--green-dark);
+        }
+        .plan-features li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .plan-features li::before {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: var(--green-dark);
+        }
         
         /* Footer */
         .footer { 
@@ -314,11 +358,11 @@
             .hero h1 { font-size: 2rem; }
             .hero p { font-size: 1rem; }
             .hero-buttons { flex-direction: column; align-items: center; }
-            .hero-stats { gap: 30px; padding: 20px 30px; }
-            .stat-number { font-size: 1.6rem; }
-            .carousel-section, .features-section { padding: 50px 20px; }
+            .carousel-section, .pricing-section { padding: 50px 20px; }
             .carousel-slide { min-width: 280px; }
             .carousel-header h2 { font-size: 1.6rem; }
+            .pricing-header h2 { font-size: 1.6rem; }
+            .pricing-card.featured { transform: none; }
         }
     </style>
 </head>
@@ -326,20 +370,15 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-brand">
-            <img src="/SYSTEMLOGO.png" alt="VerdeVistas Logo" class="main-logo">
-            <div class="logo-divider"></div>
-            <div class="collaboration-logos">
-                <img src="/1.jpg" alt="Municipality of Impasugong" title="Municipality of Impasugong">
-                <img src="/2.jpg" alt="Impasugong Tourism" title="Impasugong Tourism">
-            </div>
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="main-logo">
             <div>
-                <span class="system-name">VerdeVistas</span>
+                <span class="system-name">ImpaStay</span>
                 <span class="tagline">| Impasugong Accommodations</span>
             </div>
         </div>
         <ul class="nav-links">
             <li><a href="#properties"><i class="fas fa-building"></i> Properties</a></li>
-            <li><a href="#features"><i class="fas fa-info-circle"></i> About</a></li>
+            <li><a href="#pricing"><i class="fas fa-tags"></i> Pricing</a></li>
         </ul>
         <div class="nav-buttons">
             <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> Login</a>
@@ -366,24 +405,6 @@
             <a href="/login" class="btn btn-outline"><i class="fas fa-search"></i> Browse Properties</a>
         </div>
         
-        <div class="hero-stats animate delay-3">
-            <div class="stat-item">
-                <div class="stat-number">500+</div>
-                <div class="stat-label">Properties</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">1,200+</div>
-                <div class="stat-label">Happy Guests</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">50+</div>
-                <div class="stat-label">Local Hosts</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">4.8</div>
-                <div class="stat-label">Avg Rating</div>
-            </div>
-        </div>
     </section>
     
     <!-- Accommodations Carousel Section -->
@@ -547,32 +568,50 @@
         </div>
     </section>
     
-    <!-- Features Section -->
-    <section class="features-section" id="features">
-        <div class="features-grid">
-            <div class="feature-card animate delay-1">
-                <div class="feature-icon"><i class="fas fa-search-location"></i></div>
-                <h3>Easy Search</h3>
-                <p>Find your perfect rental with our powerful search and filter options.</p>
+    <!-- Pricing Section -->
+    <section class="pricing-section" id="pricing">
+        <div class="pricing-header animate">
+            <h2><i class="fas fa-tags" style="margin-right: 10px;"></i>Pricing Plans for Property Owners</h2>
+            <p>Choose a plan that fits your rental business and unlock the tools you need to grow on ImpaStay.</p>
+        </div>
+
+        <div class="pricing-grid">
+            <div class="pricing-card animate delay-1">
+                <h3 class="plan-name">Basic Plan</h3>
+                <div class="plan-price">₱299</div>
+                <ul class="plan-features">
+                    <li>3 property listings</li>
+                    <li>Basic reporting</li>
+                    <li>Booking management</li>
+                </ul>
             </div>
-            
-            <div class="feature-card animate delay-2">
-                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3>Secure Booking</h3>
-                <p>Book with confidence knowing all transactions are secure and protected.</p>
+
+            <div class="pricing-card featured animate delay-2">
+                <h3 class="plan-name">Standard Plan</h3>
+                <div class="plan-price">₱499</div>
+                <ul class="plan-features">
+                    <li>Up to 10 listings</li>
+                    <li>Advanced reporting</li>
+                    <li>Analytics dashboard</li>
+                </ul>
             </div>
-            
-            <div class="feature-card animate delay-3">
-                <div class="feature-icon"><i class="fas fa-comments"></i></div>
-                <h3>Direct Communication</h3>
-                <p>Chat directly with property owners for inquiries and special requests.</p>
+
+            <div class="pricing-card animate delay-3">
+                <h3 class="plan-name">Premium Plan</h3>
+                <div class="plan-price">₱799</div>
+                <ul class="plan-features">
+                    <li>Unlimited listings</li>
+                    <li>Priority support</li>
+                    <li>Featured listing promotion</li>
+                    <li>Advanced analytics</li>
+                </ul>
             </div>
         </div>
     </section>
     
     <!-- Footer -->
     <footer class="footer">
-        <p><strong>VerdeVistas</strong> | Impasugong Accommodations Platform</p>
+        <p><strong>ImpaStay</strong> | Impasugong Accommodations Platform</p>
         <p style="margin-top: 10px;">
             <a href="#">Privacy Policy</a> | 
             <a href="#">Terms of Service</a> | 

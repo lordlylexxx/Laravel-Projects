@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users Management - Admin Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -21,6 +22,7 @@
             --green-white: #E8F5E9;
             --white: #FFFFFF;
             --cream: #F1F8E9;
+            --gray-600: #4B5563;
             --danger: #dc3545;
             --warning: #ffc107;
             --info: #17a2b8;
@@ -32,98 +34,121 @@
             min-height: 100vh;
         }
         
-        /* Same styles as admin/dashboard.blade.php for navbar and sidebar */
+        /* Same styles as admin/dashboard.blade.php for navbar */
         .navbar {
-            background: var(--green-dark);
-            padding: 15px 40px;
+            background: var(--white);
+            padding: 0 40px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
             position: fixed;
             width: 100%;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
         }
         
         .nav-logo {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            text-decoration: none;
         }
         
         .nav-logo img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 3px solid var(--green-light);
+            width: 45px;
+            height: 45px;
+            border-radius: 0;
+            border: none;
+            object-fit: contain;
         }
         
         .nav-logo span {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
+            color: var(--green-dark);
+        }
+
+        .nav-links { display: flex; gap: 8px; list-style: none; }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray-600);
+            font-weight: 500;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
             color: var(--white);
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+        }
+
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .user-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, var(--green-soft), var(--green-white));
+            border-radius: 10px;
+            border: 1px solid var(--green-soft);
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .user-info { text-align: left; }
+        .user-name {
+            font-weight: 700;
+            color: var(--green-dark);
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--green-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-btn.primary {
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: var(--white);
+        }
+        .nav-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
         }
         
         .dashboard-layout {
             display: flex;
             padding-top: 80px;
-        }
-        
-        .sidebar {
-            width: 300px;
-            background: var(--white);
-            min-height: calc(100vh - 80px);
-            padding: 30px 0;
-            box-shadow: 2px 0 20px rgba(27, 94, 32, 0.1);
-        }
-        
-        .sidebar-section {
-            margin-bottom: 25px;
-        }
-        
-        .sidebar-title {
-            font-size: 0.75rem;
-            color: var(--green-medium);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            padding: 0 25px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-        }
-        
-        .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 14px 25px;
-            color: var(--green-dark);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        
-        .sidebar-menu li a:hover,
-        .sidebar-menu li a.active {
-            background: var(--green-soft);
-            border-left-color: var(--green-primary);
-        }
-        
-        .sidebar-menu li a .icon {
-            font-size: 1.3rem;
-        }
-        
-        .sidebar-menu li a .badge {
-            margin-left: auto;
-            background: var(--danger);
-            color: white;
-            padding: 3px 10px;
-            border-radius: 50px;
-            font-size: 0.75rem;
         }
         
         .main-content {
@@ -358,33 +383,22 @@
             color: white;
             border-color: var(--green-primary);
         }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 20px; height: 60px; }
+            .nav-links { display: none; }
+            .main-content { padding: 20px; }
+        }
+
+        @include('admin.partials.top-navbar-styles')
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-logo">
-            <img src="/1.jpg" alt="Municipality Logo">
-            <span>Admin Panel</span>
-        </div>
-    </nav>
+    @include('admin.partials.top-navbar', ['active' => 'users'])
     
     <!-- Dashboard Layout -->
     <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-section">
-                <h3 class="sidebar-title">Main Menu</h3>
-                <ul class="sidebar-menu">
-                    <li><a href="{{ route('admin.dashboard') }}"><span class="icon">📊</span> Dashboard</a></li>
-                    <li><a href="#" class="active"><span class="icon">👥</span> Users</a></li>
-                    <li><a href="#"><span class="icon">🏠</span> Properties</a></li>
-                    <li><a href="#"><span class="icon">📅</span> Bookings</a></li>
-                    <li><a href="#"><span class="icon">💬</span> Messages</a></li>
-                </ul>
-            </div>
-        </aside>
-        
         <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
