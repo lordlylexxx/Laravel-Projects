@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesTenantConnectionWithLandlordFallback;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Accommodation extends Model
 {
     use HasFactory;
+    use UsesTenantConnectionWithLandlordFallback;
 
     protected $fillable = [
         'owner_id',
+        'tenant_id',
         'name',
         'type',
         'description',
@@ -56,6 +60,11 @@ class Accommodation extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);
@@ -80,6 +89,11 @@ class Accommodation extends Model
     public function scopeInBarangay($query, $barangay)
     {
         return $query->where('barangay', 'like', '%' . $barangay . '%');
+    }
+
+    public function scopeForTenant($query, $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
     }
 
     // Accessors

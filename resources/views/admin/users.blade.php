@@ -421,10 +421,67 @@
                     <option value="inactive">Inactive</option>
                 </select>
             </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>Owner Domains ({{ isset($owners) ? $owners->count() : 0 }})</h3>
+                    <span style="font-size: 0.8rem; color: var(--gray-600);">Each owner subdomain</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Owner</th>
+                                    <th>Email</th>
+                                    <th>Domain</th>
+                                    <th>Public URL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($owners ?? collect()) as $owner)
+                                    @php
+                                        $ownerTenant = $owner->tenant ?? $owner->ownedTenant;
+                                        $ownerDomain = $ownerTenant?->domain;
+                                        $ownerUrl = $ownerTenant?->publicUrl();
+                                        $domainEnabled = (bool) ($ownerTenant?->domain_enabled ?? true);
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $owner->name }}</td>
+                                        <td>{{ $owner->email }}</td>
+                                        <td>
+                                            {{ $ownerDomain ?? 'Not assigned yet' }}
+                                            <div style="font-size: 0.75rem; margin-top: 4px; color: {{ $domainEnabled ? 'var(--green-primary)' : '#B91C1C' }}; font-weight: 600;">
+                                                {{ $domainEnabled ? 'Domain enabled' : 'Domain disabled' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if($ownerUrl && $domainEnabled)
+                                                <a href="{{ $ownerUrl }}" target="_blank" style="color: var(--green-primary); font-weight: 600; text-decoration: none;">
+                                                    Open site
+                                                </a>
+                                                <div style="font-size: 0.75rem; color: var(--gray-600); margin-top: 4px;">{{ $ownerUrl }}</div>
+                                            @elseif($ownerUrl && ! $domainEnabled)
+                                                <span style="color: #B91C1C;">Disabled by admin</span>
+                                            @else
+                                                <span style="color: var(--warning);">Pending provisioning</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; color: var(--gray-600);">No owner accounts found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
             
             <div class="card">
                 <div class="card-header">
-                    <h3>All Users (156)</h3>
+                    <h3>All Users ({{ $users->total() }})</h3>
                     <button class="btn btn-secondary btn-sm">Export CSV</button>
                 </div>
                 <div class="card-body">
@@ -441,129 +498,62 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="user-info-cell">
-                                            <div class="user-avatar-small">JM</div>
-                                            <div class="user-details">
-                                                <h4>Juan Miguel</h4>
-                                                <p>juan@email.com</p>
+                                @forelse($users as $user)
+                                    @php
+                                        $nameParts = preg_split('/\s+/', trim((string) $user->name)) ?: [];
+                                        $initials = strtoupper(collect($nameParts)->filter()->take(2)->map(fn ($part) => substr($part, 0, 1))->implode(''));
+                                        $statusClass = !$user->is_active ? 'inactive' : (is_null($user->email_verified_at) ? 'pending' : 'active');
+                                        $statusLabel = ucfirst($statusClass);
+                                        $lastLogin = $user->last_login ? $user->last_login->diffForHumans() : 'Never';
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <div class="user-info-cell">
+                                                <div class="user-avatar-small">{{ $initials ?: 'U' }}</div>
+                                                <div class="user-details">
+                                                    <h4>{{ $user->name }}</h4>
+                                                    <p>{{ $user->email }}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="role-badge client">Client</span></td>
-                                    <td>+63 912 345 6789</td>
-                                    <td><span class="status-badge active">Active</span></td>
-                                    <td>2 hours ago</td>
-                                    <td>
-                                        <div class="action-btns">
-                                            <button class="action-btn view" title="View">👁️</button>
-                                            <button class="action-btn edit" title="Edit">✏️</button>
-                                            <button class="action-btn message" title="Message">💬</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="user-info-cell">
-                                            <div class="user-avatar-small">SC</div>
-                                            <div class="user-details">
-                                                <h4>Sarah Chen</h4>
-                                                <p>sarah@email.com</p>
+                                        </td>
+                                        <td><span class="role-badge {{ $user->role }}">{{ ucfirst($user->role) }}</span></td>
+                                        <td>{{ $user->phone ?? 'N/A' }}</td>
+                                        <td><span class="status-badge {{ $statusClass }}">{{ $statusLabel }}</span></td>
+                                        <td>{{ $lastLogin }}</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <a href="mailto:{{ $user->email }}" class="action-btn message" title="Email">✉️</a>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="role-badge owner">Owner</span></td>
-                                    <td>+63 923 456 7890</td>
-                                    <td><span class="status-badge active">Active</span></td>
-                                    <td>1 day ago</td>
-                                    <td>
-                                        <div class="action-btns">
-                                            <button class="action-btn view" title="View">👁️</button>
-                                            <button class="action-btn edit" title="Edit">✏️</button>
-                                            <button class="action-btn message" title="Message">💬</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="user-info-cell">
-                                            <div class="user-avatar-small">RP</div>
-                                            <div class="user-details">
-                                                <h4>Robert Perez</h4>
-                                                <p>robert@email.com</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="role-badge client">Client</span></td>
-                                    <td>+63 934 567 8901</td>
-                                    <td><span class="status-badge pending">Pending</span></td>
-                                    <td>Never</td>
-                                    <td>
-                                        <div class="action-btns">
-                                            <button class="action-btn view" title="View">👁️</button>
-                                            <button class="action-btn edit" title="Verify">✓</button>
-                                            <button class="action-btn delete" title="Reject">✗</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="user-info-cell">
-                                            <div class="user-avatar-small">ML</div>
-                                            <div class="user-details">
-                                                <h4>Maria Lopez</h4>
-                                                <p>maria@email.com</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="role-badge owner">Owner</span></td>
-                                    <td>+63 945 678 9012</td>
-                                    <td><span class="status-badge active">Active</span></td>
-                                    <td>3 days ago</td>
-                                    <td>
-                                        <div class="action-btns">
-                                            <button class="action-btn view" title="View">👁️</button>
-                                            <button class="action-btn edit" title="Edit">✏️</button>
-                                            <button class="action-btn message" title="Message">💬</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="user-info-cell">
-                                            <div class="user-avatar-small">JD</div>
-                                            <div class="user-details">
-                                                <h4>John Doe</h4>
-                                                <p>john@email.com</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span class="role-badge client">Client</span></td>
-                                    <td>+63 956 789 0123</td>
-                                    <td><span class="status-badge inactive">Inactive</span></td>
-                                    <td>30 days ago</td>
-                                    <td>
-                                        <div class="action-btns">
-                                            <button class="action-btn view" title="View">👁️</button>
-                                            <button class="action-btn edit" title="Edit">✏️</button>
-                                            <button class="action-btn delete" title="Delete">🗑️</button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; color: var(--gray-600);">No users found.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                     
-                    <div class="pagination">
-                        <button><</button>
-                        <button class="active">1</button>
-                        <button>2</button>
-                        <button>3</button>
-                        <button>...</button>
-                        <button>16</button>
-                        <button>></button>
-                    </div>
+                    @if($users->hasPages())
+                        <div class="pagination">
+                            @if($users->onFirstPage())
+                                <button disabled style="opacity: 0.5; cursor: not-allowed;">&lt;</button>
+                            @else
+                                <button onclick="window.location.href='{{ $users->previousPageUrl() }}'">&lt;</button>
+                            @endif
+
+                            @foreach($users->getUrlRange(max(1, $users->currentPage() - 1), min($users->lastPage(), $users->currentPage() + 1)) as $page => $url)
+                                <button class="{{ $users->currentPage() === $page ? 'active' : '' }}" onclick="window.location.href='{{ $url }}'">{{ $page }}</button>
+                            @endforeach
+
+                            @if($users->hasMorePages())
+                                <button onclick="window.location.href='{{ $users->nextPageUrl() }}'">&gt;</button>
+                            @else
+                                <button disabled style="opacity: 0.5; cursor: not-allowed;">&gt;</button>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </main>

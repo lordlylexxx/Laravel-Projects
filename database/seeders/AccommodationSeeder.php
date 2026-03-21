@@ -41,6 +41,12 @@ class AccommodationSeeder extends Seeder
             $owners = collect([$owner1, $owner2]);
         }
 
+        $owners->each(function ($owner) {
+            if ($owner->isOwner()) {
+                $owner->ensureTenant();
+            }
+        });
+
         $accommodations = [
             // Traveller-Inns
             [
@@ -340,6 +346,7 @@ class AccommodationSeeder extends Seeder
         foreach ($accommodations as $index => $data) {
             $accommodation = Accommodation::create([
                 'owner_id' => $data['owner_id'],
+                'tenant_id' => User::whereKey($data['owner_id'])->value('tenant_id'),
                 'name' => $data['name'],
                 'type' => $data['type'],
                 'description' => $data['description'],

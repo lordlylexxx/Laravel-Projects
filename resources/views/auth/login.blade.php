@@ -263,6 +263,17 @@
             margin-bottom: 25px;
             text-align: center;
         }
+
+                .portal-hint {
+                    background: #f0fdf4;
+                    color: #14532d;
+                    padding: 10px;
+                    border: 1px solid #86efac;
+                    border-radius: 10px;
+                    margin-bottom: 18px;
+                    text-align: center;
+                    font-size: 0.9rem;
+                }
         
         /* Responsive */
         @media (max-width: 768px) {
@@ -308,6 +319,17 @@
                 <h2>Welcome Back</h2>
                 <p>Sign in to your account</p>
             </div>
+
+            @php
+                $portal = request('portal');
+                $portalLabel = $portal === 'owner' ? 'Owner' : ($portal === 'user' ? 'User' : null);
+            @endphp
+
+            @if($portalLabel)
+                <div class="portal-hint">
+                    {{ $portalLabel }} portal login
+                </div>
+            @endif
             
             <!-- Session Status -->
             @if (session('status'))

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Message;
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -60,6 +61,52 @@ class DatabaseSeeder extends Seeder
             } else {
                 $ownerUsers[] = User::where('email', $email)->first();
             }
+        }
+
+        foreach ($ownerUsers as $ownerUser) {
+            if ($ownerUser && $ownerUser->isOwner()) {
+                $ownerUser->ensureTenant();
+            }
+        }
+
+        // Seed tenant-scoped admin and user accounts for each tenant
+        $tenantAccounts = [];
+        $tenants = Tenant::query()->orderBy('id')->get(['id', 'name', 'owner_user_id', 'app_port']);
+
+        foreach ($tenants as $tenant) {
+            $tenantAdminEmail = "tenant{$tenant->id}.admin@impastay.local";
+            $tenantUserEmail = "tenant{$tenant->id}.user@impastay.local";
+
+            $tenantAdmin = User::updateOrCreate(
+                ['email' => $tenantAdminEmail],
+                [
+                    'name' => "{$tenant->name} Admin",
+                    'password' => Hash::make('password'),
+                    'role' => 'admin',
+                    'tenant_id' => $tenant->id,
+                    'phone' => '+63 900 100 ' . str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
+                    'is_active' => true,
+                ]
+            );
+
+            $tenantUser = User::updateOrCreate(
+                ['email' => $tenantUserEmail],
+                [
+                    'name' => "{$tenant->name} User",
+                    'password' => Hash::make('password'),
+                    'role' => 'client',
+                    'tenant_id' => $tenant->id,
+                    'phone' => '+63 900 200 ' . str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
+                    'is_active' => true,
+                ]
+            );
+
+            $tenantAccounts[] = [
+                'tenant_name' => $tenant->name,
+                'port' => $tenant->app_port,
+                'admin_email' => $tenantAdmin->email,
+                'user_email' => $tenantUser->email,
+            ];
         }
 
         // Create Clients (only if doesn't exist)
@@ -161,6 +208,11 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
+        foreach ($bookings as &$booking) {
+            $booking['tenant_id'] = Accommodation::whereKey($booking['accommodation_id'])->value('tenant_id');
+        }
+        unset($booking);
+
         foreach ($bookings as $booking) {
             if (!Booking::where('client_id', $booking['client_id'])
                 ->where('accommodation_id', $booking['accommodation_id'])
@@ -176,6 +228,16 @@ class DatabaseSeeder extends Seeder
         $this->command->info('  - Admin: admin@impasugong.gov.ph / password');
         $this->command->info('  - Owner: sarah.chen@email.com / password');
         $this->command->info('  - Client: juan.miguel@email.com / password');
+
+        if (! empty($tenantAccounts)) {
+            $this->command->info('Tenant seeded accounts (password: password):');
+            foreach ($tenantAccounts as $account) {
+                $portLabel = $account['port'] ? " (tenant port {$account['port']})" : '';
+                $this->command->info("  - {$account['tenant_name']}{$portLabel}");
+                $this->command->info("      admin: {$account['admin_email']}");
+                $this->command->info("      user:  {$account['user_email']}");
+            }
+        }
     }
 }
 

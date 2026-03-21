@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Accommodation;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,7 +14,13 @@ class AccommodationController extends Controller
      */
     public function index(Request $request)
     {
+        $currentTenant = Tenant::current();
+
         $query = Accommodation::available()->with('owner');
+
+        if ($currentTenant) {
+            $query->forTenant($currentTenant->id);
+        }
 
         // Apply filters
         if ($request->has('type') && $request->type) {
@@ -55,6 +62,12 @@ class AccommodationController extends Controller
      */
     public function show(Accommodation $accommodation)
     {
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $accommodation->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
         $accommodation->load(['owner', 'bookings' => function ($query) {
             $query->whereIn('status', ['pending', 'confirmed', 'paid'])
                   ->where('check_out_date', '>=', now()->toDateString());
@@ -79,6 +92,22 @@ class AccommodationController extends Controller
      */
     public function store(Request $request)
     {
+        [$tenant, $ownerId] = $this->resolveManagedTenantAndOwner($request);
+
+        if (! $tenant || ! $ownerId) {
+            return back()->withErrors([
+                'name' => 'Unable to resolve tenant ownership for this listing.',
+            ])->withInput();
+        }
+
+        $currentCount = Accommodation::query()->where('tenant_id', $tenant->id)->count();
+
+        if (! $tenant->canCreateAccommodation($currentCount)) {
+            return back()->withErrors([
+                'name' => 'You have reached your plan limit or your subscription is inactive. Upgrade your plan to add more properties.',
+            ])->withInput();
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:traveller-inn,airbnb,daily-rental',
@@ -102,7 +131,8 @@ class AccommodationController extends Controller
             'check_in_instructions' => 'nullable|string',
         ]);
 
-        $validated['owner_id'] = $request->user()->id;
+        $validated['owner_id'] = $ownerId;
+        $validated['tenant_id'] = $tenant->id;
         $validated['amenities'] = $this->normalizeAmenities($request->input('amenities', []));
         
         // Handle image upload
@@ -198,13 +228,50 @@ class AccommodationController extends Controller
      */
     public function ownerIndex(Request $request)
     {
-        $accommodations = $request->user()
-            ->accommodations()
-            ->withCount('bookings')
-            ->latest()
-            ->paginate(10);
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if ($user->isAdmin() && $currentTenant && (int) $user->tenant_id === (int) $currentTenant->id) {
+            $accommodations = Accommodation::query()
+                ->where('tenant_id', $currentTenant->id)
+                ->withCount('bookings')
+                ->latest()
+                ->paginate(10);
+        } else {
+            $tenantId = $user->tenant_id;
+
+            $accommodations = $user
+                ->accommodations()
+                ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+                ->withCount('bookings')
+                ->latest()
+                ->paginate(10);
+        }
 
         return view('owner.accommodations.index', compact('accommodations'));
+    }
+
+    /**
+     * Resolve tenant and owner account for owner-management actions.
+     */
+    private function resolveManagedTenantAndOwner(Request $request): array
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if ($user->isOwner()) {
+            $tenant = $user->ensureTenant();
+
+            return [$tenant, $user->id];
+        }
+
+        if ($user->isAdmin() && $currentTenant && (int) $user->tenant_id === (int) $currentTenant->id) {
+            $ownerId = (int) ($currentTenant->owner_user_id ?? 0);
+
+            return [$currentTenant, $ownerId > 0 ? $ownerId : null];
+        }
+
+        return [null, null];
     }
 
     /**

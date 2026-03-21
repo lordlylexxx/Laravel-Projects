@@ -263,7 +263,7 @@
                     <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Browse</a></li>
                 @endif
             @endauth
-            <li><a href="{{ route('accommodations.index') }}" class="{{ request()->routeIs('accommodations.*') ? 'active' : '' }}">Browse</a></li>
+            <li><a href="{{ route(Auth::check() && Auth::user()->isOwner() && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
             <li><a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') ? 'active' : '' }}">My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
@@ -397,7 +397,7 @@
                 <div class="empty-icon">📅</div>
                 <h3>No Bookings Found</h3>
                 <p>You haven't made any bookings yet. Start exploring accommodations!</p>
-                <a href="{{ route('accommodations.index') }}" class="btn btn-primary">Browse Properties</a>
+                <a href="{{ route(Auth::check() && Auth::user()->isOwner() && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="btn btn-primary">Browse Properties</a>
             </div>
         @endif
     </main>

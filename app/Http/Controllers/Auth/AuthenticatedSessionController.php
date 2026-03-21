@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,12 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
+        if (Tenant::checkCurrent()) {
+            return view('tenant.auth.login', [
+                'tenant' => Tenant::current(),
+            ]);
+        }
+
         return view('auth.login');
     }
 
@@ -26,22 +33,28 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        if (! Tenant::checkCurrent() && $request->user()?->isClient()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Client accounts can only log in from tenant subdomain apps.',
+            ])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         // Update last login
         $request->user()->updateLastLogin();
 
-        // Redirect based on role - PROPER DASHBOARD REDIRECTION
-        $user = $request->user();
-        
-        if ($user->isAdmin()) {
-            return redirect()->route('admin.dashboard');
-        } elseif ($user->isOwner()) {
-            return redirect()->route('owner.dashboard');
-        } else {
-            // Client redirects to Properties page (not My Bookings)
-            return redirect()->route('accommodations.index');
+        // In tenant mode, avoid cross-app intended URL leakage (8000 <-> 8001)
+        // and always land on the tenant dashboard.
+        if (Tenant::checkCurrent()) {
+            return redirect()->route('dashboard');
         }
+
+        return redirect()->intended($request->user()->getDashboardRoute());
     }
 
     /**

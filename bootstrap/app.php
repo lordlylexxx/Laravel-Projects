@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'client' => \App\Http\Middleware\EnsureUserIsClient::class,
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'tenant.manager' => \App\Http\Middleware\EnsureUserIsOwnerOrTenantAdmin::class,
+            'tenant.context' => \App\Http\Middleware\SetCurrentTenant::class,
+            'tenant.required' => \Spatie\Multitenancy\Http\Middleware\NeedsTenant::class,
+            'tenant.session' => \App\Http\Middleware\EnsureTenantSessionIsSynchronized::class,
+            'central.port' => \App\Http\Middleware\EnsureRequestUsesCentralPort::class,
+            'tenant.port' => \App\Http\Middleware\EnsureRequestUsesTenantPort::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

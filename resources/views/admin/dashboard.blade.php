@@ -215,6 +215,15 @@
         .status-badge.confirmed { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: #1D4ED8; }
         .status-badge.cancelled { background: linear-gradient(135deg, #FEE2E2, #FECACA); color: #DC2626; }
         .status-badge.completed { background: linear-gradient(135deg, var(--green-soft), var(--green-pale)); color: var(--green-dark); }
+        .status-badge.past-due { background: linear-gradient(135deg, #FEE2E2, #FCA5A5); color: #B91C1C; }
+        .status-badge.trialing { background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #92400E; }
+        .status-badge.cancelled { background: linear-gradient(135deg, #F3F4F6, #E5E7EB); color: var(--gray-600); }
+
+        .table-note {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+        }
         
         /* Quick Stats Grid */
         .quick-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
@@ -285,6 +294,12 @@
     <div class="dashboard-layout">
         <!-- Main Content -->
         <main class="main-content">
+            @if(session('success'))
+                <div style="background: #ECFDF5; border: 1px solid #86EFAC; color: #166534; padding: 10px 12px; border-radius: 10px; margin-bottom: 16px; font-weight: 600;">
+                    {{ session('success') }}
+                </div>
+            @endif
+
             <!-- Page Header -->
             <div class="page-header animate">
                 <h1><i class="fas fa-chart-line" style="color: var(--green-primary); margin-right: 12px;"></i>Sales Monitoring Dashboard</h1>
@@ -444,6 +459,7 @@
                     </div>
                 @endif
             </div>
+
         </main>
     </div>
     

@@ -275,7 +275,7 @@
         <ul class="nav-links">
             @if(Auth::user()->role === 'admin')
                 <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                <li><a href="{{ route('admin.users') }}">Users</a></li>
+                <li><a href="{{ route('admin.tenants') }}">Tenants</a></li>
                 <li><a href="{{ route('admin.bookings') }}">Bookings</a></li>
             @else
                 <li><a href="{{ route('dashboard') }}">Dashboard</a></li>

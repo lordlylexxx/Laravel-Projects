@@ -10,157 +10,277 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TenantLandingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
+use App\Http\Controllers\Central\UpdateController as CentralUpdateController;
+use App\Http\Controllers\SystemUpdatePageController;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\Route;
 
-// Landing page route (accessible to everyone)
-Route::get('/', function () {
-    return view('landingpage');
-})->name('landing');
+$centralDomain = env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
+$centralPort = (int) env('CENTRAL_PORT', 8000);
+$serverPort = (int) ($_SERVER['SERVER_PORT'] ?? 0);
+$appInstance = env('APP_INSTANCE');
 
-// Public routes
-Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
+if (! $appInstance) {
+    $appInstance = $serverPort > 0 && $serverPort !== $centralPort ? 'tenant' : 'central';
+}
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+if ($appInstance !== 'tenant') {
+    Route::domain($centralDomain)->middleware('central.port')->group(function () {
+        // Landing page route (accessible to everyone)
+        Route::get('/', function () {
+            return view('landingpage');
+        })->name('landing');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+        Route::prefix('system-updates')->name('updates.')->group(function () {
+            Route::get('/check', [CentralUpdateController::class, 'check'])->name('check');
+            Route::get('/download', [CentralUpdateController::class, 'download'])->name('download');
+        });
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+        // Public routes
+        Route::middleware('guest')->group(function () {
+            Route::get('register', [RegisteredUserController::class, 'create'])
+                ->name('register');
 
-    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
-        ->name('password.request');
+            Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->name('password.email');
+            Route::get('login', [AuthenticatedSessionController::class, 'create'])
+                ->name('login');
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
-        ->name('password.reset');
+            Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
-    Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
-});
+            Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+                ->name('password.request');
 
-// Authenticated routes (common for all roles)
-Route::middleware('auth')->group(function () {
-    Route::get('verify-email', EmailVerificationPromptController::class)
-        ->name('verification.notice');
+            Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+                ->name('password.email');
 
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
+            Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+                ->name('password.reset');
 
-    Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
-        ->middleware('throttle:6,1')
-        ->name('verification.send');
+            Route::post('reset-password', [NewPasswordController::class, 'store'])
+                ->name('password.store');
+        });
 
-    Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
-        ->name('password.confirm');
+        // Authenticated routes (common for all roles)
+        Route::middleware(['auth', 'tenant.context'])->group(function () {
+            Route::get('verify-email', EmailVerificationPromptController::class)
+                ->name('verification.notice');
 
-    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
+            Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+                ->middleware(['signed', 'throttle:6,1'])
+                ->name('verification.verify');
 
-    Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+            Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
+                ->middleware('throttle:6,1')
+                ->name('verification.send');
 
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('logout');
+            Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
+                ->name('password.confirm');
 
-    // Profile routes - accessible to all authenticated users
-    Route::get('/profile', function () {
-        return view('profile.new-edit');
-    })->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+            Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
-    // Messages - accessible to all authenticated users
-    Route::prefix('messages')->name('messages.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\MessageController::class, 'index'])->name('index');
-        Route::get('/{message}', [\App\Http\Controllers\MessageController::class, 'show'])->name('show');
-        Route::post('/', [\App\Http\Controllers\MessageController::class, 'store'])->name('store');
-        Route::post('/{message}/reply', [\App\Http\Controllers\MessageController::class, 'reply'])->name('reply');
-        Route::put('/{message}/read', [\App\Http\Controllers\MessageController::class, 'markAsRead'])->name('mark-read');
-        Route::put('/{message}/archive', [\App\Http\Controllers\MessageController::class, 'archive'])->name('archive');
-        Route::delete('/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('destroy');
+            Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+            Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+                ->name('logout');
+
+            // Profile routes - accessible to all authenticated users
+            Route::get('/profile', function () {
+                return view('profile.new-edit');
+            })->name('profile.edit');
+            Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+            Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+            // Messages - accessible to all authenticated users
+            Route::prefix('messages')->name('messages.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\MessageController::class, 'index'])->name('index');
+                Route::get('/{message}', [\App\Http\Controllers\MessageController::class, 'show'])->name('show');
+                Route::post('/', [\App\Http\Controllers\MessageController::class, 'store'])->name('store');
+                Route::post('/{message}/reply', [\App\Http\Controllers\MessageController::class, 'reply'])->name('reply');
+                Route::put('/{message}/read', [\App\Http\Controllers\MessageController::class, 'markAsRead'])->name('mark-read');
+                Route::put('/{message}/archive', [\App\Http\Controllers\MessageController::class, 'archive'])->name('archive');
+                Route::delete('/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('destroy');
+            });
+
+            // Central dashboard redirect (no client pages on central app)
+            Route::get('/dashboard', function () {
+                $user = request()->user();
+
+                if (! $user) {
+                    return redirect()->route('login');
+                }
+
+                if ($user->isAdmin()) {
+                    return redirect()->route('admin.dashboard');
+                }
+
+                if ($user->isOwner()) {
+                    return redirect()->route('owner.dashboard');
+                }
+
+                return redirect()->route('landing')
+                    ->with('error', 'Client pages are available on tenant subdomain apps.');
+            })->name('dashboard');
+
+            Route::get('/home', function () {
+                return redirect()->route('dashboard');
+            })->name('home');
+        });
+
+        // ============ OWNER ROUTES ============
+        // Only owners can access these routes
+        Route::middleware(['auth', 'tenant.context', 'owner'])->prefix('owner')->name('owner.')->group(function () {
+            // Owner Dashboard
+            Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
+            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
+
+            // Owner Landing Page Customization
+            Route::get('/landing-page', [TenantLandingController::class, 'edit'])->name('landing.edit');
+            Route::put('/landing-page', [TenantLandingController::class, 'update'])->name('landing.update');
+
+            // Owner Accommodation Management
+            Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])
+                ->name('accommodations.index');
+            Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class)
+                ->except(['index']);
+
+            // Owner Booking Management
+            Route::prefix('bookings')->name('bookings.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
+                Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
+                Route::put('/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('update-status');
+                Route::put('/{booking}/mark-paid', [\App\Http\Controllers\BookingController::class, 'markAsPaid'])->name('mark-paid');
+                Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
+                Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+            });
+        });
+
+        // ============ ADMIN ROUTES ============
+        // Only admins can access these routes
+        Route::middleware(['auth', 'tenant.context', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+            // Admin Dashboard with Sales Monitoring
+            Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/system-updates', [SystemUpdatePageController::class, 'adminIndex'])->name('updates.index');
+            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])->name('updates.mark-installed');
+
+            // Tenant Management
+            Route::get('/tenants', [AdminDashboardController::class, 'tenants'])->name('tenants');
+            Route::get('/users', function () {
+                return redirect()->route('admin.tenants');
+            })->name('users');
+            Route::put('/tenants/{tenant}/plan', [AdminDashboardController::class, 'updateTenantPlan'])->name('tenants.update-plan');
+            Route::put('/tenants/{tenant}/domain-status', [AdminDashboardController::class, 'toggleTenantDomain'])->name('tenants.toggle-domain');
+
+            // Booking Management
+            Route::get('/bookings', [AdminDashboardController::class, 'bookings'])->name('bookings');
+
+            // Message Management
+            Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'adminIndex'])->name('messages');
+
+            // Property Management (Admin can view all properties)
+            Route::prefix('../owner/accommodations')->name('owner.accommodations.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])->name('index');
+                Route::get('/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])->name('show');
+            });
+        });
+
+        require __DIR__.'/auth.php';
     });
+}
 
-    // Browse accommodations - accessible to all authenticated users
-    Route::prefix('accommodations')->name('accommodations.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\AccommodationController::class, 'index'])->name('index');
-        Route::get('/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])->name('show');
-    });
-});
+if ($appInstance !== 'central') {
+    Route::middleware(['tenant.port', 'tenant.required', 'tenant.session'])
+        ->group(function () {
+            Route::get('/', [TenantLandingController::class, 'showPublic'])
+                ->name('landing');
 
-// ============ CLIENT ROUTES ============
-// Only clients can access these routes
-Route::middleware(['auth', 'client'])->group(function () {
-    // Client Dashboard
-    Route::get('/dashboard', function () {
-        return view('client.dashboard');
-    })->name('dashboard');
-    
-    // Client Accommodation Booking Route
-    Route::post('/accommodations/{accommodation}/book', [\App\Http\Controllers\BookingController::class, 'store'])
-        ->name('accommodations.book');
-    
-    // Client Booking Routes
-    Route::prefix('bookings')->name('bookings.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
-        Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
-        Route::put('/{booking}/cancel', [\App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
-        Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
-    });
-    
-    // Redirect from landing to dashboard
-    Route::get('/home', function () {
-        return redirect()->route('dashboard');
-    })->name('home');
-});
+            Route::get('/dashboard', function () {
+                $user = request()->user();
+                $currentTenant = Tenant::current();
 
-// ============ OWNER ROUTES ============
-// Only owners can access these routes
-Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {
-    // Owner Dashboard
-    Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
-    
-    // Owner Accommodation Management
-    Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])
-        ->name('accommodations.index');
-    Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class)
-        ->except(['index']);
-    
-    // Owner Booking Management
-    Route::prefix('bookings')->name('bookings.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
-        Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
-        Route::put('/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('update-status');
-        Route::put('/{booking}/mark-paid', [\App\Http\Controllers\BookingController::class, 'markAsPaid'])->name('mark-paid');
-        Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
-        Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
-    });
-});
+                if ($user && $user->isClient()) {
+                    return view('client.dashboard');
+                }
 
-// ============ ADMIN ROUTES ============
-// Only admins can access these routes
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Admin Dashboard with Sales Monitoring
-    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    
-    // User Management
-    Route::get('/users', [AdminDashboardController::class, 'users'])->name('users');
-    
-    // Booking Management
-    Route::get('/bookings', [AdminDashboardController::class, 'bookings'])->name('bookings');
-    
-    // Message Management
-    Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'adminIndex'])->name('messages');
-    
-    // Property Management (Admin can view all properties)
-    Route::prefix('../owner/accommodations')->name('owner.accommodations.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])->name('index');
-        Route::get('/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])->name('show');
-    });
-});
+                if ($user && (
+                    $user->isOwner()
+                    || ($user->isAdmin() && $currentTenant && (int) $user->tenant_id === (int) $currentTenant->id)
+                )) {
+                    return redirect()->route('owner.dashboard');
+                }
 
-require __DIR__.'/auth.php';
+                return redirect()->route('accommodations.index');
+            })->name('dashboard');
+
+            Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'index'])
+                ->name('accommodations.index');
+
+            Route::get('/accommodations/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])
+                ->name('accommodations.show');
+
+            Route::middleware(['auth', 'client'])->group(function () {
+                Route::post('/accommodations/{accommodation}/book', [\App\Http\Controllers\BookingController::class, 'store'])
+                    ->name('accommodations.book');
+
+                Route::prefix('bookings')->name('bookings.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
+                    Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
+                    Route::put('/{booking}/cancel', [\App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
+                    Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+                });
+
+                Route::get('/home', function () {
+                    return redirect()->route('dashboard');
+                })->name('home');
+            });
+
+            // Tenant manager routes (same owner pages/functions, available to owner or tenant admin)
+            Route::middleware(['auth', 'tenant.manager'])->prefix('owner')->name('owner.')->group(function () {
+                Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+                Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
+                Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
+
+                Route::get('/landing-page', [TenantLandingController::class, 'edit'])->name('landing.edit');
+                Route::put('/landing-page', [TenantLandingController::class, 'update'])->name('landing.update');
+
+                Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'ownerIndex'])
+                    ->name('accommodations.index');
+                Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class)
+                    ->except(['index']);
+
+                Route::prefix('bookings')->name('bookings.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
+                    Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
+                    Route::put('/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('update-status');
+                    Route::put('/{booking}/mark-paid', [\App\Http\Controllers\BookingController::class, 'markAsPaid'])->name('mark-paid');
+                    Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
+                    Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+                });
+            });
+
+            Route::middleware('auth')->group(function () {
+                Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
+                    ->name('messages.index');
+
+                Route::get('/messages/{message}', [\App\Http\Controllers\MessageController::class, 'show'])
+                    ->name('messages.show');
+
+                Route::post('/messages', [\App\Http\Controllers\MessageController::class, 'store'])
+                    ->name('messages.store');
+            });
+
+            Route::middleware('auth')->group(function () {
+                Route::get('/profile', function () {
+                    return view('profile.new-edit');
+                })->name('profile.edit');
+                Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+                Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+            });
+
+            require __DIR__.'/auth.php';
+        });
+}

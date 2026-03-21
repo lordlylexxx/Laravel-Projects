@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Booking;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Message;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -151,15 +153,41 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display all users (admin).
+     * Display all tenants (admin).
      */
-    public function users()
+    public function tenants()
     {
-        $users = User::withCount('bookings')
-            ->latest()
-            ->paginate(10);
-        
-        return view('admin.users', compact('users'));
+        $tenants = Tenant::query()
+            ->with('owner:id,name,email')
+            ->orderBy('name')
+            ->paginate(15);
+
+        $databaseUsageMbByDatabase = collect();
+        $tenantDatabases = $tenants->getCollection()
+            ->pluck('database')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($tenantDatabases->isNotEmpty()) {
+            try {
+                $databaseUsageMbByDatabase = DB::connection('landlord')
+                    ->table('information_schema.tables')
+                    ->selectRaw('table_schema as database_name, ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb')
+                    ->whereIn('table_schema', $tenantDatabases)
+                    ->groupBy('table_schema')
+                    ->pluck('size_mb', 'database_name');
+            } catch (\Throwable $exception) {
+                $databaseUsageMbByDatabase = collect();
+            }
+        }
+
+        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase'));
+    }
+
+    public function users(): RedirectResponse
+    {
+        return redirect()->route('admin.tenants');
     }
 
     /**
@@ -172,6 +200,54 @@ class DashboardController extends Controller
             ->paginate(10);
         
         return view('admin.bookings', compact('bookings'));
+    }
+
+    public function updateTenantPlan(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $validated = $request->validate([
+            'plan' => ['required', 'in:' . implode(',', [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO])],
+        ]);
+
+        $planChanged = $tenant->plan !== $validated['plan'];
+
+        $updates = [
+            'plan' => $validated['plan'],
+        ];
+
+        if ($planChanged) {
+            $updates['subscription_status'] = 'active';
+            $updates['current_period_starts_at'] = now();
+            $updates['current_period_ends_at'] = now()->addMonth();
+            $updates['trial_ends_at'] = null;
+        }
+
+        $tenant->update([
+            ...$updates,
+        ]);
+
+        $message = $planChanged
+            ? "Plan and subscription updated for {$tenant->name}."
+            : "Plan already set for {$tenant->name}.";
+
+        return back()->with('success', $message);
+    }
+
+    public function toggleTenantDomain(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $validated = $request->validate([
+            'domain_enabled' => ['required', 'boolean'],
+        ]);
+
+        $enabled = (bool) $validated['domain_enabled'];
+
+        $tenant->update([
+            'domain_enabled' => $enabled,
+            'domain_disabled_at' => $enabled ? null : now(),
+        ]);
+
+        $state = $enabled ? 'enabled' : 'disabled';
+
+        return back()->with('success', "Tenant domain {$state} for {$tenant->name}.");
     }
 }
 

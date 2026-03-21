@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Message;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,14 +17,23 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $tenantId = $user->tenant_id;
+        $currentTenant = Tenant::current();
         
         if ($user->isOwner()) {
             $bookings = Booking::forOwner($user->id)
+                ->when($tenantId, fn ($query) => $query->forTenant($tenantId))
+                ->with(['client', 'accommodation'])
+                ->latest()
+                ->paginate(10);
+        } elseif ($user->isAdmin() && $currentTenant && (int) $tenantId === (int) $currentTenant->id) {
+            $bookings = Booking::forTenant($currentTenant->id)
                 ->with(['client', 'accommodation'])
                 ->latest()
                 ->paginate(10);
         } else {
             $bookings = Booking::forClient($user->id)
+                ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id))
                 ->with(['accommodation', 'accommodation.owner'])
                 ->latest()
                 ->paginate(10);
@@ -37,6 +47,12 @@ class BookingController extends Controller
      */
     public function store(Request $request, Accommodation $accommodation)
     {
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $accommodation->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
@@ -62,6 +78,7 @@ class BookingController extends Controller
 
         $validated['client_id'] = $request->user()->id;
         $validated['accommodation_id'] = $accommodation->id;
+        $validated['tenant_id'] = $accommodation->tenant_id ?? $accommodation->owner?->tenant_id;
         $validated['total_price'] = $totalPrice;
         $validated['status'] = Booking::STATUS_PENDING;
 
@@ -72,6 +89,7 @@ class BookingController extends Controller
             'sender_id' => $request->user()->id,
             'receiver_id' => $accommodation->owner_id,
             'booking_id' => $booking->id,
+            'tenant_id' => $booking->tenant_id,
             'subject' => 'New Booking Request: ' . $accommodation->name,
             'content' => $validated['client_message'] ?? 'I would like to book this accommodation.',
             'type' => Message::TYPE_BOOKING_INQUIRY
@@ -121,6 +139,7 @@ class BookingController extends Controller
                 'sender_id' => $request->user()->id,
                 'receiver_id' => $booking->client_id,
                 'booking_id' => $booking->id,
+                'tenant_id' => $booking->tenant_id,
                 'subject' => 'Booking Update: ' . $booking->accommodation->name,
                 'content' => $validated['owner_response'],
                 'type' => Message::TYPE_BOOKING_RESPONSE
@@ -200,6 +219,7 @@ class BookingController extends Controller
             'sender_id' => $sender->id,
             'receiver_id' => $receiver,
             'booking_id' => $booking->id,
+            'tenant_id' => $booking->tenant_id,
             'content' => $validated['message'],
             'type' => Message::TYPE_GENERAL
         ]);

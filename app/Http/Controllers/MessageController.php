@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -79,6 +81,18 @@ class MessageController extends Controller
 
         $validated['sender_id'] = $request->user()->id;
         $validated['type'] = $validated['type'] ?? Message::TYPE_GENERAL;
+
+        $tenantId = null;
+
+        if (!empty($validated['booking_id'])) {
+            $tenantId = Booking::whereKey($validated['booking_id'])->value('tenant_id');
+        }
+
+        if (! $tenantId) {
+            $tenantId = $request->user()->tenant_id;
+        }
+
+        $validated['tenant_id'] = $tenantId;
 
         $message = Message::create($validated);
 
@@ -182,7 +196,10 @@ class MessageController extends Controller
         ]);
 
         $validated['sender_id'] = Auth::id();
+        $validated['receiver_id'] = $validated['user_id'];
+        $validated['tenant_id'] = User::whereKey($validated['user_id'])->value('tenant_id');
         $validated['type'] = Message::TYPE_GENERAL;
+        unset($validated['user_id']);
 
         Message::create($validated);
 

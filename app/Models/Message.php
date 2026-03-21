@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesTenantConnectionWithLandlordFallback;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
     use HasFactory;
+    use UsesTenantConnectionWithLandlordFallback;
 
     protected $fillable = [
         'sender_id',
         'receiver_id',
         'booking_id',
+        'tenant_id',
         'subject',
         'content',
         'type',
@@ -52,6 +56,11 @@ class Message extends Model
         return $this->belongsTo(Booking::class);
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     // Scopes
     public function scopeUnread($query)
     {
@@ -71,6 +80,11 @@ class Message extends Model
     public function scopeOfType($query, $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function scopeForTenant($query, $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
     }
 
     // Accessors
@@ -127,6 +141,7 @@ class Message extends Model
             'sender_id' => $sender->id,
             'receiver_id' => $receiverId,
             'booking_id' => $this->booking_id,
+            'tenant_id' => $this->tenant_id,
             'subject' => 'Re: ' . ($this->subject ?? ''),
             'content' => $content,
             'type' => $this->type === self::TYPE_BOOKING_INQUIRY ? self::TYPE_BOOKING_RESPONSE : self::TYPE_GENERAL
