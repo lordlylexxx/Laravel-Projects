@@ -97,6 +97,32 @@
             font-size: 0.95rem;
         }
 
+        .portal-switch {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .portal-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #ffffff;
+        }
+
+        .portal-pill.active {
+            border-color: color-mix(in srgb, var(--primary) 65%, #ffffff);
+            background: color-mix(in srgb, var(--primary) 12%, #ffffff);
+            color: var(--primary);
+        }
+
         .status {
             margin-bottom: 14px;
             background: color-mix(in srgb, var(--primary) 12%, #ffffff);
@@ -211,11 +237,35 @@
         </div>
 
         <div class="card">
-            <span class="kicker">Login to your account</span>
-        <h1>Owner and User Login</h1>
-        <p class="subtitle">
-            Sign in to access this tenant portal. Owners can manage listings, and users can browse and book accommodations.
-        </p>
+            @php
+                $selectedPortal = $portal ?? request('portal');
+                if (!in_array($selectedPortal, ['admin', 'client'], true)) {
+                    $selectedPortal = null;
+                }
+
+                $isAdminPortal = $selectedPortal === 'admin';
+                $isClientPortal = $selectedPortal === 'client';
+                $kickerText = $isAdminPortal
+                    ? 'Tenant admin sign in'
+                    : ($isClientPortal ? 'Client sign in' : 'Tenant sign in');
+                $headingText = $isAdminPortal
+                    ? 'Tenant Admin Login'
+                    : ($isClientPortal ? 'Client Login' : 'Tenant Login');
+                $subtitleText = $isAdminPortal
+                    ? 'Sign in with your tenant admin credentials to manage properties, bookings, and tenant operations.'
+                    : ($isClientPortal
+                        ? 'Sign in to browse properties, book accommodations, and manage your reservations.'
+                        : 'Use one login page for both tenant admin and client accounts.');
+            @endphp
+
+            <span class="kicker">{{ $kickerText }}</span>
+            <h1>{{ $headingText }}</h1>
+            <p class="subtitle">{{ $subtitleText }}</p>
+
+            <div class="portal-switch">
+                <a href="/login?portal=admin" class="portal-pill {{ $isAdminPortal ? 'active' : '' }}">Tenant Admin</a>
+                <a href="/login?portal=client" class="portal-pill {{ $isClientPortal ? 'active' : '' }}">Client</a>
+            </div>
 
         @if (session('status'))
             <div class="status">{{ session('status') }}</div>
@@ -223,6 +273,7 @@
 
         <form method="POST" action="/login">
             @csrf
+            <input type="hidden" name="portal" value="{{ $selectedPortal ?? '' }}">
 
             <div class="field">
                 <label for="email">Email Address</label>
@@ -245,10 +296,19 @@
                 @endif
             </div>
 
-            <button type="submit" class="btn">Sign In</button>
+            <button type="submit" class="btn">
+                Sign In{{ $isAdminPortal ? ' to Tenant Admin Portal' : ($isClientPortal ? ' to Client Portal' : '') }}
+            </button>
 
             <div class="links">
-                <div>No account yet? <a href="/register">Create user account</a></div>
+                @if ($isAdminPortal)
+                    <div>Tenant admins are provisioned by the system owner.</div>
+                @elseif ($isClientPortal)
+                    <div>No account yet? <a href="/register">Create client account</a></div>
+                @else
+                    <div>Client account? <a href="/register">Create one here</a></div>
+                    <div>Tenant admins are provisioned by the system owner.</div>
+                @endif
                 <div><a href="/">Back to Tenant Landing</a></div>
             </div>
         </form>

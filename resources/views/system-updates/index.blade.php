@@ -301,7 +301,7 @@
                         Mark as Installed
                     </button>
                 </form>
-                <a href="{{ $navType === 'admin' ? route('admin.dashboard') : route('owner.dashboard') }}" class="btn ghost">
+                <a href="{{ ($navType === 'admin' && !\App\Models\Tenant::checkCurrent()) ? '/admin/dashboard' : '/owner/dashboard' }}" class="btn ghost">
                     <i class="fas fa-arrow-left"></i>
                     Back to Dashboard
                 </a>

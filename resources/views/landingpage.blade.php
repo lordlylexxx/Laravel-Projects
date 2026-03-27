@@ -422,163 +422,60 @@
         
         <div class="hero-buttons animate delay-2">
             <a href="/register" class="btn btn-primary"><i class="fas fa-rocket"></i> Get Started</a>
-            <a href="/login" class="btn btn-outline"><i class="fas fa-search"></i> Browse Properties</a>
+            <a href="#properties" class="btn btn-outline"><i class="fas fa-search"></i> Browse Tenant Portals</a>
         </div>
         
     </section>
     
-    <!-- Accommodations Carousel Section -->
+    <!-- Tenant Carousel Section -->
     <section class="carousel-section" id="properties">
         <div class="carousel-header animate">
-            <h2><i class="fas fa-star" style="color: var(--green-primary); margin-right: 10px;"></i>Featured Accommodations</h2>
-            <p>Handpicked properties with great reviews and amenities</p>
+            <h2><i class="fas fa-store" style="color: var(--green-primary); margin-right: 10px;"></i>Featured Tenant Portals</h2>
+            <p>Explore active accommodation providers in Impasugong</p>
         </div>
         
         <div class="carousel-container">
             <div class="carousel-track" id="carouselTrack">
-                <!-- Property 1 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/COMMUNAL.jpg" alt="Mountain View Inn" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-bed"></i> Traveller-Inn</span>
-                            <h3>Mountain View Inn</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Poblacion, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 2 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                                <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱1,500 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                                    <span>(12)</span>
+                @forelse(($featuredTenants ?? collect()) as $tenant)
+                    @php
+                        $settings = $tenant->landingSettings();
+                        $tenantLogo = $tenant->getLogoUrl() ?: ($settings['hero_image_url'] ?? '/SYSTEMLOGO.png');
+                        $planName = match ($tenant->plan) {
+                            'pro' => 'Premium',
+                            'plus' => 'Standard',
+                            'basic' => 'Basic',
+                            default => 'Tenant',
+                        };
+                    @endphp
+                    <div class="carousel-slide">
+                        <div class="property-card">
+                            <img src="{{ $tenantLogo }}" alt="{{ $tenant->name }}" class="property-img">
+                            <div class="property-content">
+                                <span class="property-type"><i class="fas fa-store"></i> {{ $planName }} Portal</span>
+                                <h3>{{ $tenant->name }}</h3>
+                                <div class="property-location"><i class="fas fa-globe"></i> {{ $tenant->domain ?: 'localhost' }}</div>
+                                <div class="property-features">
+                                    <span class="feature"><i class="fas fa-calendar-check"></i> Booking Enabled</span>
+                                    <span class="feature"><i class="fas fa-message"></i> Messaging {{ $tenant->feature_messaging ? 'On' : 'Off' }}</span>
+                                    <span class="feature"><i class="fas fa-user"></i> Owner: {{ $tenant->owner?->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="property-footer">
+                                    <div class="property-price">Visit Portal <span>live app</span></div>
+                                    <div class="property-rating">
+                                        <a href="{{ $tenant->publicUrl() }}" class="btn btn-outline" style="padding: 8px 14px; font-size: 0.85rem;">Open</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Property 2 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/1.jpg" alt="Cozy Garden House" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-home"></i> Airbnb</span>
-                            <h3>Cozy Garden House</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Kapitan, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 3 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
-                                <span class="feature"><i class="fas fa-utensils"></i> Kitchen</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱2,800 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                                    <span>(8)</span>
-                                </div>
-                            </div>
+                @empty
+                    <div class="carousel-slide" style="min-width: 100%; margin: 0;">
+                        <div class="property-card" style="padding: 32px; text-align: center;">
+                            <h3 style="margin-bottom: 12px;">No Tenant Portals Yet</h3>
+                            <p style="color: var(--green-medium);">Tenant showcases will appear here as owners complete onboarding.</p>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Property 3 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/2.jpg" alt="Riverside Apartment" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-calendar"></i> Daily Rental</span>
-                            <h3>Riverside Apartment</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Centro, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                                <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱1,200 <span>/ day</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
-                                    <span>(15)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Property 4 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/airbnb1.jpg" alt="Forest Cabin" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-home"></i> Airbnb</span>
-                            <h3>Forest Cabin Retreat</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Malitbog, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 4 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
-                                <span class="feature"><i class="fas fa-fire"></i> Fireplace</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱3,500 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                                    <span>(22)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Property 5 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/inn1.jpg" alt="Town Inn" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-bed"></i> Traveller-Inn</span>
-                            <h3>Town Inn Basic</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Poblacion, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                                <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱800 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
-                                    <span>(35)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Property 6 -->
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/accommodation1.jpg" alt="Villa Rosa" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-calendar"></i> Daily Rental</span>
-                            <h3>Villa Rosa</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Haguit, Impasugong</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 5 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 3 Baths</span>
-                                <span class="feature"><i class="fas fa-swimming-pool"></i> Pool</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">₱4,000 <span>/ day</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                                    <span>(9)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @endforelse
             </div>
             
             <div class="carousel-controls">

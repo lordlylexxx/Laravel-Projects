@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,18 +16,24 @@ class EnsureUserIsClient
     {
         $user = $request->user();
         
-        if (!$user) {
+        if (! $user) {
             return redirect('/login');
         }
-        
-        // Only clients can access these routes
+
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) ($user->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            return redirect('/')
+                ->with('error', 'You do not have access to this tenant.');
+        }
+
+        // Only clients can access these routes.
         if ($user->role !== 'client') {
-            // Redirect to their appropriate dashboard
             if ($user->role === 'admin') {
-                return redirect()->route('admin.dashboard')
+                return redirect('/admin/dashboard')
                     ->with('error', 'This section is for clients only.');
             } elseif ($user->role === 'owner') {
-                return redirect()->route('owner.dashboard')
+                return redirect('/owner/dashboard')
                     ->with('error', 'This section is for clients only.');
             }
         }

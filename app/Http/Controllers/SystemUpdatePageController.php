@@ -72,6 +72,8 @@ class SystemUpdatePageController extends Controller
             ->take(12)
             ->get();
 
+        $isTenantContext = Tenant::checkCurrent();
+
         return view('system-updates.index', [
             'navType' => $navType,
             'user' => $request->user(),
@@ -86,9 +88,9 @@ class SystemUpdatePageController extends Controller
             'centralBaseUrl' => (string) config('updates.central_base_url', ''),
             'history' => $history,
             'lastCheckLogId' => $log->id,
-            'markInstalledRoute' => $navType === 'admin'
-                ? route('admin.updates.mark-installed')
-                : route('owner.updates.mark-installed'),
+            'markInstalledRoute' => ($navType === 'admin' && ! $isTenantContext)
+                ? '/admin/system-updates/mark-installed'
+                : '/owner/system-updates/mark-installed',
         ]);
     }
 
@@ -110,7 +112,9 @@ class SystemUpdatePageController extends Controller
             ]);
         }
 
-        return redirect()->route($navType === 'admin' ? 'admin.updates.index' : 'owner.updates.index')
+        $isTenantContext = Tenant::checkCurrent();
+
+        return redirect()->to(($navType === 'admin' && ! $isTenantContext) ? '/admin/system-updates' : '/owner/system-updates')
             ->with('success', 'Latest update has been marked as installed.');
     }
 }

@@ -154,7 +154,10 @@
         <ul class="nav-links">
             @auth
                 @if(Auth::user()->isAdmin())
-                    <li><a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.*') ? 'active' : '' }}">Dashboard</a></li>
+                    @php
+                        $adminDashboardHref = \App\Models\Tenant::checkCurrent() ? '/owner/dashboard' : '/admin/dashboard';
+                    @endphp
+                    <li><a href="{{ $adminDashboardHref }}" class="{{ request()->routeIs('admin.*') ? 'active' : '' }}">Dashboard</a></li>
                 @elseif(Auth::user()->isOwner())
                     <li><a href="{{ route('owner.dashboard') }}" class="{{ request()->routeIs('owner.*') ? 'active' : '' }}">Dashboard</a></li>
                 @else
@@ -293,6 +296,11 @@
                         </div>
                     @elseif(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
                         <div class="action-btns">
+                            @if($booking->status === 'pending')
+                                <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
+                                    Complete Payment
+                                </a>
+                            @endif
                             <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('PUT')

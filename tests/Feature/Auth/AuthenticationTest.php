@@ -19,7 +19,22 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('owner.dashboard', absolute: false));
+    $response->assertRedirect('/owner/dashboard');
+});
+
+test('central admins are redirected to central admin dashboard after login', function () {
+    $user = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'tenant_id' => null,
+    ]);
+
+    $response = $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect('/admin/dashboard');
 });
 
 test('clients can not authenticate using central app login screen', function () {

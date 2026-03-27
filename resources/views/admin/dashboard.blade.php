@@ -178,14 +178,14 @@
             background: var(--white);
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
-            padding: 25px;
-            margin-bottom: 25px;
+            padding: 18px;
+            margin-bottom: 18px;
             border: 1px solid var(--green-soft);
         }
         .dashboard-card h3 { 
-            font-size: 1.1rem; 
+            font-size: 1rem; 
             color: var(--gray-800); 
-            margin-bottom: 20px; 
+            margin-bottom: 14px; 
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -194,13 +194,13 @@
         .dashboard-card h3 .icon { color: var(--green-primary); }
         
         /* Content Grid */
-        .content-grid { display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
-        .content-left { display: flex; flex-direction: column; gap: 20px; }
-        .content-right { display: flex; flex-direction: column; gap: 20px; }
+        .content-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        .content-left { display: flex; flex-direction: column; gap: 15px; }
+        .content-right { display: flex; flex-direction: column; gap: 15px; }
         
         /* Chart Container */
-        .chart-container { position: relative; height: 320px; }
-        .chart-container-sm { position: relative; height: 280px; }
+        .chart-container { position: relative; height: 280px; }
+        .chart-container-sm { position: relative; height: 250px; }
         
         /* Table */
         .data-table { width: 100%; border-collapse: collapse; }
@@ -226,22 +226,27 @@
         }
         
         /* Quick Stats Grid */
-        .quick-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .quick-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .quick-stat-card {
             background: linear-gradient(135deg, var(--cream), var(--green-white));
-            padding: 20px;
+            padding: 16px;
             border-radius: 12px;
             text-align: center;
             transition: all 0.3s;
             border: 1px solid var(--green-soft);
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         .quick-stat-card:hover { 
             background: linear-gradient(135deg, var(--green-soft), var(--green-pale)); 
             transform: translateY(-3px);
         }
-        .quick-stat-card .icon { font-size: 1.8rem; color: var(--green-primary); margin-bottom: 10px; }
-        .quick-stat-card h4 { font-size: 1.4rem; color: var(--green-dark); margin-bottom: 5px; font-weight: 700; }
-        .quick-stat-card p { color: var(--gray-600); font-size: 0.85rem; }
+        .quick-stat-card .icon { font-size: 1.6rem; color: var(--green-primary); margin-bottom: 6px; }
+        .quick-stat-card h4 { font-size: 1.3rem; color: var(--green-dark); margin-bottom: 3px; font-weight: 700; }
+        .quick-stat-card p { color: var(--gray-600); font-size: 0.8rem; }
         
         /* Gear Icon (Settings) - Icon Only */
         .settings-icon {
@@ -426,36 +431,53 @@
                 </div>
             </div>
             
-            <!-- Recent Bookings -->
+            <!-- Tenant Bookings Today -->
             <div class="dashboard-card animate delay-4">
-                <h3><i class="fas fa-history icon"></i>Recent Bookings</h3>
-                @if(isset($recentBookings) && count($recentBookings) > 0)
+                <h3><i class="fas fa-users-check icon"></i>Today's Tenant Bookings</h3>
+                <p class="table-note"><i class="fas fa-info-circle"></i> Shows number of guests per tenant with active check-ins today</p>
+                @if(isset($tenantBookingsToday) && count($tenantBookingsToday) > 0)
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th><i class="fas fa-building"></i> Property</th>
-                                <th><i class="fas fa-user"></i> Client</th>
-                                <th><i class="fas fa-calendar-check"></i> Check-In</th>
-                                <th><i class="fas fa-money-bill-wave"></i> Amount</th>
-                                <th><i class="fas fa-info-circle"></i> Status</th>
+                                <th><i class="fas fa-building"></i> Tenant Name</th>
+                                <th><i class="fas fa-calendar-check"></i> Active Bookings</th>
+                                <th><i class="fas fa-users"></i> Total Guests</th>
+                                <th><i class="fas fa-download"></i> Monthly Report</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($recentBookings as $booking)
+                            @foreach($tenantBookingsToday as $booking)
                                 <tr>
-                                    <td><strong>{{ $booking->accommodation->name ?? 'N/A' }}</strong></td>
-                                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d, Y') }}</td>
-                                    <td><strong>₱{{ number_format($booking->total_price, 0, '.', ',') }}</strong></td>
-                                    <td><span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span></td>
+                                    <td><strong>{{ $booking->name }}</strong></td>
+                                    <td>{{ $booking->booking_count }}</td>
+                                    <td><span style="background: linear-gradient(135deg, var(--green-soft), var(--green-pale)); padding: 6px 12px; border-radius: 50px; color: var(--green-dark); font-weight: 600;">{{ $booking->total_guests }} guests</span></td>
+                                    <td>
+                                        <form action="{{ route('admin.monthly-booking-pdf') }}" method="POST" style="display: inline;">
+                                            @csrf
+                                            <input type="hidden" name="year" value="{{ now()->year }}">
+                                            <input type="hidden" name="month" value="{{ now()->month }}">
+                                            <button type="submit" style="background: linear-gradient(135deg, var(--green-primary), var(--green-medium)); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: all 0.3s;">
+                                                <i class="fas fa-download"></i> PDF
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                             @endforeach
+                            <tr style="background: var(--cream); font-weight: 600;">
+                                <td colspan="1"><strong>Total This Month:</strong></td>
+                                <td colspan="3">
+                                    <span style="color: var(--green-dark);">
+                                        {{ $tenantBookingsToday->sum('booking_count') }} Bookings | 
+                                        {{ $tenantBookingsToday->sum('total_guests') }} Guests
+                                    </span>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 @else
                     <div style="text-align: center; padding: 40px; color: var(--gray-400);">
-                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; color: var(--gray-300);"></i>
-                        <p>No recent bookings</p>
+                        <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 15px; color: var(--gray-300);"></i>
+                        <p>No active bookings today</p>
                     </div>
                 @endif
             </div>

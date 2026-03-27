@@ -417,21 +417,21 @@
     @include('client.partials.top-navbar', ['active' => 'accommodations'])
     @else
     <nav class="navbar">
-        <a href="/dashboard" class="nav-logo">
+        <a href="{{ route('dashboard') }}" class="nav-logo">
             <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="/dashboard">Browse</a></li>
-            <li><a href="/accommodations" class="active">Accommodations</a></li>
-            <li><a href="/bookings">My Bookings</a></li>
-            <li><a href="/messages">Messages</a></li>
-            <li><a href="/profile">Settings</a></li>
+            <li><a href="{{ route('dashboard') }}">Browse</a></li>
+            <li><a href="{{ route('accommodations.index') }}" class="active">Accommodations</a></li>
+            <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
+            <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('profile.edit') }}">Settings</a></li>
         </ul>
         
         <div class="nav-actions">
-            <a href="/profile" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--green-soft); color: var(--green-dark); text-decoration: none; transition: all 0.3s;">
+            <a href="{{ route('profile.edit') }}" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--green-soft); color: var(--green-dark); text-decoration: none; transition: all 0.3s;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -454,7 +454,7 @@
         </div>
         
         <!-- Filter Bar -->
-        <form action="/accommodations" method="GET" class="filter-bar">
+        <form action="{{ route('accommodations.index') }}" method="GET" class="filter-bar">
             <div class="filter-group">
                 <label>Type:</label>
                 <select name="type" class="filter-select">

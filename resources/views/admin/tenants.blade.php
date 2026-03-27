@@ -129,11 +129,25 @@
             gap: 8px;
         }
 
+        .inline-form.stacked {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+        }
+
         .inline-form select {
             padding: 6px 8px;
             border: 1px solid var(--gray-300);
             border-radius: 8px;
             background: #fff;
+        }
+
+        .inline-form input[type="text"] {
+            padding: 6px 8px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            background: #fff;
+            min-width: 170px;
         }
 
         .btn {
@@ -148,6 +162,7 @@
         .btn.save { background: var(--green-primary); }
         .btn.disable { background: #DC2626; }
         .btn.enable { background: #2563EB; }
+        .btn.secondary { background: #6B7280; }
 
         .tenant-url {
             color: var(--green-primary);
@@ -181,7 +196,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3>Tenants ({{ $tenants->total() }})</h3>
-                    <span style="color: var(--gray-500); font-size: 0.85rem;">Plan + Domain controls</span>
+                    <span style="color: var(--gray-500); font-size: 0.85rem;">
+                        Plan + Domain controls |
+                        <a href="{{ route('admin.tenants.lifecycle-logs') }}" style="color: var(--green-primary); font-weight: 700;">View Lifecycle Logs</a>
+                    </span>
                 </div>
 
                 <div class="table-wrap">
@@ -202,6 +220,7 @@
                                 @php
                                     $domainEnabled = (bool) ($tenant->domain_enabled ?? true);
                                     $statusValue = (string) ($tenant->subscription_status ?? 'unknown');
+                                    $latestLifecycle = $latestLifecycleByTenant[$tenant->id] ?? null;
                                     $centralPort = (int) env('CENTRAL_PORT', 8000);
                                     $statusClass = match ($statusValue) {
                                         'active' => 'active',
@@ -221,10 +240,29 @@
                                     <td>
                                         <strong>{{ $tenant->name }}</strong>
                                         <div style="font-size:0.78rem; color: var(--gray-500); margin-top:3px;">{{ $tenant->slug }}</div>
+                                        <form class="inline-form stacked" action="{{ route('admin.tenants.update-profile', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="text" name="name" value="{{ $tenant->name }}" placeholder="Tenant name">
+                                            <input type="text" name="app_title" value="{{ $tenant->app_title }}" placeholder="App title">
+                                            <select name="locale">
+                                                <option value="en" {{ ($tenant->locale ?? 'en') === 'en' ? 'selected' : '' }}>EN</option>
+                                                <option value="es" {{ ($tenant->locale ?? 'en') === 'es' ? 'selected' : '' }}>ES</option>
+                                                <option value="fr" {{ ($tenant->locale ?? 'en') === 'fr' ? 'selected' : '' }}>FR</option>
+                                                <option value="de" {{ ($tenant->locale ?? 'en') === 'de' ? 'selected' : '' }}>DE</option>
+                                            </select>
+                                            <input type="text" name="reason" placeholder="Reason (required)" required>
+                                            <button type="submit" class="btn save">Update Profile</button>
+                                        </form>
                                     </td>
                                     <td>
                                         {{ $tenant->owner?->name ?? 'Unassigned' }}
                                         <div style="font-size:0.78rem; color: var(--gray-500); margin-top:3px;">{{ $tenant->owner?->email ?? 'N/A' }}</div>
+                                        <form class="inline-form stacked" action="{{ route('admin.tenants.resend-onboarding-email', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                            @csrf
+                                            <input type="text" name="reason" placeholder="Reason to resend (required)" required>
+                                            <button type="submit" class="btn secondary">Resend Onboarding Email</button>
+                                        </form>
                                     </td>
                                     <td>
                                         <form class="inline-form" action="{{ route('admin.tenants.update-plan', $tenant) }}" method="POST">
@@ -235,6 +273,7 @@
                                                 <option value="plus" {{ $tenant->plan === 'plus' ? 'selected' : '' }}>Standard</option>
                                                 <option value="pro" {{ $tenant->plan === 'pro' ? 'selected' : '' }}>Premium</option>
                                             </select>
+                                            <input type="text" name="reason" placeholder="Reason (required)" required>
                                             <button type="submit" class="btn save">Save</button>
                                         </form>
                                     </td>
@@ -250,6 +289,7 @@
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="domain_enabled" value="{{ $domainEnabled ? 0 : 1 }}">
+                                                <input type="text" name="reason" placeholder="Reason (required)" required>
                                                 <button type="submit" class="btn {{ $domainEnabled ? 'disable' : 'enable' }}">
                                                     {{ $domainEnabled ? 'Disable' : 'Enable' }}
                                                 </button>
@@ -258,6 +298,24 @@
                                     </td>
                                     <td>
                                         <span class="status-badge {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $statusValue)) }}</span>
+                                        <form class="inline-form" action="{{ route('admin.tenants.update-subscription', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                            @csrf
+                                            @method('PUT')
+                                            <select name="subscription_status">
+                                                <option value="trialing" {{ $statusValue === 'trialing' ? 'selected' : '' }}>Trialing</option>
+                                                <option value="active" {{ $statusValue === 'active' ? 'selected' : '' }}>Active</option>
+                                                <option value="past_due" {{ $statusValue === 'past_due' ? 'selected' : '' }}>Past Due</option>
+                                                <option value="cancelled" {{ $statusValue === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                            </select>
+                                            <input type="text" name="reason" placeholder="Reason (required)" required>
+                                            <button type="submit" class="btn save">Update</button>
+                                        </form>
+                                        @if($latestLifecycle)
+                                            <div style="margin-top: 8px; font-size:0.78rem; color: var(--gray-500);">
+                                                Last: <strong>{{ str_replace('.', ' ', ucfirst($latestLifecycle->action)) }}</strong><br>
+                                                {{ $latestLifecycle->created_at?->format('M d, Y h:i A') }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>{{ is_null($dbUsed) ? 'N/A' : number_format((float) $dbUsed, 2) }}</td>
                                     <td>{{ $periodEnds ? $periodEnds->format('M d, Y') : 'N/A' }}</td>

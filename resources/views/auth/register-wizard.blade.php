@@ -22,10 +22,16 @@
             --white: #FFFFFF;
             --cream: #F1F8E9;
         }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             background: linear-gradient(135deg, var(--green-white) 0%, var(--white) 50%, var(--green-soft) 100%);
         }
@@ -63,13 +69,15 @@
         .logo-container {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 20px;
             margin-bottom: 30px;
+            width: 100%;
         }
         
         .municipality-logo {
-            width: 100px;
-            height: 100px;
+            width: 150px;
+            height: 150px;
             border-radius: 12px;
             border: none;
             object-fit: contain;
@@ -128,6 +136,8 @@
             align-items: center;
             justify-content: center;
             padding: 40px;
+            max-height: 100vh;
+            overflow-y: auto;
         }
         
         .form-container {
@@ -137,6 +147,8 @@
             box-shadow: 0 20px 60px rgba(27, 94, 32, 0.15);
             width: 100%;
             max-width: 500px;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
         }
         
         /* Progress Steps */
@@ -557,11 +569,11 @@
         
         @media (max-width: 768px) {
             body {
-                flex-direction: column;
+                flex-direction: row;
             }
             
             .branding-section {
-                padding: 30px;
+                display: none;
             }
             
             .role-options {
@@ -569,11 +581,14 @@
             }
             
             .form-section {
-                padding: 20px;
+                flex: 1;
+                padding: 16px;
+                max-height: 100vh;
             }
             
             .form-container {
-                padding: 30px;
+                padding: 24px;
+                max-height: calc(100vh - 32px);
             }
             
             .progress-steps {
@@ -597,7 +612,7 @@
 <body>
     @php
         $selectedPlan = old('subscription_plan', request()->query('plan'));
-        $selectedRole = old('role', request()->query('role', $selectedPlan ? 'owner' : null));
+        $selectedRole = 'owner';
         $planLabels = [
             'basic' => 'Basic',
             'plus' => 'Standard',
@@ -612,7 +627,7 @@
             <div class="logo-container">
                 <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
                 <div class="logo-divider"></div>
-                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
+                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong Logo" class="municipality-logo">
             </div>
             
             <h1>Join Impasugong</h1>
@@ -657,27 +672,18 @@
                 <div class="step-content active" id="step-1">
                     <div class="form-header">
                         <h2>Create Account</h2>
-                        <p>Select your role and provide account details</p>
+                        <p>Set up your owner account details</p>
                     </div>
                     
                     <!-- Role Selection -->
                     <div class="role-selection">
-                        <label>I want to:</label>
+                        <label>Account Type:</label>
                         @if($selectedPlanLabel)
                             <p style="margin-bottom: 10px; color: var(--green-medium); font-size: 0.9rem;">You selected the <strong>{{ $selectedPlanLabel }}</strong> owner plan.</p>
                         @endif
                         <div class="role-options">
                             <div class="role-option">
-                                <input type="radio" id="role_client" name="role" value="client" {{ $selectedRole === 'client' ? 'checked' : '' }} onchange="updateStepTwo()">
-                                <label for="role_client" class="role-card">
-                                    <span class="icon">🏠</span>
-                                    <span class="title">Find Accommodation</span>
-                                    <span class="description">Browse and book properties</span>
-                                </label>
-                            </div>
-                            
-                            <div class="role-option">
-                                <input type="radio" id="role_owner" name="role" value="owner" {{ $selectedRole === 'owner' ? 'checked' : '' }} onchange="updateStepTwo()">
+                                <input type="radio" id="role_owner" name="role" value="owner" checked onchange="updateStepTwo()">
                                 <label for="role_owner" class="role-card">
                                     <span class="icon">🏨</span>
                                     <span class="title">List My Property</span>
@@ -937,14 +943,11 @@
         
         function updateStepTwo() {
             const role = document.querySelector('input[name="role"]:checked');
-            const step2 = document.getElementById('step-2');
             const roleIndicator = document.getElementById('step-2-indicator');
             
             if (role && role.value === 'owner') {
-                step2.style.display = 'block';
                 roleIndicator.style.display = 'flex';
             } else {
-                step2.style.display = 'none';
                 roleIndicator.style.display = 'none';
             }
         }
@@ -960,10 +963,6 @@
             if (currentStep === 1 && !validateStep1()) return;
             
             if (currentStep === 1) {
-                if (role.value === 'client') {
-                    document.getElementById('registration-form').submit();
-                    return;
-                }
                 currentStep = 2;
             } else if (currentStep === 2) {
                 currentStep = 3;
@@ -1030,6 +1029,11 @@
             } else {
                 step2Indicator.style.display = 'none';
                 step3Indicator.style.display = 'none';
+            }
+
+            const formContainer = document.querySelector('.form-container');
+            if (formContainer) {
+                formContainer.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
         

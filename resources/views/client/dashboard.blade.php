@@ -193,6 +193,64 @@
         .section-header h2 { font-size: 1.8rem; color: var(--green-dark); font-weight: 700; display: flex; align-items: center; gap: 10px; }
         .view-all { color: var(--green-primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.3s; }
         .view-all:hover { color: var(--green-dark); gap: 10px; }
+
+        .messages-link {
+            position: relative;
+        }
+        .badge-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            margin-left: 6px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--white);
+            background: linear-gradient(135deg, #EF4444, #F97316);
+            padding: 0 5px;
+            line-height: 1;
+        }
+
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+        .snapshot-card {
+            background: var(--white);
+            border: 1px solid var(--green-soft);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 20px rgba(27, 94, 32, 0.08);
+        }
+        .snapshot-card h4 {
+            color: var(--green-dark);
+            font-size: 0.92rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .snapshot-value {
+            font-size: 1.8rem;
+            color: var(--green-primary);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .snapshot-meta {
+            color: var(--gray-500);
+            font-size: 0.82rem;
+        }
+        .next-trip {
+            border-left: 4px solid var(--green-primary);
+        }
+        .next-trip-empty {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
         
         /* Category Cards */
         .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 50px; }
@@ -305,6 +363,8 @@
             .search-row { flex-direction: column; }
             .section { padding: 30px 20px; }
         }
+
+        @include('client.partials.top-navbar-styles')
         
         /* Animations */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -316,39 +376,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar">
-        <a href="/dashboard" class="nav-logo">
-            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
-            <span>ImpaStay</span>
-        </a>
-        
-        <ul class="nav-links">
-            <li><a href="/dashboard" class="active"><i class="fas fa-search"></i> Browse</a></li>
-            <li><a href="/accommodations"><i class="fas fa-building"></i> Accommodations</a></li>
-            <li><a href="/bookings"><i class="fas fa-calendar-alt"></i> My Bookings</a></li>
-            <li><a href="/messages"><i class="fas fa-envelope"></i> Messages</a></li>
-            <li><a href="/profile"><i class="fas fa-cog"></i> Settings</a></li>
-        </ul>
-        
-        <div class="nav-actions">
-            <!-- User Display -->
-            <div class="user-display">
-                @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
-                @else
-                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
-                @endif
-                <div class="user-info">
-                    <div class="user-name">{{ Auth::user()->name }}</div>
-                    <div class="user-role">Client</div>
-                </div>
-            </div>
-            <form action="/logout" method="POST">
-                @csrf
-                <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
-            </form>
-        </div>
-    </nav>
+    @include('client.partials.top-navbar', ['active' => 'browse'])
     
     <!-- Main Content -->
     <div class="main-content">
@@ -359,28 +387,28 @@
                 <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
                 
                 <div class="search-section">
-                    <form action="/accommodations" method="GET">
+                    <form action="{{ route('accommodations.index') }}" method="GET">
                         <div class="search-row">
                             <div class="search-input-group">
                                 <label><i class="fas fa-map-marker-alt"></i> Location</label>
-                                <input type="text" name="search" placeholder="Where do you want to stay?">
+                                <input type="text" name="search" placeholder="Where do you want to stay?" value="{{ request('search') }}">
                             </div>
                             <div class="search-input-group">
                                 <label><i class="fas fa-calendar-check"></i> Check In</label>
-                                <input type="date" name="check_in" min="{{ date('Y-m-d') }}">
+                                <input type="date" name="check_in" min="{{ date('Y-m-d') }}" value="{{ request('check_in') }}">
                             </div>
                             <div class="search-input-group">
                                 <label><i class="fas fa-calendar-times"></i> Check Out</label>
-                                <input type="date" name="check_out" min="{{ date('Y-m-d', strtotime('+1 day')) }}">
+                                <input type="date" name="check_out" min="{{ date('Y-m-d', strtotime('+1 day')) }}" value="{{ request('check_out') }}">
                             </div>
                             <div class="search-input-group">
                                 <label><i class="fas fa-users"></i> Guests</label>
                                 <select name="guests">
-                                    <option value="1">1 Guest</option>
-                                    <option value="2">2 Guests</option>
-                                    <option value="3">3 Guests</option>
-                                    <option value="4">4 Guests</option>
-                                    <option value="5">5+ Guests</option>
+                                    <option value="1" @selected(request('guests') == 1)>1 Guest</option>
+                                    <option value="2" @selected(request('guests') == 2)>2 Guests</option>
+                                    <option value="3" @selected(request('guests') == 3)>3 Guests</option>
+                                    <option value="4" @selected(request('guests') == 4)>4 Guests</option>
+                                    <option value="5" @selected(request('guests') == 5)>5+ Guests</option>
                                 </select>
                             </div>
                             <button type="submit" class="search-btn"><i class="fas fa-search"></i> Search</button>
@@ -393,8 +421,45 @@
         <!-- Property Categories -->
         <section class="section">
             <div class="section-header">
+                <h2><i class="fas fa-chart-line"></i>My Booking Snapshot</h2>
+                <a href="{{ route('bookings.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> Manage Bookings</a>
+            </div>
+
+            <div class="snapshot-grid">
+                <div class="snapshot-card animate delay-1">
+                    <h4><i class="fas fa-suitcase-rolling"></i> Upcoming Trips</h4>
+                    <div class="snapshot-value">{{ $upcomingBookingsCount ?? 0 }}</div>
+                    <div class="snapshot-meta">Active stays and confirmed arrivals</div>
+                </div>
+
+                <div class="snapshot-card animate delay-2">
+                    <h4><i class="fas fa-hourglass-half"></i> Pending Requests</h4>
+                    <div class="snapshot-value">{{ $pendingBookingsCount ?? 0 }}</div>
+                    <div class="snapshot-meta">Waiting for owner confirmation</div>
+                </div>
+
+                <div class="snapshot-card animate delay-3">
+                    <h4><i class="fas fa-wallet"></i> Year-to-Date Spend</h4>
+                    <div class="snapshot-value">₱{{ number_format($ytdSpend ?? 0, 0) }}</div>
+                    <div class="snapshot-meta">Paid and completed bookings this year</div>
+                </div>
+
+                <div class="snapshot-card next-trip animate delay-3">
+                    <h4><i class="fas fa-plane-departure"></i> Next Trip</h4>
+                    @if($nextUpcomingBooking)
+                        <div class="snapshot-value" style="font-size: 1.2rem; margin-bottom: 6px;">{{ $nextUpcomingBooking->accommodation->name ?? 'Accommodation' }}</div>
+                        <div class="snapshot-meta">
+                            {{ optional($nextUpcomingBooking->check_in_date)->format('M d, Y') }} - {{ optional($nextUpcomingBooking->check_out_date)->format('M d, Y') }}
+                        </div>
+                    @else
+                        <div class="next-trip-empty">No upcoming booking yet. Explore available stays.</div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="section-header">
                 <h2><i class="fas fa-th-large"></i>Browse by Type</h2>
-                <a href="/accommodations" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
+                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
             </div>
             
             <div class="categories">
@@ -403,7 +468,7 @@
                     <div class="category-content">
                         <span class="category-badge"><i class="fas fa-bed"></i> Traditional</span>
                         <h3>Traveller-Inns</h3>
-                        <p>Cozy, affordable inns for budget travelers</p>
+                        <p>{{ $categoryCounts['traveller-inn'] ?? 0 }} listings available for booking</p>
                     </div>
                 </div>
                 
@@ -412,7 +477,7 @@
                     <div class="category-content">
                         <span class="category-badge"><i class="fas fa-home"></i> Unique Stays</span>
                         <h3>Airbnb Rentals</h3>
-                        <p>Unique homes hosted by locals</p>
+                        <p>{{ $categoryCounts['airbnb'] ?? 0 }} listings available for booking</p>
                     </div>
                 </div>
                 
@@ -421,7 +486,7 @@
                     <div class="category-content">
                         <span class="category-badge"><i class="fas fa-calendar"></i> Flexible</span>
                         <h3>Daily Rentals</h3>
-                        <p>Flexible daily stays for any occasion</p>
+                        <p>{{ $categoryCounts['daily-rental'] ?? 0 }} listings available for booking</p>
                     </div>
                 </div>
             </div>
@@ -431,153 +496,48 @@
         <section class="section">
             <div class="section-header">
                 <h2><i class="fas fa-star"></i>Featured Accommodations</h2>
-                <a href="/accommodations" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
+                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
             </div>
             
             <div class="properties-grid">
-                <!-- Property 1 -->
-                <div class="property-card animate delay-1">
-                    <div class="property-img-wrapper">
-                        <img src="/COMMUNAL.jpg" alt="Mountain View Inn" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-bed"></i> Traveller-Inn</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="property-content">
-                        <div class="property-price">₱1,500 <span>/ night</span></div>
-                        <h3 class="property-title">Mountain View Inn</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Poblacion, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 2 Beds</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                            <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
+                @forelse($featuredAccommodations as $index => $accommodation)
+                    <div class="property-card animate delay-{{ ($index % 3) + 1 }}">
+                        <div class="property-img-wrapper">
+                            <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-img">
+                            <span class="property-type-badge">
+                                @if($accommodation->type === 'traveller-inn')
+                                    <i class="fas fa-bed"></i>
+                                @elseif($accommodation->type === 'airbnb')
+                                    <i class="fas fa-home"></i>
+                                @else
+                                    <i class="fas fa-calendar"></i>
+                                @endif
+                                {{ $accommodation->type_label }}
+                            </span>
+                            <button type="button" class="property-favorite"><i class="far fa-heart"></i></button>
                         </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                            <span class="rating-count">(12 reviews)</span>
+                        <div class="property-content">
+                            <div class="property-price">{{ $accommodation->formatted_price }} <span>/ night</span></div>
+                            <h3 class="property-title">{{ $accommodation->name }}</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $accommodation->barangay ?: $accommodation->address }}</div>
+                            <div class="property-features">
+                                <span class="feature"><i class="fas fa-bed"></i> {{ $accommodation->bedrooms }} Beds</span>
+                                <span class="feature"><i class="fas fa-bath"></i> {{ $accommodation->bathrooms }} Baths</span>
+                                <span class="feature"><i class="fas fa-users"></i> {{ $accommodation->max_guests }} Guests</span>
+                            </div>
+                            <div class="property-rating">
+                                <span class="stars"><i class="fas fa-star"></i></span>
+                                <span class="rating-count">{{ number_format((float) $accommodation->rating, 1) }} ({{ $accommodation->total_reviews }} reviews)</span>
+                            </div>
+                            <a href="{{ route('accommodations.show', $accommodation) }}" class="book-btn" style="text-decoration: none;"><i class="fas fa-ticket-alt"></i> Book Now</a>
                         </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
                     </div>
-                </div>
-                
-                <!-- Property 2 -->
-                <div class="property-card animate delay-2">
-                    <div class="property-img-wrapper">
-                        <img src="/1.jpg" alt="Cozy Garden House" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-home"></i> Airbnb</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
+                @empty
+                    <div class="snapshot-card" style="grid-column: 1 / -1;">
+                        <h4><i class="fas fa-info-circle"></i>No featured accommodations yet</h4>
+                        <p class="snapshot-meta">New listings will appear here once tenant properties are published and verified.</p>
                     </div>
-                    <div class="property-content">
-                        <div class="property-price">₱2,800 <span>/ night</span></div>
-                        <h3 class="property-title">Cozy Garden House</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Kapitan, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 3 Beds</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
-                            <span class="feature"><i class="fas fa-utensils"></i> Kitchen</span>
-                        </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                            <span class="rating-count">(8 reviews)</span>
-                        </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
-                    </div>
-                </div>
-                
-                <!-- Property 3 -->
-                <div class="property-card animate delay-3">
-                    <div class="property-img-wrapper">
-                        <img src="/2.jpg" alt="Riverside Apartment" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-calendar"></i> Daily Rental</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="property-content">
-                        <div class="property-price">₱1,200 <span>/ day</span></div>
-                        <h3 class="property-title">Riverside Apartment</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Centro, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                            <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                        </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
-                            <span class="rating-count">(15 reviews)</span>
-                        </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
-                    </div>
-                </div>
-                
-                <!-- Property 4 -->
-                <div class="property-card animate delay-1">
-                    <div class="property-img-wrapper">
-                        <img src="/airbnb1.jpg" alt="Forest Cabin" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-home"></i> Airbnb</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="property-content">
-                        <div class="property-price">₱3,500 <span>/ night</span></div>
-                        <h3 class="property-title">Forest Cabin Retreat</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Malitbog, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 4 Beds</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
-                            <span class="feature"><i class="fas fa-fire"></i> Fireplace</span>
-                        </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                            <span class="rating-count">(22 reviews)</span>
-                        </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
-                    </div>
-                </div>
-                
-                <!-- Property 5 -->
-                <div class="property-card animate delay-2">
-                    <div class="property-img-wrapper">
-                        <img src="/inn1.jpg" alt="Town Inn" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-bed"></i> Traveller-Inn</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="property-content">
-                        <div class="property-price">₱800 <span>/ night</span></div>
-                        <h3 class="property-title">Town Inn Basic</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Poblacion, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                            <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                        </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
-                            <span class="rating-count">(35 reviews)</span>
-                        </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
-                    </div>
-                </div>
-                
-                <!-- Property 6 -->
-                <div class="property-card animate delay-3">
-                    <div class="property-img-wrapper">
-                        <img src="/accommodation1.jpg" alt="Villa Rosa" class="property-img">
-                        <span class="property-type-badge"><i class="fas fa-calendar"></i> Daily Rental</span>
-                        <button class="property-favorite"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="property-content">
-                        <div class="property-price">₱4,000 <span>/ day</span></div>
-                        <h3 class="property-title">Villa Rosa</h3>
-                        <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. Haguit, Impasugong</div>
-                        <div class="property-features">
-                            <span class="feature"><i class="fas fa-bed"></i> 5 Beds</span>
-                            <span class="feature"><i class="fas fa-bath"></i> 3 Baths</span>
-                            <span class="feature"><i class="fas fa-swimming-pool"></i> Pool</span>
-                        </div>
-                        <div class="property-rating">
-                            <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
-                            <span class="rating-count">(9 reviews)</span>
-                        </div>
-                        <button class="book-btn"><i class="fas fa-ticket-alt"></i> Book Now</button>
-                    </div>
-                </div>
+                @endforelse
             </div>
         </section>
         

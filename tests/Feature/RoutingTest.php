@@ -3,6 +3,15 @@
 use App\Models\User;
 use App\Models\Tenant;
 
+function skipIfLandlordMemoryDb(): void
+{
+    $landlordDb = (string) config('database.connections.landlord.database', '');
+
+    if ($landlordDb === ':memory:' || $landlordDb === '') {
+        test()->markTestSkipped('Landlord test database is not configured for tenant route checks.');
+    }
+}
+
 // ============ CENTRAL APP ROUTES ============
 
 test('central landing page accessible', function () {
@@ -28,6 +37,8 @@ test('central register page accessible', function () {
 // ============ TENANT APP ROUTES ============
 
 test('tenant landing page accessible', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found in database');
     
@@ -36,6 +47,8 @@ test('tenant landing page accessible', function () {
 });
 
 test('tenant login page accessible', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found in database');
     
@@ -44,6 +57,8 @@ test('tenant login page accessible', function () {
 });
 
 test('tenant register page accessible', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found in database');
     
@@ -52,6 +67,8 @@ test('tenant register page accessible', function () {
 });
 
 test('tenant accommodations page accessible', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found in database');
     
@@ -62,25 +79,37 @@ test('tenant accommodations page accessible', function () {
 // ============ AUTHENTICATION TESTS ============
 
 test('central admin can login', function () {
-    $user = User::where('role', 'admin')->first();
-    expect($user)->not->toBeNull('No admin user found');
+    $user = User::where('role', 'admin')->first()
+        ?? User::factory()->create([
+            'role' => 'admin',
+            'tenant_id' => null,
+        ]);
     
     $response = $this->post('http://localhost:8000/login', [
         'email' => $user->email,
         'password' => 'password',
     ]);
     
-    expect($response->status())->toBe(302);
-    expect($response)->toHaveSessionPath('landing');
+    $response->assertRedirect('/admin/dashboard');
 });
 
 test('tenant user can login', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found');
     
     $user = User::where('tenant_id', $tenant->id)
-        ->where('role', '!=', 'admin')
+        ->where('role', 'client')
         ->first();
+
+    if (! $user) {
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'client',
+        ]);
+    }
+
     expect($user)->not->toBeNull('No tenant user found');
     
     $response = $this->post("http://{$tenant->domain}:8000/login", [
@@ -88,13 +117,11 @@ test('tenant user can login', function () {
         'password' => 'password',
     ]);
     
-    expect($response->status())->toBe(302);
-    expect($response)->toHaveSessionPath('landing');
+    $response->assertRedirect('/dashboard');
 });
 
 test('authenticated user can logout', function () {
-    $user = User::first();
-    expect($user)->not->toBeNull('No user found');
+    $user = User::first() ?? User::factory()->create();
     
     $response = $this->actingAs($user)->post('/logout');
     
@@ -106,14 +133,15 @@ test('authenticated user can logout', function () {
 
 test('unauthenticated user cannot access dashboard', function () {
     $response = $this->get('http://localhost:8000/dashboard');
-    expect($response->status())->toBe(302)
-        ->and($response)->toHaveSessionPath('login');
+    $response->assertRedirect('/login');
 });
 
 test('unauthenticated user cannot access messages', function () {
+    skipIfLandlordMemoryDb();
+
     $tenant = Tenant::first();
     expect($tenant)->not->toBeNull('No tenant found');
     
     $response = $this->get("http://{$tenant->domain}:8000/messages");
-    expect($response->status())->toBe(302);
+    $response->assertRedirect('/login');
 });

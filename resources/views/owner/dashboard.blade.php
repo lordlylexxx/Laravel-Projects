@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -127,16 +128,16 @@
         .main-content { flex: 1; padding: 30px 40px; min-height: calc(100vh - 80px); }
         
         /* Page Header */
-        .page-header { margin-bottom: 30px; }
-        .page-header h1 { font-size: 2rem; color: var(--green-dark); margin-bottom: 5px; font-weight: 700; }
-        .page-header p { color: var(--gray-500); font-size: 0.95rem; }
+        .page-header { margin-bottom: 20px; }
+        .page-header h1 { font-size: 1.7rem; color: var(--green-dark); margin-bottom: 4px; font-weight: 700; }
+        .page-header p { color: var(--gray-500); font-size: 0.88rem; }
         
         /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
         .stat-card {
             background: var(--white);
-            padding: 25px;
-            border-radius: 16px;
+            padding: 16px;
+            border-radius: 12px;
             box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
             text-align: center;
             transition: all 0.3s;
@@ -147,36 +148,36 @@
             box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15);
         }
         .stat-icon { 
-            width: 60px; 
-            height: 60px; 
-            border-radius: 14px; 
+            width: 46px; 
+            height: 46px; 
+            border-radius: 10px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 1.5rem;
-            margin: 0 auto 15px;
+            font-size: 1.1rem;
+            margin: 0 auto 10px;
         }
         .stat-icon.green { background: linear-gradient(135deg, var(--green-soft), var(--green-pale)); color: var(--green-dark); }
         .stat-icon.blue { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: var(--blue-500); }
         .stat-icon.orange { background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: var(--orange-500); }
         .stat-icon.purple { background: linear-gradient(135deg, #EDE9FE, #DDD6FE); color: var(--purple-500); }
         
-        .stat-card .value { font-size: 1.8rem; font-weight: bold; color: var(--green-dark); margin-bottom: 5px; }
-        .stat-card .label { color: var(--gray-500); font-size: 0.85rem; }
+        .stat-card .value { font-size: 1.35rem; font-weight: bold; color: var(--green-dark); margin-bottom: 3px; }
+        .stat-card .label { color: var(--gray-500); font-size: 0.78rem; }
         
         /* Dashboard Card */
         .dashboard-card {
             background: var(--white);
-            border-radius: 16px;
+            border-radius: 12px;
             box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
-            padding: 25px;
-            margin-bottom: 25px;
+            padding: 16px;
+            margin-bottom: 16px;
             border: 1px solid var(--green-soft);
         }
         .dashboard-card h3 { 
-            font-size: 1.1rem; 
+            font-size: 1rem; 
             color: var(--gray-800); 
-            margin-bottom: 20px; 
+            margin-bottom: 12px; 
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -185,11 +186,11 @@
         .dashboard-card h3 .icon { color: var(--green-primary); }
         
         /* Quick Actions */
-        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
         .quick-action-card {
             background: var(--white);
-            padding: 25px;
-            border-radius: 16px;
+            padding: 14px;
+            border-radius: 12px;
             box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
             text-align: center;
             cursor: pointer;
@@ -205,34 +206,20 @@
             box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15);
         }
         .quick-action-card .icon { 
-            font-size: 2.5rem; 
+            font-size: 1.7rem; 
             color: var(--green-primary); 
-            margin-bottom: 15px; 
+            margin-bottom: 8px; 
         }
-        .quick-action-card h4 { color: var(--green-dark); margin-bottom: 8px; font-size: 1rem; }
-        .quick-action-card p { color: var(--gray-500); font-size: 0.85rem; }
-        
-        /* Revenue Cards */
-        .revenue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .revenue-card {
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            color: white;
-            padding: 25px;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(27, 94, 32, 0.3);
-        }
-        .revenue-card .icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.9; }
-        .revenue-card .value { font-size: 2rem; font-weight: bold; margin-bottom: 5px; }
-        .revenue-card .label { font-size: 0.9rem; opacity: 0.9; }
+        .quick-action-card h4 { color: var(--green-dark); margin-bottom: 5px; font-size: 0.9rem; }
+        .quick-action-card p { color: var(--gray-500); font-size: 0.78rem; }
 
         /* Pro Plan Section */
         .pro-section {
             background: linear-gradient(135deg, #0f3d2e, #14532d);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 12px;
+            padding: 16px;
             color: var(--white);
-            margin-bottom: 25px;
+            margin-bottom: 16px;
             box-shadow: 0 10px 30px rgba(20, 83, 45, 0.3);
         }
         .pro-header {
@@ -246,7 +233,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
         }
         .pro-badge {
@@ -261,30 +248,30 @@
         }
         .pro-feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
         }
         .pro-feature-card {
             background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 12px;
-            padding: 14px;
+            padding: 10px;
         }
         .pro-feature-card .name {
-            font-size: 0.82rem;
+            font-size: 0.72rem;
             opacity: 0.88;
             margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
         .pro-feature-card .value {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
         }
         
         /* Table */
         .property-table { width: 100%; border-collapse: collapse; }
-        .property-table th, .property-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+        .property-table th, .property-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--gray-200); }
         .property-table th { font-weight: 600; color: var(--gray-600); font-size: 0.8rem; text-transform: uppercase; background: var(--cream); }
         .property-table tr:hover { background: var(--green-white); }
         
@@ -295,6 +282,57 @@
         .status-badge.pending { background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #B45309; }
         .status-badge.confirmed { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: #1D4ED8; }
         .status-badge.cancelled { background: linear-gradient(135deg, #FEE2E2, #FECACA); color: #DC2626; }
+
+        .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .chart-container { position: relative; height: 220px; }
+
+        .pagination-clean .pagination {
+            display: flex;
+            list-style: none;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pagination-clean .page-item { list-style: none; }
+
+        .pagination-clean .page-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 34px;
+            padding: 0 10px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            background: #fff;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .pagination-clean .page-item.active .page-link {
+            background: var(--green-primary);
+            border-color: var(--green-primary);
+            color: #fff;
+        }
+
+        .pagination-clean .page-item.disabled .page-link {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .pagination-clean p.small.text-muted {
+            margin-top: 8px;
+            width: 100%;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.8rem;
+        }
         
         /* Gear Icon (Settings) - Icon Only */
         .settings-icon {
@@ -322,6 +360,7 @@
             .nav-links { display: none; }
             .main-content { padding: 20px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
         }
         
         /* Animations */
@@ -375,47 +414,43 @@
                 </div>
             </div>
             
-            <!-- Revenue Overview -->
-            <div class="revenue-grid animate delay-2">
-                <div class="revenue-card">
-                    <div class="icon"><i class="fas fa-peso-sign"></i></div>
-                    <div class="value">₱{{ number_format($stats['total_earnings'] ?? 0, 0, '.', ',') }}</div>
-                    <div class="label">Total Earnings</div>
-                </div>
-                <div class="revenue-card">
-                    <div class="icon"><i class="fas fa-check-double"></i></div>
-                    <div class="value">{{ $stats['confirmed_bookings'] ?? 0 }}</div>
-                    <div class="label">Confirmed Bookings</div>
-                </div>
-                <div class="revenue-card">
-                    <div class="icon"><i class="fas fa-star"></i></div>
-                    <div class="value">{{ number_format($properties->avg('rating') ?? 0, 1) }}</div>
-                    <div class="label">Avg Rating</div>
-                </div>
-            </div>
-            
             <!-- Quick Actions -->
             <div class="quick-actions animate delay-2">
-                <a href="/owner/accommodations/create" class="quick-action-card">
+                <a href="{{ route('owner.accommodations.create') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-plus-circle"></i></div>
                     <h4>Add New Unit</h4>
                     <p>List a new accommodation</p>
                 </a>
-                <a href="/owner/accommodations" class="quick-action-card">
+                <a href="{{ route('owner.accommodations.index') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-edit"></i></div>
                     <h4>Manage Units</h4>
                     <p>Edit property details</p>
                 </a>
-                <a href="/owner/bookings" class="quick-action-card">
+                <a href="{{ route('owner.bookings.index') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-tasks"></i></div>
                     <h4>Booking Requests</h4>
                     <p>Review pending bookings</p>
                 </a>
-                <a href="/messages" class="quick-action-card">
+                <a href="{{ route('messages.index') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-reply"></i></div>
                     <h4>Messages</h4>
                     <p>Respond to inquiries</p>
                 </a>
+            </div>
+
+            <div class="chart-grid animate delay-3">
+                <div class="dashboard-card">
+                    <h3><i class="fas fa-chart-line icon"></i>1-Month Revenue & Booking Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="ownerTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3><i class="fas fa-chart-pie icon"></i>Booking Status Mix</h3>
+                    <div class="chart-container">
+                        <canvas id="ownerStatusChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             @if(($proFeatures['is_pro'] ?? false) === true)
@@ -473,30 +508,7 @@
 
             @endif
 
-            @if(($proFeatures['has_analytics_dashboard'] ?? false) === true)
-                <div class="stats-grid animate delay-3">
-                    <div class="stat-card">
-                        <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
-                        <div class="value">₱{{ number_format($proFeatures['monthly_revenue'] ?? 0, 0, '.', ',') }}</div>
-                        <div class="label">Monthly Revenue</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
-                        <div class="value">{{ $proFeatures['monthly_bookings'] ?? 0 }}</div>
-                        <div class="label">Monthly Bookings</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
-                        <div class="value">₱{{ number_format($proFeatures['avg_booking_value'] ?? 0, 0, '.', ',') }}</div>
-                        <div class="label">Avg Booking Value</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple"><i class="fas fa-bullseye"></i></div>
-                        <div class="value">{{ number_format($proFeatures['booking_conversion_rate'] ?? 0, 1) }}%</div>
-                        <div class="label">Booking Conversion</div>
-                    </div>
-                </div>
-            @endif
+            
             
             <!-- My Units Table -->
             <div class="dashboard-card animate delay-3">
@@ -555,6 +567,12 @@
                             @endforeach
                         </tbody>
                     </table>
+
+                    @if(method_exists($properties, 'hasPages') && $properties->hasPages())
+                        <div class="pagination-clean" style="margin-top: 12px; display: flex; justify-content: center;">
+                            {{ $properties->onEachSide(1)->links('pagination::bootstrap-5') }}
+                        </div>
+                    @endif
                 @else
                     <div style="text-align: center; padding: 40px; color: var(--gray-400);">
                         <i class="fas fa-home" style="font-size: 3rem; margin-bottom: 15px; color: var(--gray-300);"></i>
@@ -601,5 +619,89 @@
             </div>
         </main>
     </div>
+
+    <script>
+        const trendCtx = document.getElementById('ownerTrendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: @json($trendLabels ?? []),
+                    datasets: [
+                        {
+                            label: 'Revenue (PHP)',
+                            data: @json($revenueTrend ?? []),
+                            borderColor: '#2E7D32',
+                            backgroundColor: 'rgba(46, 125, 50, 0.15)',
+                            tension: 0.35,
+                            fill: true,
+                            yAxisID: 'yRevenue'
+                        },
+                        {
+                            label: 'Bookings',
+                            data: @json($bookingsTrend ?? []),
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            tension: 0.35,
+                            fill: false,
+                            yAxisID: 'yBookings'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        yRevenue: {
+                            type: 'linear',
+                            position: 'left',
+                            ticks: {
+                                callback: function(value) {
+                                    return 'P' + Number(value).toLocaleString();
+                                }
+                            }
+                        },
+                        yBookings: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        const statusCtx = document.getElementById('ownerStatusChart');
+        if (statusCtx) {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'Confirmed', 'Paid', 'Completed', 'Cancelled'],
+                    datasets: [{
+                        data: [
+                            {{ $bookingStatusBreakdown['pending'] ?? 0 }},
+                            {{ $bookingStatusBreakdown['confirmed'] ?? 0 }},
+                            {{ $bookingStatusBreakdown['paid'] ?? 0 }},
+                            {{ $bookingStatusBreakdown['completed'] ?? 0 }},
+                            {{ $bookingStatusBreakdown['cancelled'] ?? 0 }}
+                        ],
+                        backgroundColor: ['#F59E0B', '#3B82F6', '#10B981', '#2E7D32', '#EF4444'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -20,19 +20,29 @@ class EnsureUserIsOwnerOrTenantAdmin
             return redirect('/login');
         }
 
-        if ($user->isOwner()) {
-            return $next($request);
+        $currentTenant = Tenant::current();
+
+        if (! $currentTenant) {
+            return redirect('/dashboard')
+                ->with('error', 'Tenant context is required for this section.');
         }
 
-        if ($user->isAdmin()) {
-            $currentTenant = Tenant::current();
+        if ($user->isOwner()) {
+            $canAccessTenant = (int) ($user->tenant_id ?? 0) === (int) $currentTenant->id
+                || (int) optional($user->ownedTenant)->id === (int) $currentTenant->id;
 
-            if ($currentTenant && (int) $user->tenant_id === (int) $currentTenant->id) {
+            if ($canAccessTenant) {
                 return $next($request);
             }
         }
 
-        return redirect()->route('dashboard')
+        if ($user->isAdmin()) {
+            if ((int) $user->tenant_id === (int) $currentTenant->id) {
+                return $next($request);
+            }
+        }
+
+        return redirect('/dashboard')
             ->with('error', 'This section is for tenant managers only.');
     }
 }

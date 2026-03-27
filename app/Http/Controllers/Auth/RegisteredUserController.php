@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Mail\TenantAdminProvisionedMail;
 use App\Models\Tenant;
+use App\Models\TenantLifecycleLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Spatie\Multitenancy\Facades\Tenancy;
 
 class RegisteredUserController extends Controller
 {
@@ -85,10 +87,6 @@ class RegisteredUserController extends Controller
             'phone' => $request->phone,
         ]);
 
-        if ($isTenantSignup && $tenant) {
-            $this->syncTenantClientToTenantDatabase($user, $tenant);
-        }
-
         if (! $isTenantSignup && $user->isOwner()) {
             $customizationData = null;
             if ($isOwnerRegistration) {
@@ -116,6 +114,21 @@ class RegisteredUserController extends Controller
 
             if ($provisionedTenant) {
                 $this->provisionTenantAdminAndSendEmail($user, $provisionedTenant);
+
+                TenantLifecycleLog::create([
+                    'tenant_id' => $provisionedTenant->id,
+                    'actor_user_id' => $user->id,
+                    'action' => 'tenant.onboarding.completed',
+                    'reason' => 'Owner signup provisioning completed.',
+                    'before_state' => [
+                        'owner_email' => $user->email,
+                    ],
+                    'after_state' => [
+                        'tenant_name' => $provisionedTenant->name,
+                        'tenant_slug' => $provisionedTenant->slug,
+                        'tenant_url' => $provisionedTenant->publicUrl(),
+                    ],
+                ]);
             }
         }
 
@@ -138,32 +151,62 @@ class RegisteredUserController extends Controller
      */
     private function provisionTenantAdminAndSendEmail(User $owner, Tenant $tenant): void
     {
-        $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
-        $plainPassword = Str::random(12);
-
-        $tenantAdmin = User::create([
-            'name' => $tenant->name . ' Admin',
-            'email' => $adminEmail,
-            'password' => Hash::make($plainPassword),
-            'role' => User::ROLE_ADMIN,
-            'tenant_id' => $tenant->id,
-            'phone' => null,
-        ]);
-
         try {
-            Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
-                ownerName: $owner->name,
-                businessName: $tenant->name,
-                businessUrl: $tenant->publicUrl(),
-                adminEmail: $tenantAdmin->email,
-                adminPassword: $plainPassword
-            ));
+            $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
+            $plainPassword = Str::random(12);
+
+            // Make tenant current to ensure admin user is created in tenant database
+            Tenancy::initialize($tenant);
+
+            try {
+                $tenantAdmin = User::create([
+                    'name' => $tenant->name . ' Admin',
+                    'email' => $adminEmail,
+                    'password' => Hash::make($plainPassword),
+                    'role' => User::ROLE_ADMIN,
+                    'tenant_id' => $tenant->id,
+                    'phone' => null,
+                ]);
+
+                Log::info('Tenant admin account created successfully.', [
+                    'tenant_id' => $tenant->id,
+                    'admin_user_id' => $tenantAdmin->id,
+                    'admin_email' => $adminEmail,
+                ]);
+            } finally {
+                // Restore no tenant context
+                Tenancy::end();
+            }
+
+            // Send email to owner with admin credentials
+            try {
+                Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
+                    ownerName: $owner->name,
+                    businessName: $tenant->name,
+                    businessUrl: $tenant->publicUrl(),
+                    adminEmail: $tenantAdmin->email,
+                    adminPassword: $plainPassword
+                ));
+
+                Log::info('Tenant admin provisioning email sent.', [
+                    'owner_email' => $owner->email,
+                    'tenant_id' => $tenant->id,
+                    'admin_email' => $tenantAdmin->email,
+                ]);
+            } catch (\Throwable $exception) {
+                Log::warning('Failed to send tenant admin provisioning email.', [
+                    'owner_user_id' => $owner->id,
+                    'tenant_id' => $tenant->id,
+                    'admin_email' => $adminEmail,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         } catch (\Throwable $exception) {
-            Log::warning('Failed to send tenant admin provisioning email.', [
+            Log::error('Failed to provision tenant admin account.', [
                 'owner_user_id' => $owner->id,
                 'tenant_id' => $tenant->id,
-                'admin_user_id' => $tenantAdmin->id,
                 'error' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
             ]);
         }
     }
@@ -175,7 +218,8 @@ class RegisteredUserController extends Controller
     {
         $base = 'admin@' . ($tenant->domain ?: ($tenant->slug . '.localhost'));
 
-        if (! User::query()->where('email', $base)->exists()) {
+        // Check in landlord database to avoid duplicate emails globally
+        if (! DB::connection('landlord')->table('users')->where('email', $base)->exists()) {
             return $base;
         }
 
@@ -186,40 +230,9 @@ class RegisteredUserController extends Controller
         do {
             $candidate = $prefix . $counter . '@' . $domain;
             $counter++;
-        } while (User::query()->where('email', $candidate)->exists());
+        } while (DB::connection('landlord')->table('users')->where('email', $candidate)->exists());
 
         return $candidate;
     }
 
-    /**
-     * Mirror tenant client credentials into the tenant database.
-     */
-    private function syncTenantClientToTenantDatabase(User $user, Tenant $tenant): void
-    {
-        try {
-            $tenant->makeCurrent();
-
-            DB::connection(config('multitenancy.tenant_database_connection_name', 'tenant'))
-                ->table('users')
-                ->updateOrInsert(
-                    ['email' => $user->email],
-                    [
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'password' => $user->password,
-                        'role' => $user->role,
-                        'tenant_id' => $tenant->id,
-                        'phone' => $user->phone,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
-        } catch (\Throwable $exception) {
-            Log::warning('Failed to mirror tenant client to tenant database.', [
-                'user_id' => $user->id,
-                'tenant_id' => $tenant->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
-    }
 }

@@ -22,7 +22,7 @@ class RoleAccessMiddleware
         // Check if user has the required role
         if ($user->role !== $role) {
             // Redirect to their appropriate dashboard based on role
-            return redirect()->route($user->getDashboardRoute())
+            return redirect()->to($user->getDashboardRoute())
                 ->with('error', 'You do not have access to this section.');
         }
         

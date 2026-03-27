@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Accommodation;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,21 @@ class TenantLandingController extends Controller
 
         $settings = $tenant->landingSettings();
 
-        return view('tenant.landing', compact('tenant', 'settings'));
+        $featuredAccommodations = Accommodation::query()
+            ->featured()
+            ->latest('id')
+            ->take(8)
+            ->get();
+
+        if ($featuredAccommodations->isEmpty()) {
+            $featuredAccommodations = Accommodation::query()
+                ->available()
+                ->latest('id')
+                ->take(8)
+                ->get();
+        }
+
+        return view('tenant.landing', compact('tenant', 'settings', 'featuredAccommodations'));
     }
 
     /**

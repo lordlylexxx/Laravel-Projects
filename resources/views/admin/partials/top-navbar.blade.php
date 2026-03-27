@@ -1,11 +1,23 @@
 @php
     $current = $active ?? '';
-    $isTenantContext = \App\Models\Tenant::checkCurrent();
+    $host = request()->getHost();
+    $centralDomain = (string) config('app.domain', 'localhost');
+    $isCentralHost = in_array($host, [$centralDomain, 'localhost', '127.0.0.1', '::1'], true);
+    $isTenantScopedAdmin = auth()->check()
+        && auth()->user()->isAdmin()
+        && !empty(auth()->user()->tenant_id)
+        && ! $isCentralHost;
+    $isTenantContext = \App\Models\Tenant::checkCurrent() || $isTenantScopedAdmin;
+
+    // Use host-local paths to avoid cross-domain route URL generation.
     $dashboardHref = $isTenantContext ? '/owner/dashboard' : '/admin/dashboard';
     $unitsHref = $isTenantContext ? '/owner/accommodations' : '/admin/tenants';
     $bookingsHref = '/owner/bookings';
+    $reportsHref = '/owner/reports/monthly';
     $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
-    $landingHref = $isTenantContext ? '/' : '/';
+    $messagesHref = '/messages';
+    $settingsHref = '/profile';
+    $landingHref = '/';
 @endphp
 
 <nav class="navbar">
@@ -18,11 +30,12 @@
         <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
         <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> My Units</a></li>
         @if($isTenantContext)
+            <li><a href="{{ $reportsHref }}" class="{{ $current === 'reports' ? 'active' : '' }}"><i class="fas fa-chart-column"></i> Reports</a></li>
             <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
         @endif
         <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
-        <li><a href="/messages" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        <li><a href="/profile" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>
+        <li><a href="{{ $settingsHref }}" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>
 
     <div class="nav-actions">
@@ -31,11 +44,6 @@
                 <i class="fas fa-download"></i>
                 Update v{{ $tenantUpdate['latest_version'] }}
             </a>
-        @elseif(($tenantUpdate['unavailable'] ?? false) === true)
-            <span class="nav-btn" title="{{ $tenantUpdate['message'] ?? 'Update server is unavailable.' }}" style="opacity: .8; cursor: default;">
-                <i class="fas fa-cloud-slash"></i>
-                Updates Offline
-            </span>
         @endif
 
         <div class="user-display">

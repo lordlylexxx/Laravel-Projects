@@ -330,7 +330,7 @@
                 <div class="limit-warning-content">
                     <h3>You've Reached Your Listing Limit</h3>
                     <p>Your current plan allows {{ $currentPlan['max_listings'] }} property listings. To add more properties, upgrade your plan.</p>
-                    <a href="/" class="upgrade-btn">
+                    <a href="{{ route('owner.updates.index') }}" class="upgrade-btn">
                         <i class="fas fa-arrow-up"></i> Upgrade Your Plan
                     </a>
                 </div>

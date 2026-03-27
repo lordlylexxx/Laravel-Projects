@@ -54,6 +54,12 @@ class ProfileController extends Controller
             $user->avatar = basename($avatarPath);
         }
 
+        $user->notification_preferences = [
+            'booking_updates' => (bool) $request->boolean('notify_booking_updates'),
+            'messages' => (bool) $request->boolean('notify_messages'),
+            'marketing' => (bool) $request->boolean('notify_marketing'),
+        ];
+
         $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');

@@ -303,6 +303,20 @@
     </style>
 </head>
 <body>
+    @php
+        $currentUser = auth()->user();
+        $canUseTenantPortal = false;
+
+        if ($currentUser) {
+            if ($currentUser->isOwner()) {
+                $canUseTenantPortal = (int) ($currentUser->tenant_id ?? 0) === (int) $tenant->id
+                    || (int) optional($currentUser->ownedTenant)->id === (int) $tenant->id;
+            } elseif ($currentUser->isAdmin() || $currentUser->isClient()) {
+                $canUseTenantPortal = (int) ($currentUser->tenant_id ?? 0) === (int) $tenant->id;
+            }
+        }
+    @endphp
+
     <nav class="navbar">
         <div class="nav-brand">
             <div class="brand-mark">{{ strtoupper(substr($tenant->name, 0, 1)) }}</div>
@@ -316,8 +330,8 @@
             <li><a href="#about"><i class="fas fa-circle-info"></i> About</a></li>
         </ul>
         <div class="nav-buttons">
-            @auth
-                @if(auth()->user()->isClient())
+            @if($canUseTenantPortal)
+                @if($currentUser->isClient())
                     <a href="{{ route('accommodations.index') }}" class="btn btn-outline"><i class="fas fa-search"></i> Browse</a>
                 @else
                     <a href="{{ route('owner.dashboard') }}" class="btn btn-outline"><i class="fas fa-gauge"></i> Dashboard</a>
@@ -327,9 +341,17 @@
                     <button type="submit" class="btn btn-primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </form>
             @else
-                <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> {{ $settings['login_text'] }}</a>
-                <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> {{ $settings['signup_text'] }}</a>
-            @endauth
+                @if(auth()->check())
+                    <span class="btn btn-outline" style="cursor: default;"><i class="fas fa-triangle-exclamation"></i> Wrong tenant account</span>
+                    <form method="POST" action="/logout">
+                        @csrf
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-right-left"></i> Switch Account</button>
+                    </form>
+                @else
+                    <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> {{ $settings['login_text'] }}</a>
+                    <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> {{ $settings['signup_text'] }}</a>
+                @endif
+            @endif
         </div>
     </nav>
 
@@ -357,71 +379,48 @@
 
         <div class="carousel-container">
             <div class="carousel-track" id="carouselTrack">
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="{{ $settings['hero_image_url'] ?: '/COMMUNAL.jpg' }}" alt="{{ $tenant->name }}" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-home"></i> Signature Stay</span>
-                            <h3>{{ $tenant->name }} Main Property</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 2 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                                <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">From ₱1,500 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
+                @forelse(($featuredAccommodations ?? collect()) as $accommodation)
+                    @php
+                        $images = is_array($accommodation->images) ? $accommodation->images : [];
+                        $primaryImage = $accommodation->primary_image ?? ($images[0] ?? 'COMMUNAL.jpg');
+                        $typeIcon = match ($accommodation->type) {
+                            'airbnb' => 'fas fa-home',
+                            'daily-rental' => 'fas fa-calendar',
+                            default => 'fas fa-bed',
+                        };
+                        $priceAmount = $accommodation->price_per_night ?: $accommodation->price_per_day;
+                        $priceUnit = $accommodation->price_per_night ? 'night' : 'day';
+                    @endphp
+                    <div class="carousel-slide">
+                        <div class="property-card">
+                            <img src="/{{ $primaryImage }}" alt="{{ $accommodation->name }}" class="property-img">
+                            <div class="property-content">
+                                <span class="property-type"><i class="{{ $typeIcon }}"></i> {{ $accommodation->type_label }}</span>
+                                <h3>{{ $accommodation->name }}</h3>
+                                <div class="property-location"><i class="fas fa-map-marker-alt"></i> Brgy. {{ $accommodation->barangay ?: 'Impasugong' }}</div>
+                                <div class="property-features">
+                                    <span class="feature"><i class="fas fa-bed"></i> {{ (int) ($accommodation->bedrooms ?? 0) }} Beds</span>
+                                    <span class="feature"><i class="fas fa-bath"></i> {{ (int) ($accommodation->bathrooms ?? 0) }} Baths</span>
+                                    <span class="feature"><i class="fas fa-users"></i> {{ (int) ($accommodation->max_guests ?? 1) }} Guests</span>
+                                </div>
+                                <div class="property-footer">
+                                    <div class="property-price">₱{{ number_format((float) $priceAmount, 0) }} <span>/ {{ $priceUnit }}</span></div>
+                                    <div class="property-rating">
+                                        <span class="stars"><i class="fas fa-star"></i></span>
+                                        <span>{{ number_format((float) ($accommodation->rating ?? 0), 1) }} ({{ (int) ($accommodation->total_reviews ?? 0) }})</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/1.jpg" alt="Cozy stay" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-bed"></i> Traveller-Inn</span>
-                            <h3>Cozy Guest Room</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
-                                <span class="feature"><i class="fas fa-snowflake"></i> AC</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">From ₱900 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
-                                </div>
-                            </div>
+                @empty
+                    <div class="carousel-slide" style="min-width: 100%; margin: 0;">
+                        <div class="property-card" style="padding: 32px; text-align: center;">
+                            <h3 style="margin-bottom: 12px;">No Accommodations Yet</h3>
+                            <p style="color: var(--green-medium);">This tenant has no published accommodations yet.</p>
                         </div>
                     </div>
-                </div>
-
-                <div class="carousel-slide">
-                    <div class="property-card">
-                        <img src="/2.jpg" alt="Family suite" class="property-img">
-                        <div class="property-content">
-                            <span class="property-type"><i class="fas fa-calendar"></i> Daily Rental</span>
-                            <h3>Family Suite</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> 3 Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
-                                <span class="feature"><i class="fas fa-kitchen-set"></i> Kitchen</span>
-                            </div>
-                            <div class="property-footer">
-                                <div class="property-price">From ₱2,400 <span>/ night</span></div>
-                                <div class="property-rating">
-                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @endforelse
             </div>
 
             <div class="carousel-controls">

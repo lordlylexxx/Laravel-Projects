@@ -19,21 +19,33 @@ class BookingController extends Controller
         $user = $request->user();
         $tenantId = $user->tenant_id;
         $currentTenant = Tenant::current();
+        $status = $request->query('status');
+        $allowedStatuses = [
+            Booking::STATUS_PENDING,
+            Booking::STATUS_CONFIRMED,
+            Booking::STATUS_COMPLETED,
+            Booking::STATUS_CANCELLED,
+            Booking::STATUS_PAID,
+        ];
+        $statusFilter = in_array($status, $allowedStatuses, true) ? $status : null;
         
         if ($user->isOwner()) {
             $bookings = Booking::forOwner($user->id)
                 ->when($tenantId, fn ($query) => $query->forTenant($tenantId))
+                ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
                 ->with(['client', 'accommodation'])
                 ->latest()
                 ->paginate(10);
         } elseif ($user->isAdmin() && $currentTenant && (int) $tenantId === (int) $currentTenant->id) {
             $bookings = Booking::forTenant($currentTenant->id)
+                ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
                 ->with(['client', 'accommodation'])
                 ->latest()
                 ->paginate(10);
         } else {
             $bookings = Booking::forClient($user->id)
                 ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id))
+                ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
                 ->with(['accommodation', 'accommodation.owner'])
                 ->latest()
                 ->paginate(10);
@@ -78,7 +90,9 @@ class BookingController extends Controller
 
         $validated['client_id'] = $request->user()->id;
         $validated['accommodation_id'] = $accommodation->id;
-        $validated['tenant_id'] = $accommodation->tenant_id ?? $accommodation->owner?->tenant_id;
+        $validated['tenant_id'] = $currentTenant?->id
+            ?? $accommodation->tenant_id
+            ?? $accommodation->owner?->tenant_id;
         $validated['total_price'] = $totalPrice;
         $validated['status'] = Booking::STATUS_PENDING;
 
@@ -95,8 +109,8 @@ class BookingController extends Controller
             'type' => Message::TYPE_BOOKING_INQUIRY
         ]);
 
-        return redirect()->route('bookings.show', $booking)
-            ->with('success', 'Booking request sent successfully! The owner will review your request.');
+        return redirect()->route('bookings.payment', $booking)
+            ->with('success', 'Booking request created. Complete payment to confirm your reservation.');
     }
 
     /**
@@ -111,6 +125,78 @@ class BookingController extends Controller
         }]);
 
         return view('bookings.show', compact('booking'));
+    }
+
+    /**
+     * Display mock payment page for a booking.
+     */
+    public function payment(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $currentTenant = Tenant::current();
+        if ($currentTenant && (int) $booking->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
+        if (! $request->user()->isClient() || (int) $booking->client_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $booking->load(['accommodation', 'accommodation.owner']);
+
+        return view('bookings.payment', compact('booking'));
+    }
+
+    /**
+     * Confirm mock payment and mark booking as paid.
+     */
+    public function confirmPayment(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $currentTenant = Tenant::current();
+        if ($currentTenant && (int) $booking->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
+        if (! $request->user()->isClient() || (int) $booking->client_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ($booking->status === Booking::STATUS_PAID || $booking->status === Booking::STATUS_COMPLETED) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('success', 'Booking is already paid.');
+        }
+
+        if ($booking->status === Booking::STATUS_CANCELLED) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Cancelled bookings cannot be paid.');
+        }
+
+        $validated = $request->validate([
+            'card_number' => ['required', 'string', 'min:12', 'max:25'],
+            'card_name' => ['required', 'string', 'max:120'],
+            'expiry' => ['required', 'string', 'max:10'],
+            'cvv' => ['required', 'digits_between:3,4'],
+        ]);
+
+        $last4 = substr(preg_replace('/\D+/', '', $validated['card_number']) ?: '0000', -4);
+
+        $booking->markAsPaid('mock_card', 'MOCK-' . now()->format('YmdHis') . '-' . $last4);
+
+        Message::create([
+            'sender_id' => $request->user()->id,
+            'receiver_id' => $booking->accommodation->owner_id,
+            'booking_id' => $booking->id,
+            'tenant_id' => $booking->tenant_id,
+            'subject' => 'Payment Completed: ' . ($booking->accommodation->name ?? 'Booking #' . $booking->id),
+            'content' => 'Client payment has been completed for booking #' . $booking->id . '.',
+            'type' => Message::TYPE_BOOKING_RESPONSE,
+        ]);
+
+        return redirect()->route('bookings.show', $booking)
+            ->with('success', 'Mock payment successful! Your booking is now marked as paid.');
     }
 
     /**

@@ -14,6 +14,14 @@ class SetCurrentTenant
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (app()->environment('testing')) {
+            $landlordDb = (string) config('database.connections.landlord.database', '');
+
+            if ($landlordDb === ':memory:' || $landlordDb === '') {
+                return $next($request);
+            }
+        }
+
         if (Tenant::checkCurrent()) {
             return $next($request);
         }

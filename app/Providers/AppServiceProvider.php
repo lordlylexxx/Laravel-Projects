@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Accommodation;
 use App\Models\Booking;
+use App\Models\Message;
 use App\Models\Tenant;
 use App\Policies\AccommodationPolicy;
 use App\Policies\BookingPolicy;
@@ -52,7 +53,40 @@ class AppServiceProvider extends ServiceProvider
             $service = app(CentralUpdateService::class);
             $tenantUpdate = $service->checkForUpdates((string) config('updates.current_version', '1.0.0'));
 
-            $view->with('tenantUpdate', $tenantUpdate);
+            $unreadMessagesCount = Message::query()
+                ->where('receiver_id', $user->id)
+                ->when(Tenant::checkCurrent(), function ($query) {
+                    $tenant = Tenant::current();
+
+                    return $tenant ? $query->where('tenant_id', $tenant->id) : $query;
+                })
+                ->unread()
+                ->count();
+
+            $view->with('tenantUpdate', $tenantUpdate)
+                ->with('unreadMessagesCount', $unreadMessagesCount);
+        });
+
+        View::composer('client.partials.top-navbar', function ($view): void {
+            if (! Auth::check()) {
+                $view->with('unreadMessagesCount', 0);
+
+                return;
+            }
+
+            $user = Auth::user();
+
+            $unreadMessagesCount = Message::query()
+                ->where('receiver_id', $user->id)
+                ->when(Tenant::checkCurrent(), function ($query) {
+                    $tenant = Tenant::current();
+
+                    return $tenant ? $query->where('tenant_id', $tenant->id) : $query;
+                })
+                ->unread()
+                ->count();
+
+            $view->with('unreadMessagesCount', $unreadMessagesCount);
         });
     }
 }

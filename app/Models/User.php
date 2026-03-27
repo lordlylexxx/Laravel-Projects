@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Concerns\UsesTenantConnectionWithLandlordFallback;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+    use UsesTenantConnectionWithLandlordFallback;
 
     /**
      * The attributes that are mass assignable.
@@ -33,7 +35,8 @@ class User extends Authenticatable
         'bio',
         'avatar',
         'is_active',
-        'last_login'
+        'last_login',
+        'notification_preferences'
     ];
 
     /**
@@ -57,7 +60,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
-            'last_login' => 'datetime'
+            'last_login' => 'datetime',
+            'notification_preferences' => 'array'
         ];
     }
 
@@ -382,20 +386,17 @@ class User extends Authenticatable
         }
     }
 
-    public function getDashboardRoute()
+    public function getDashboardRoute(): string
     {
         if (Tenant::checkCurrent()) {
-            return route('dashboard');
+            return '/dashboard';
         }
 
-        switch ($this->role) {
-            case self::ROLE_ADMIN:
-                return route('admin.dashboard');
-            case self::ROLE_OWNER:
-                return route('owner.dashboard');
-            default:
-                return route('dashboard');
-        }
+        return match ($this->role) {
+            self::ROLE_ADMIN => '/admin/dashboard',
+            self::ROLE_OWNER => '/owner/dashboard',
+            default => '/dashboard',
+        };
     }
 
     // Dashboard statistics methods

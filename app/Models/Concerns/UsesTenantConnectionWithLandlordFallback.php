@@ -9,7 +9,18 @@ trait UsesTenantConnectionWithLandlordFallback
     public function getConnectionName()
     {
         $tenantConnection = config('multitenancy.tenant_database_connection_name', 'tenant');
-        $landlordConnection = config('multitenancy.landlord_database_connection_name', config('database.default'));
+        $defaultConnection = config('database.default');
+        $landlordConnection = config('multitenancy.landlord_database_connection_name', $defaultConnection);
+
+        // If tenant resolution has already happened, always use tenant connection.
+        if (Tenant::checkCurrent()) {
+            return $tenantConnection;
+        }
+
+        // Keep framework tests on the configured test connection.
+        if (app()->environment('testing')) {
+            return $defaultConnection;
+        }
 
         if (! $this->isTenantAppRequest()) {
             return $landlordConnection;

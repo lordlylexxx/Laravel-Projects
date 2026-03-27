@@ -112,45 +112,27 @@
             .main-content { padding: 100px 20px 40px; }
         }
 
-        @if(auth()->user()?->isOwner())
+        @php
+            $authUser = auth()->user();
+            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
+            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
+        @endphp
+
+        @if($useOwnerNavbar)
             @include('owner.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isClient())
+        @elseif($authUser?->isClient())
             @include('client.partials.top-navbar-styles')
-
-            .navbar {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                height: 70px !important;
-                padding: 0 40px !important;
-            }
-
-            .main-content {
-                padding: 90px 40px 40px !important;
-            }
-
-            @media (max-width: 768px) {
-                .navbar {
-                    height: 60px !important;
-                    padding: 0 20px !important;
-                }
-
-                .main-content {
-                    padding: 80px 20px 40px !important;
-                }
-            }
-        @elseif(auth()->user()?->isAdmin())
+        @elseif($authUser?->isAdmin())
             @include('admin.partials.top-navbar-styles')
         @endif
     </style>
 </head>
-<body class="{{ auth()->user()?->isOwner() ? 'owner-nav-page' : '' }}">
-    @if(auth()->user()?->isOwner())
-        @include('owner.partials.top-navbar')
-    @elseif(auth()->user()?->isClient())
+<body class="{{ $useOwnerNavbar ? 'owner-nav-page' : '' }}">
+    @if($useOwnerNavbar)
+        @include('owner.partials.top-navbar', ['active' => 'messages'])
+    @elseif($authUser?->isClient())
         @include('client.partials.top-navbar', ['active' => 'messages'])
-    @elseif(auth()->user()?->isAdmin())
+    @elseif($authUser?->isAdmin())
         @include('admin.partials.top-navbar', ['active' => 'messages'])
     @else
     <nav class="navbar">
@@ -182,7 +164,7 @@
     </nav>
     @endif
     
-    <main class="main-content {{ auth()->user()?->isOwner() ? 'with-owner-nav' : '' }}">
+    <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : '' }}">
         <div class="page-header">
             <h1>Messages</h1>
             <p>Your conversations and inquiries</p>

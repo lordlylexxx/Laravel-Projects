@@ -274,8 +274,12 @@
         @auth
         <ul class="nav-links">
             @if(Auth::user()->role === 'admin')
-                <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                <li><a href="{{ route('admin.tenants') }}">Tenants</a></li>
+                @php
+                    $adminDashboardHref = \App\Models\Tenant::checkCurrent() ? '/owner/dashboard' : '/admin/dashboard';
+                    $adminTenantsHref = \App\Models\Tenant::checkCurrent() ? '/owner/accommodations' : '/admin/tenants';
+                @endphp
+                <li><a href="{{ $adminDashboardHref }}">Dashboard</a></li>
+                <li><a href="{{ $adminTenantsHref }}">Tenants</a></li>
             @else
                 <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
             @endif
@@ -405,6 +409,28 @@
                 <div class="form-group">
                     <label for="bio">Bio</label>
                     <textarea id="bio" name="bio" placeholder="Tell us about yourself...">{{ old('bio', Auth::user()->bio) }}</textarea>
+                </div>
+
+                @php
+                    $notify = Auth::user()->notification_preferences ?? [];
+                @endphp
+
+                <div class="form-group" style="padding: 16px; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--gray-50);">
+                    <label style="margin-bottom: 12px;">Notification Preferences</label>
+                    <div style="display: grid; gap: 10px; color: var(--gray-700); font-size: 0.92rem;">
+                        <label style="display:flex; align-items:center; gap:10px; margin:0; font-weight:500;">
+                            <input type="checkbox" name="notify_booking_updates" value="1" {{ old('notify_booking_updates', $notify['booking_updates'] ?? true) ? 'checked' : '' }}>
+                            Booking status updates
+                        </label>
+                        <label style="display:flex; align-items:center; gap:10px; margin:0; font-weight:500;">
+                            <input type="checkbox" name="notify_messages" value="1" {{ old('notify_messages', $notify['messages'] ?? true) ? 'checked' : '' }}>
+                            New message alerts
+                        </label>
+                        <label style="display:flex; align-items:center; gap:10px; margin:0; font-weight:500;">
+                            <input type="checkbox" name="notify_marketing" value="1" {{ old('notify_marketing', $notify['marketing'] ?? false) ? 'checked' : '' }}>
+                            Promotions and product updates
+                        </label>
+                    </div>
                 </div>
                 
                 <div class="btn-group">

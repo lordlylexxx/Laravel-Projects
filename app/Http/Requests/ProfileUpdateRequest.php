@@ -29,6 +29,9 @@ class ProfileUpdateRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'bio' => ['nullable', 'string', 'max:1000'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+            'notify_booking_updates' => ['nullable', 'boolean'],
+            'notify_messages' => ['nullable', 'boolean'],
+            'notify_marketing' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\UsesTenantConnectionWithLandlordFallback;
+use App\Models\Concerns\UsesTenantConnectionForTenantData;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Accommodation extends Model
 {
     use HasFactory;
-    use UsesTenantConnectionWithLandlordFallback;
+    use UsesTenantConnectionForTenantData;
 
     protected $fillable = [
         'owner_id',

@@ -2,9 +2,17 @@
     @php
         $currentTenant = \App\Models\Tenant::current();
         $current = $active ?? '';
+        $dashboardHref = '/owner/dashboard';
+        $reportsHref = '/owner/reports/monthly';
+        $unitsHref = '/owner/accommodations';
+        $bookingsHref = '/owner/bookings';
+        $updatesHref = '/owner/system-updates';
+        $messagesHref = '/messages';
+        $profileHref = '/profile';
+        $logoutHref = '/logout';
     @endphp
 
-    <a href="/owner/dashboard" class="nav-logo">
+    <a href="{{ $dashboardHref }}" class="nav-logo">
         <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
         <span>
             ImpaStay
@@ -15,12 +23,13 @@
     </a>
 
     <ul class="nav-links">
-        <li><a href="/owner/dashboard" class="{{ $current === 'dashboard' || request()->routeIs('owner.dashboard') ? 'active' : '' }}"><i class="fas fa-home"></i> Dashboard</a></li>
-        <li><a href="/owner/accommodations" class="{{ $current === 'accommodations' || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}"><i class="fas fa-building"></i> My Units</a></li>
-        <li><a href="/owner/bookings" class="{{ $current === 'bookings' || request()->routeIs('owner.bookings.*') ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-        <li><a href="/owner/system-updates" class="{{ $current === 'updates' || request()->routeIs('owner.updates.*') || request()->routeIs('admin.updates.*') ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
-        <li><a href="/messages" class="{{ $current === 'messages' || request()->routeIs('messages.*') ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        <li><a href="/profile" class="{{ $current === 'settings' || request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' || request()->routeIs('owner.dashboard') ? 'active' : '' }}"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="{{ $reportsHref }}" class="{{ $current === 'reports' || request()->routeIs('owner.reports.*') ? 'active' : '' }}"><i class="fas fa-chart-column"></i> Reports</a></li>
+        <li><a href="{{ $unitsHref }}" class="{{ $current === 'accommodations' || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}"><i class="fas fa-building"></i> My Units</a></li>
+        <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' || request()->routeIs('owner.bookings.*') ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+        <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' || request()->routeIs('owner.updates.*') || request()->routeIs('admin.updates.*') ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
+        <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' || request()->routeIs('messages.*') ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>
+        <li><a href="{{ $profileHref }}" class="{{ $current === 'settings' || request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>
 
     <div class="nav-actions">
@@ -29,11 +38,6 @@
                 <i class="fas fa-download"></i>
                 Update v{{ $tenantUpdate['latest_version'] }}
             </a>
-        @elseif(($tenantUpdate['unavailable'] ?? false) === true)
-            <span class="nav-btn" title="{{ $tenantUpdate['message'] ?? 'Update server is unavailable.' }}" style="opacity: .8; cursor: default;">
-                <i class="fas fa-cloud-slash"></i>
-                Updates Offline
-            </span>
         @endif
 
         <div class="user-display">
@@ -48,7 +52,7 @@
             </div>
         </div>
 
-        <form action="/logout" method="POST">
+        <form action="{{ $logoutHref }}" method="POST">
             @csrf
             <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </form>

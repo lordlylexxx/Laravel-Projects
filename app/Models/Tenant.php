@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\TenantObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 
+#[ObservedBy([TenantObserver::class])]
 class Tenant extends BaseTenant
 {
     public const PLAN_BASIC = 'basic';
@@ -40,6 +43,9 @@ class Tenant extends BaseTenant
         'feature_messaging',
         'feature_reviews',
         'feature_payments',
+        'database_provisioned',
+        'database_provisioned_at',
+        'provisioning_error',
     ];
 
     protected function casts(): array
@@ -53,6 +59,8 @@ class Tenant extends BaseTenant
             'app_port' => 'integer',
             'db_port' => 'integer',
             'db_password' => 'encrypted',
+            'database_provisioned' => 'boolean',
+            'database_provisioned_at' => 'datetime',
             'metadata' => 'array',
             'feature_bookings' => 'boolean',
             'feature_messaging' => 'boolean',

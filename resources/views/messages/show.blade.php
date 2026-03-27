@@ -133,30 +133,39 @@
             .main-content { padding: 86px 15px 30px; }
         }
 
-        @if(auth()->user()?->isOwner())
+        @php
+            $authUser = auth()->user();
+            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
+            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
+        @endphp
+
+        @if($useOwnerNavbar)
             @include('owner.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isClient())
+        @elseif($authUser?->isClient())
             @include('client.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isAdmin())
+        @elseif($authUser?->isAdmin())
             @include('admin.partials.top-navbar-styles')
         @endif
     </style>
 </head>
-<body class="{{ auth()->user()?->isOwner() ? 'owner-nav-page' : '' }}">
-    @if(auth()->user()?->isOwner())
-        @include('owner.partials.top-navbar')
-    @elseif(auth()->user()?->isClient())
+<body class="{{ $useOwnerNavbar ? 'owner-nav-page' : '' }}">
+    @if($useOwnerNavbar)
+        @include('owner.partials.top-navbar', ['active' => 'messages'])
+    @elseif($authUser?->isClient())
         @include('client.partials.top-navbar', ['active' => 'messages'])
-    @elseif(auth()->user()?->isAdmin())
+    @elseif($authUser?->isAdmin())
         @include('admin.partials.top-navbar', ['active' => 'messages'])
     @else
+    @php
+        $adminDashboardHref = \App\Models\Tenant::checkCurrent() ? '/owner/dashboard' : '/admin/dashboard';
+    @endphp
     <nav class="navbar">
-        <a href="{{ route('admin.dashboard') }}" class="nav-logo">
+        <a href="{{ $adminDashboardHref }}" class="nav-logo">
             <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>ImpaStay</span>
         </a>
         <ul class="nav-links">
-            <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ $adminDashboardHref }}">Dashboard</a></li>
             <li><a href="{{ route('messages.index') }}" class="active">Messages</a></li>
         </ul>
         <div class="nav-actions">
@@ -174,7 +183,7 @@
         $chatPartner = (int) $message->sender_id === (int) $currentUserId ? $message->receiver : $message->sender;
     @endphp
 
-    <main class="main-content {{ auth()->user()?->isOwner() ? 'with-owner-nav' : '' }}">
+    <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : '' }}">
         <div class="top-actions">
             <a href="{{ route('messages.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
         </div>

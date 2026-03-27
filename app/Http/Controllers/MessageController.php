@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Message;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,17 +17,20 @@ class MessageController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $currentTenant = Tenant::current();
         
         $messages = Message::where(function ($query) use ($user) {
                 $query->where('receiver_id', $user->id)
                       ->orWhere('sender_id', $user->id);
             })
+            ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->with(['sender', 'receiver', 'booking.accommodation'])
             ->latest()
             ->paginate(20);
 
         // Get unread count
         $unreadCount = Message::where('receiver_id', $user->id)
+            ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->unread()
             ->count();
 
@@ -39,6 +43,11 @@ class MessageController extends Controller
     public function show(Message $message)
     {
         $user = Auth::user();
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
         
         // Check if user is sender or receiver
         if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
@@ -51,13 +60,16 @@ class MessageController extends Controller
         }
 
         // Get conversation thread
-        $thread = Message::where(function ($query) use ($message, $user) {
-                $query->where('booking_id', $message->booking_id)
-                      ->where(function ($q) use ($user) {
-                          $q->where('sender_id', $user->id)
-                            ->orWhere('receiver_id', $user->id);
-                      });
+        $thread = Message::where(function ($query) use ($message) {
+                $query->where(function ($q) use ($message) {
+                    $q->where('sender_id', $message->sender_id)
+                        ->where('receiver_id', $message->receiver_id);
+                })->orWhere(function ($q) use ($message) {
+                    $q->where('sender_id', $message->receiver_id)
+                        ->where('receiver_id', $message->sender_id);
+                });
             })
+            ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->where('id', '!=', $message->id)
             ->with(['sender', 'receiver'])
             ->orderBy('created_at', 'asc')
@@ -71,6 +83,8 @@ class MessageController extends Controller
      */
     public function store(Request $request)
     {
+        $currentTenant = Tenant::current();
+
         $validated = $request->validate([
             'receiver_id' => 'required|exists:users,id',
             'subject' => 'nullable|string|max:255',
@@ -82,6 +96,14 @@ class MessageController extends Controller
         $validated['sender_id'] = $request->user()->id;
         $validated['type'] = $validated['type'] ?? Message::TYPE_GENERAL;
 
+        $receiver = User::findOrFail($validated['receiver_id']);
+
+        if ($currentTenant && (int) ($receiver->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            return back()->withErrors([
+                'receiver_id' => 'Selected receiver is not available in this tenant.',
+            ]);
+        }
+
         $tenantId = null;
 
         if (!empty($validated['booking_id'])) {
@@ -90,6 +112,10 @@ class MessageController extends Controller
 
         if (! $tenantId) {
             $tenantId = $request->user()->tenant_id;
+        }
+
+        if ($currentTenant) {
+            $tenantId = $currentTenant->id;
         }
 
         $validated['tenant_id'] = $tenantId;
@@ -106,6 +132,11 @@ class MessageController extends Controller
     public function reply(Request $request, Message $message)
     {
         $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
 
         if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
             abort(403);
@@ -127,6 +158,12 @@ class MessageController extends Controller
      */
     public function markAsRead(Message $message)
     {
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
         if (Auth::id() === $message->receiver_id) {
             $message->markAsRead();
         }
@@ -139,6 +176,12 @@ class MessageController extends Controller
      */
     public function archive(Message $message)
     {
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
         if (Auth::id() === $message->receiver_id || Auth::id() === $message->sender_id) {
             $message->archive();
         }
@@ -152,6 +195,12 @@ class MessageController extends Controller
      */
     public function destroy(Message $message)
     {
+        $currentTenant = Tenant::current();
+
+        if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
         if (Auth::id() === $message->sender_id || Auth::id() === $message->receiver_id) {
             $message->delete();
         }
@@ -165,7 +214,10 @@ class MessageController extends Controller
      */
     public function unreadCount()
     {
+        $currentTenant = Tenant::current();
+
         $count = Message::where('receiver_id', Auth::id())
+            ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->unread()
             ->count();
 

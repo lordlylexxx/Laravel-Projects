@@ -9,6 +9,7 @@ use App\Models\Message;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -39,7 +40,7 @@ class DashboardController extends Controller
                 'total_earnings' => (clone $bookingsQuery)->whereIn('status', ['confirmed', 'paid', 'completed'])->sum('total_price'),
             ];
 
-            $properties = (clone $propertiesQuery)->withCount('bookings')->latest()->take(5)->get();
+            $properties = (clone $propertiesQuery)->withCount('bookings')->latest()->paginate(5, ['*'], 'units_page');
             $recent_bookings = (clone $bookingsQuery)->with(['client', 'accommodation'])->latest()->take(5)->get();
             $unread_messages = Message::where('receiver_id', $user->id)
                 ->where('tenant_id', $tenantId)
@@ -57,7 +58,7 @@ class DashboardController extends Controller
                 'total_earnings' => Booking::forOwner($user->id)->whereIn('status', ['confirmed', 'paid', 'completed'])->sum('total_price'),
             ];
 
-            $properties = $user->accommodations()->withCount('bookings')->latest()->take(5)->get();
+            $properties = $user->accommodations()->withCount('bookings')->latest()->paginate(5, ['*'], 'units_page');
             $recent_bookings = Booking::forOwner($user->id)->with(['client', 'accommodation'])->latest()->take(5)->get();
             $unread_messages = Message::where('receiver_id', $user->id)->unread()->count();
 
@@ -121,13 +122,217 @@ class DashboardController extends Controller
             ];
         }
 
+        $ownerId = $isTenantAdmin ? null : $user->id;
+        [$trendLabels, $revenueTrend, $bookingsTrend] = $this->buildMonthlyTrendData($dashboardTenant?->id, $ownerId);
+        $bookingStatusBreakdown = $this->buildBookingStatusBreakdown($dashboardTenant?->id, $ownerId);
+
         return view('owner.dashboard', compact(
             'stats',
             'properties',
             'recent_bookings',
             'unread_messages',
-            'proFeatures'
+            'proFeatures',
+            'trendLabels',
+            'revenueTrend',
+            'bookingsTrend',
+            'bookingStatusBreakdown'
         ));
+    }
+
+    private function buildMonthlyTrendData(?int $tenantId, ?int $ownerId): array
+    {
+        // Show 1-month trend using daily points from the last 30 days.
+        $days = collect(range(29, 0))->map(function (int $offset) {
+            return Carbon::now()->subDays($offset)->startOfDay();
+        })->push(Carbon::now()->startOfDay());
+
+        $labels = $days->map(fn (Carbon $day) => $day->format('M d'));
+
+        $baseQuery = Booking::query()->whereIn('status', [
+            Booking::STATUS_CONFIRMED,
+            Booking::STATUS_PAID,
+            Booking::STATUS_COMPLETED,
+        ]);
+
+        if ($tenantId) {
+            $baseQuery->forTenant($tenantId);
+        } elseif ($ownerId) {
+            $baseQuery->forOwner($ownerId);
+        }
+
+        $groupedRevenue = (clone $baseQuery)
+            ->selectRaw('DATE(created_at) as trend_date, SUM(total_price) as total_revenue')
+            ->groupBy('trend_date')
+            ->pluck('total_revenue', 'trend_date');
+
+        $groupedBookings = (clone $baseQuery)
+            ->selectRaw('DATE(created_at) as trend_date, COUNT(*) as total_bookings')
+            ->groupBy('trend_date')
+            ->pluck('total_bookings', 'trend_date');
+
+        $revenueTrend = $days->map(function (Carbon $day) use ($groupedRevenue) {
+            return (float) ($groupedRevenue[$day->toDateString()] ?? 0);
+        });
+
+        $bookingsTrend = $days->map(function (Carbon $day) use ($groupedBookings) {
+            return (int) ($groupedBookings[$day->toDateString()] ?? 0);
+        });
+
+        return [$labels->values()->all(), $revenueTrend->values()->all(), $bookingsTrend->values()->all()];
+    }
+
+    private function buildBookingStatusBreakdown(?int $tenantId, ?int $ownerId): array
+    {
+        $query = Booking::query();
+
+        if ($tenantId) {
+            $query->forTenant($tenantId);
+        } elseif ($ownerId) {
+            $query->forOwner($ownerId);
+        }
+
+        $counts = $query
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return [
+            'pending' => (int) ($counts[Booking::STATUS_PENDING] ?? 0),
+            'confirmed' => (int) ($counts[Booking::STATUS_CONFIRMED] ?? 0),
+            'paid' => (int) ($counts[Booking::STATUS_PAID] ?? 0),
+            'completed' => (int) ($counts[Booking::STATUS_COMPLETED] ?? 0),
+            'cancelled' => (int) ($counts[Booking::STATUS_CANCELLED] ?? 0),
+        ];
+    }
+
+    public function monthlyReport(Request $request)
+    {
+        $tenantId = $this->resolveManagedTenantId($request);
+
+        if (! $tenantId) {
+            return redirect('/owner/dashboard')->with('error', 'Tenant report is not available for this account.');
+        }
+
+        $year = max(2020, min((int) $request->input('year', now()->year), (int) now()->year));
+        $month = max(1, min((int) $request->input('month', now()->month), 12));
+
+        $report = $this->buildMonthlyTenantReport($tenantId, $year, $month);
+
+        return view('owner.reports.monthly', [
+            'year' => $year,
+            'month' => $month,
+            'monthName' => Carbon::create($year, $month, 1)->format('F Y'),
+            'monthlySales' => $report['monthly_sales'],
+            'monthlyGuests' => $report['monthly_guests'],
+            'monthlyBookings' => $report['monthly_bookings'],
+            'dailyBreakdown' => $report['daily_breakdown'],
+        ]);
+    }
+
+    public function downloadMonthlySalesPdf(Request $request)
+    {
+        $tenantId = $this->resolveManagedTenantId($request);
+
+        if (! $tenantId) {
+            return redirect('/owner/dashboard')->with('error', 'Tenant report is not available for this account.');
+        }
+
+        $year = max(2020, min((int) $request->input('year', now()->year), (int) now()->year));
+        $month = max(1, min((int) $request->input('month', now()->month), 12));
+
+        $report = $this->buildMonthlyTenantReport($tenantId, $year, $month);
+        $monthName = Carbon::create($year, $month, 1)->format('F Y');
+
+        $pdf = \PDF::loadView('owner.reports.monthly-sales-pdf', [
+            'year' => $year,
+            'month' => $month,
+            'monthName' => $monthName,
+            'monthlySales' => $report['monthly_sales'],
+            'monthlyGuests' => $report['monthly_guests'],
+            'monthlyBookings' => $report['monthly_bookings'],
+            'dailyBreakdown' => $report['daily_breakdown'],
+        ]);
+
+        return $pdf->download('tenant-monthly-sales-report-' . $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.pdf');
+    }
+
+    public function downloadMonthlyGuestsPdf(Request $request)
+    {
+        $tenantId = $this->resolveManagedTenantId($request);
+
+        if (! $tenantId) {
+            return redirect('/owner/dashboard')->with('error', 'Tenant report is not available for this account.');
+        }
+
+        $year = max(2020, min((int) $request->input('year', now()->year), (int) now()->year));
+        $month = max(1, min((int) $request->input('month', now()->month), 12));
+
+        $report = $this->buildMonthlyTenantReport($tenantId, $year, $month);
+        $monthName = Carbon::create($year, $month, 1)->format('F Y');
+
+        $pdf = \PDF::loadView('owner.reports.monthly-guests-pdf', [
+            'year' => $year,
+            'month' => $month,
+            'monthName' => $monthName,
+            'monthlySales' => $report['monthly_sales'],
+            'monthlyGuests' => $report['monthly_guests'],
+            'monthlyBookings' => $report['monthly_bookings'],
+            'dailyBreakdown' => $report['daily_breakdown'],
+        ]);
+
+        return $pdf->download('tenant-monthly-guests-report-' . $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.pdf');
+    }
+
+    private function resolveManagedTenantId(Request $request): ?int
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        $isTenantAdmin = $user->isAdmin()
+            && $currentTenant
+            && (int) $user->tenant_id === (int) $currentTenant->id;
+
+        if ($isTenantAdmin) {
+            return (int) $currentTenant->id;
+        }
+
+        if ($user->isOwner()) {
+            return (int) ($user->tenant_id ?? optional($user->tenant)->id ?? 0) ?: null;
+        }
+
+        return null;
+    }
+
+    private function buildMonthlyTenantReport(int $tenantId, int $year, int $month): array
+    {
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = (clone $start)->endOfMonth();
+
+        $baseQuery = Booking::query()
+            ->forTenant($tenantId)
+            ->whereBetween('check_in_date', [$start->toDateString(), $end->toDateString()])
+            ->whereIn('status', [
+                Booking::STATUS_CONFIRMED,
+                Booking::STATUS_PAID,
+                Booking::STATUS_COMPLETED,
+            ]);
+
+        $monthlySales = (float) (clone $baseQuery)->sum('total_price');
+        $monthlyGuests = (int) (clone $baseQuery)->sum('number_of_guests');
+        $monthlyBookings = (int) (clone $baseQuery)->count();
+
+        $dailyBreakdown = (clone $baseQuery)
+            ->selectRaw('DATE(check_in_date) as report_date, COUNT(*) as booking_count, SUM(number_of_guests) as total_guests, SUM(total_price) as total_sales')
+            ->groupBy(DB::raw('DATE(check_in_date)'))
+            ->orderBy('report_date')
+            ->get();
+
+        return [
+            'monthly_sales' => $monthlySales,
+            'monthly_guests' => $monthlyGuests,
+            'monthly_bookings' => $monthlyBookings,
+            'daily_breakdown' => $dailyBreakdown,
+        ];
     }
 }
 

@@ -260,6 +260,54 @@
             display: flex;
             justify-content: center;
         }
+
+        .pagination-wrapper .pagination {
+            display: flex;
+            list-style: none;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pagination-wrapper .page-item { list-style: none; }
+
+        .pagination-wrapper .page-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            background: #fff;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .pagination-wrapper .page-item.active .page-link {
+            background: var(--green-primary);
+            border-color: var(--green-primary);
+            color: #fff;
+        }
+
+        .pagination-wrapper .page-item.disabled .page-link {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .pagination-wrapper p.small.text-muted {
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.82rem;
+        }
         
         /* Responsive */
         @media (max-width: 1024px) {
@@ -398,7 +446,7 @@
                 
                 <!-- Pagination -->
                 <div class="pagination-wrapper">
-                    {{ $accommodations->links() }}
+                    {{ $accommodations->links('pagination::bootstrap-5') }}
                 </div>
             @else
                 <div class="empty-state">

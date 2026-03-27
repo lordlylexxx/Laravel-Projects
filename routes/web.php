@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TenantLandingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Central\UpdateController as CentralUpdateController;
 use App\Http\Controllers\SystemUpdatePageController;
@@ -24,7 +25,15 @@ $registerCentralRoutes = function () {
     Route::middleware('central.port')->group(function () {
         // Landing page route (accessible to everyone)
         Route::get('/', function () {
-            return view('landingpage');
+            $featuredTenants = Tenant::query()
+                ->with('owner')
+                ->where('domain_enabled', true)
+                ->whereIn('subscription_status', ['trialing', 'active'])
+                ->latest('id')
+                ->take(8)
+                ->get();
+
+            return view('landingpage', compact('featuredTenants'));
         })->name('landing');
 
         Route::prefix('system-updates')->name('updates.')->group(function () {
@@ -103,18 +112,18 @@ $registerCentralRoutes = function () {
                 $user = request()->user();
 
                 if (! $user) {
-                    return redirect()->route('login');
+                    return redirect('/login');
                 }
 
                 if ($user->isAdmin()) {
-                    return redirect()->route('admin.dashboard');
+                    return redirect('/admin/dashboard');
                 }
 
                 if ($user->isOwner()) {
-                    return redirect()->route('owner.dashboard');
+                    return redirect('/owner/dashboard');
                 }
 
-                return redirect()->route('landing')
+                return redirect('/')
                     ->with('error', 'Client pages are available on tenant subdomain apps.');
             })->name('dashboard');
 
@@ -128,6 +137,9 @@ $registerCentralRoutes = function () {
         Route::middleware(['auth', 'tenant.context', 'owner'])->prefix('owner')->name('owner.')->group(function () {
             // Owner Dashboard
             Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/reports/monthly', [OwnerDashboardController::class, 'monthlyReport'])->name('reports.monthly');
+            Route::get('/reports/monthly/download-sales', [OwnerDashboardController::class, 'downloadMonthlySalesPdf'])->name('reports.monthly.download-sales');
+            Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
 
@@ -162,11 +174,19 @@ $registerCentralRoutes = function () {
 
             // Tenant Management
             Route::get('/tenants', [AdminDashboardController::class, 'tenants'])->name('tenants');
+            Route::get('/tenant-lifecycle-logs', [AdminDashboardController::class, 'tenantLifecycleLogs'])->name('tenants.lifecycle-logs');
             Route::get('/users', function () {
                 return redirect()->route('admin.tenants');
             })->name('users');
             Route::put('/tenants/{tenant}/plan', [AdminDashboardController::class, 'updateTenantPlan'])->name('tenants.update-plan');
+            Route::put('/tenants/{tenant}/subscription', [AdminDashboardController::class, 'updateTenantSubscription'])->name('tenants.update-subscription');
+            Route::put('/tenants/{tenant}/profile', [AdminDashboardController::class, 'updateTenantProfile'])->name('tenants.update-profile');
             Route::put('/tenants/{tenant}/domain-status', [AdminDashboardController::class, 'toggleTenantDomain'])->name('tenants.toggle-domain');
+            Route::post('/tenants/{tenant}/resend-onboarding-email', [AdminDashboardController::class, 'resendTenantOnboardingEmail'])->name('tenants.resend-onboarding-email');
+
+            // Booking Reports
+            Route::post('/reports/monthly-booking-pdf', [AdminDashboardController::class, 'downloadMonthlyBookingPdf'])->name('monthly-booking-pdf');
+            Route::get('/reports/monthly-booking-pdf', [AdminDashboardController::class, 'generateMonthlyBookingReport'])->name('monthly-booking-report');
 
             // Booking Management
             // Message Management
@@ -194,23 +214,8 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
             Route::get('/', [TenantLandingController::class, 'showPublic'])
                 ->name('landing');
 
-            Route::get('/dashboard', function () {
-                $user = request()->user();
-                $currentTenant = Tenant::current();
-
-                if ($user && $user->isClient()) {
-                    return view('client.dashboard');
-                }
-
-                if ($user && (
-                    $user->isOwner()
-                    || ($user->isAdmin() && $currentTenant && (int) $user->tenant_id === (int) $currentTenant->id)
-                )) {
-                    return redirect()->route('owner.dashboard');
-                }
-
-                return redirect()->route('accommodations.index');
-            })->name('dashboard');
+            Route::get('/dashboard', [ClientDashboardController::class, 'index'])
+                ->name('dashboard');
 
             Route::get('/accommodations', [\App\Http\Controllers\AccommodationController::class, 'index'])
                 ->name('accommodations.index');
@@ -227,6 +232,8 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
                     Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
                     Route::put('/{booking}/cancel', [\App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
                     Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+                    Route::get('/{booking}/payment', [\App\Http\Controllers\BookingController::class, 'payment'])->name('payment');
+                    Route::post('/{booking}/payment/confirm', [\App\Http\Controllers\BookingController::class, 'confirmPayment'])->name('payment.confirm');
                 });
 
                 Route::get('/home', function () {
@@ -243,6 +250,9 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
             // Tenant manager routes (same owner pages/functions, available to owner or tenant admin)
             Route::middleware(['auth', 'tenant.manager'])->prefix('owner')->name('owner.')->group(function () {
                 Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+                Route::get('/reports/monthly', [OwnerDashboardController::class, 'monthlyReport'])->name('reports.monthly');
+                Route::get('/reports/monthly/download-sales', [OwnerDashboardController::class, 'downloadMonthlySalesPdf'])->name('reports.monthly.download-sales');
+                Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
                 Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
                 Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
 
@@ -273,6 +283,18 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
 
                 Route::post('/messages', [\App\Http\Controllers\MessageController::class, 'store'])
                     ->name('messages.store');
+
+                Route::post('/messages/{message}/reply', [\App\Http\Controllers\MessageController::class, 'reply'])
+                    ->name('messages.reply');
+
+                Route::put('/messages/{message}/read', [\App\Http\Controllers\MessageController::class, 'markAsRead'])
+                    ->name('messages.mark-read');
+
+                Route::put('/messages/{message}/archive', [\App\Http\Controllers\MessageController::class, 'archive'])
+                    ->name('messages.archive');
+
+                Route::delete('/messages/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])
+                    ->name('messages.destroy');
             });
 
             Route::middleware('auth')->group(function () {
