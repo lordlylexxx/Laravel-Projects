@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Spatie\Multitenancy\Facades\Tenancy;
+use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
+use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
 
 class RegisteredUserController extends Controller
 {
@@ -156,7 +157,7 @@ class RegisteredUserController extends Controller
             $plainPassword = Str::random(12);
 
             // Make tenant current to ensure admin user is created in tenant database
-            Tenancy::initialize($tenant);
+            app(MakeTenantCurrentAction::class)->execute($tenant);
 
             try {
                 $tenantAdmin = User::create([
@@ -175,7 +176,7 @@ class RegisteredUserController extends Controller
                 ]);
             } finally {
                 // Restore no tenant context
-                Tenancy::end();
+                app(ForgetCurrentTenantAction::class)->execute($tenant);
             }
 
             // Send email to owner with admin credentials

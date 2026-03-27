@@ -8,7 +8,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Spatie\Multitenancy\Facades\Tenancy;
+use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
+use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
 
 class CreateTenantAdminAccount extends Command
 {
@@ -45,47 +46,47 @@ class CreateTenantAdminAccount extends Command
 
         try {
             // Make tenant current
-            Tenancy::initialize($tenant);
+            app(MakeTenantCurrentAction::class)->execute($tenant);
 
-            // Check if admin already exists
-            $existingAdmin = User::where('role', User::ROLE_ADMIN)->first();
-            if ($existingAdmin) {
-                $this->warn("Admin account already exists!");
-                $this->line("Email: {$existingAdmin->email}");
-                Tenancy::end();
-                return self::FAILURE;
+            try {
+                // Check if admin already exists
+                $existingAdmin = User::where('role', User::ROLE_ADMIN)->first();
+                if ($existingAdmin) {
+                    $this->warn("Admin account already exists!");
+                    $this->line("Email: {$existingAdmin->email}");
+                    return self::FAILURE;
+                }
+
+                // Generate unique admin email
+                $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
+                $plainPassword = Str::random(12);
+
+                // Create admin user in tenant database
+                $tenantAdmin = User::create([
+                    'name' => $tenant->name . ' Admin',
+                    'email' => $adminEmail,
+                    'password' => Hash::make($plainPassword),
+                    'role' => User::ROLE_ADMIN,
+                    'tenant_id' => $tenant->id,
+                    'phone' => null,
+                ]);
+
+                $this->info('✓ Admin account created successfully!');
+                $this->line("Admin Email: {$tenantAdmin->email}");
+                $this->line("Admin Password: {$plainPassword}");
+                $this->line("Admin User ID: {$tenantAdmin->id}");
+
+                Log::info('Tenant admin account created manually.', [
+                    'tenant_id' => $tenant->id,
+                    'admin_user_id' => $tenantAdmin->id,
+                    'admin_email' => $adminEmail,
+                ]);
+
+                return self::SUCCESS;
+            } finally {
+                app(ForgetCurrentTenantAction::class)->execute($tenant);
             }
-
-            // Generate unique admin email
-            $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
-            $plainPassword = Str::random(12);
-
-            // Create admin user in tenant database
-            $tenantAdmin = User::create([
-                'name' => $tenant->name . ' Admin',
-                'email' => $adminEmail,
-                'password' => Hash::make($plainPassword),
-                'role' => User::ROLE_ADMIN,
-                'tenant_id' => $tenant->id,
-                'phone' => null,
-            ]);
-
-            Tenancy::end();
-
-            $this->info('✓ Admin account created successfully!');
-            $this->line("Admin Email: {$tenantAdmin->email}");
-            $this->line("Admin Password: {$plainPassword}");
-            $this->line("Admin User ID: {$tenantAdmin->id}");
-
-            Log::info('Tenant admin account created manually.', [
-                'tenant_id' => $tenant->id,
-                'admin_user_id' => $tenantAdmin->id,
-                'admin_email' => $adminEmail,
-            ]);
-
-            return self::SUCCESS;
         } catch (\Throwable $exception) {
-            Tenancy::end();
             $this->error("Failed: {$exception->getMessage()}");
             Log::error('Failed to create tenant admin account.', [
                 'tenant_id' => $tenant->id,
