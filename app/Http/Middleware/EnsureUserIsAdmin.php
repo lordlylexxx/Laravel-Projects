@@ -16,7 +16,7 @@ class EnsureUserIsAdmin
         $user = $request->user();
         
         if (!$user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
         
         // Only admins can access these routes

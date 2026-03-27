@@ -211,31 +211,31 @@
     @include('client.partials.top-navbar', ['active' => 'accommodations'])
     @else
     <nav class="navbar">
-        <a href="{{ route('dashboard') }}" class="nav-logo">
+        <a href="/dashboard" class="nav-logo">
             <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="{{ route('dashboard') }}">Browse</a></li>
-            <li><a href="{{ route('accommodations.index') }}" class="active">Accommodations</a></li>
+            <li><a href="/dashboard">Browse</a></li>
+            <li><a href="/accommodations" class="active">Accommodations</a></li>
             @auth
                 @if(Auth::user()->role === 'owner')
                     <li><a href="{{ route('owner.dashboard') }}">Dashboard</a></li>
                 @elseif(Auth::user()->role === 'admin')
                     <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                 @elseif(Auth::user()->role !== 'client')
-                    <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li><a href="/dashboard">Dashboard</a></li>
                 @endif
-                <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
-                <li><a href="{{ route('messages.index') }}">Messages</a></li>
-                <li><a href="{{ route('profile.edit') }}">Settings</a></li>
+                <li><a href="/bookings">My Bookings</a></li>
+                <li><a href="/messages">Messages</a></li>
+                <li><a href="/profile">Settings</a></li>
             @endauth
         </ul>
         
         @auth
         <div class="nav-actions">
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="/logout" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-secondary">Logout</button>
             </form>
@@ -255,7 +255,7 @@
         <div class="breadcrumb animate">
             <a href="{{ route('landing') }}">Home</a>
             <span>›</span>
-            <a href="{{ route('accommodations.index') }}">Accommodations</a>
+            <a href="/accommodations">Accommodations</a>
             <span>›</span>
             <span>{{ $accommodation->name }}</span>
         </div>

@@ -16,7 +16,7 @@ class EnsureUserIsClient
         $user = $request->user();
         
         if (!$user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
         
         // Only clients can access these routes

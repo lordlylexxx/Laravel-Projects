@@ -16,7 +16,7 @@ class RoleAccessMiddleware
         $user = $request->user();
         
         if (!$user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
         
         // Check if user has the required role

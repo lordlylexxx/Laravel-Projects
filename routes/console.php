@@ -4,6 +4,7 @@ use App\Models\Tenant;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -66,3 +67,70 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
 
     return 0;
 })->purpose('Create and grant a dedicated database for a tenant');
+
+Artisan::command('tenants:rename-domains {--dry-run}', function () {
+    $baseDomain = env('TENANT_BASE_DOMAIN', env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'));
+    $dryRun = (bool) $this->option('dry-run');
+
+    $this->info('Backfilling tenant slugs/domains using Business/App Name...');
+    $this->line('Base domain: ' . $baseDomain);
+    $this->line($dryRun ? 'Mode: DRY RUN (no changes will be saved)' : 'Mode: APPLY');
+
+    $updated = 0;
+    $skipped = 0;
+
+    Tenant::query()->orderBy('id')->chunkById(100, function ($tenants) use ($baseDomain, $dryRun, &$updated, &$skipped) {
+        foreach ($tenants as $tenant) {
+            $sourceName = trim((string) ($tenant->app_title ?: $tenant->name ?: ('tenant-' . $tenant->id)));
+            $baseSlug = Str::slug($sourceName);
+
+            if ($baseSlug === '') {
+                $baseSlug = 'tenant-' . $tenant->id;
+            }
+
+            $baseSlug = substr($baseSlug, 0, 48);
+
+            $newSlug = $baseSlug;
+            $newDomain = $newSlug . '.' . $baseDomain;
+
+            if (Tenant::query()->where('id', '!=', $tenant->id)->where('slug', $newSlug)->exists()) {
+                $suffix = '-' . $tenant->id;
+                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))) . $suffix;
+                $newDomain = $newSlug . '.' . $baseDomain;
+            }
+
+            $counter = 2;
+            while (Tenant::query()->where('id', '!=', $tenant->id)
+                ->where(function ($query) use ($newSlug, $newDomain) {
+                    $query->where('slug', $newSlug)->orWhere('domain', $newDomain);
+                })->exists()) {
+                $suffix = '-' . $tenant->id . '-' . $counter;
+                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))) . $suffix;
+                $newDomain = $newSlug . '.' . $baseDomain;
+                $counter++;
+            }
+
+            if ($tenant->slug === $newSlug && $tenant->domain === $newDomain) {
+                $skipped++;
+                $this->line("= Tenant {$tenant->id} unchanged ({$tenant->domain})");
+                continue;
+            }
+
+            $this->line("~ Tenant {$tenant->id}: {$tenant->slug} -> {$newSlug} | {$tenant->domain} -> {$newDomain}");
+
+            if (! $dryRun) {
+                $tenant->update([
+                    'slug' => $newSlug,
+                    'domain' => $newDomain,
+                ]);
+            }
+
+            $updated++;
+        }
+    });
+
+    $this->newLine();
+    $this->info("Done. Updated: {$updated}, Skipped: {$skipped}");
+
+    return 0;
+})->purpose('Rename existing tenant slugs/domains from Business/App Name');

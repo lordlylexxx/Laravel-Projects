@@ -323,6 +323,26 @@
             font-weight: 900;
             color: var(--green-dark);
         }
+        .plan-register-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 22px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid var(--green-primary);
+            color: var(--green-primary);
+            background: rgba(255, 255, 255, 0.75);
+            transition: all 0.25s ease;
+        }
+        .plan-register-btn:hover {
+            background: var(--green-primary);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
         
         /* Footer */
         .footer { 
@@ -584,6 +604,9 @@
                     <li>Basic reporting</li>
                     <li>Booking management</li>
                 </ul>
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'basic']) }}" class="plan-register-btn">
+                    Register for Basic
+                </a>
             </div>
 
             <div class="pricing-card featured animate delay-2">
@@ -594,6 +617,9 @@
                     <li>Advanced reporting</li>
                     <li>Analytics dashboard</li>
                 </ul>
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'plus']) }}" class="plan-register-btn">
+                    Register for Standard
+                </a>
             </div>
 
             <div class="pricing-card animate delay-3">
@@ -605,6 +631,9 @@
                     <li>Featured listing promotion</li>
                     <li>Advanced analytics</li>
                 </ul>
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'pro']) }}" class="plan-register-btn">
+                    Register for Premium
+                </a>
             </div>
         </div>
     </section>

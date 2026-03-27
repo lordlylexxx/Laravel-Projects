@@ -595,6 +595,17 @@
     </style>
 </head>
 <body>
+    @php
+        $selectedPlan = old('subscription_plan', request()->query('plan'));
+        $selectedRole = old('role', request()->query('role', $selectedPlan ? 'owner' : null));
+        $planLabels = [
+            'basic' => 'Basic',
+            'plus' => 'Standard',
+            'pro' => 'Premium',
+        ];
+        $selectedPlanLabel = $planLabels[$selectedPlan] ?? null;
+    @endphp
+
     <!-- Branding Section -->
     <div class="branding-section">
         <div class="branding-content">
@@ -638,6 +649,9 @@
             
             <form method="POST" action="{{ route('register') }}" id="registration-form" enctype="multipart/form-data">
                 @csrf
+                @if($selectedPlanLabel)
+                    <input type="hidden" name="subscription_plan" value="{{ $selectedPlan }}">
+                @endif
                 
                 <!-- STEP 1: Account Details -->
                 <div class="step-content active" id="step-1">
@@ -649,9 +663,12 @@
                     <!-- Role Selection -->
                     <div class="role-selection">
                         <label>I want to:</label>
+                        @if($selectedPlanLabel)
+                            <p style="margin-bottom: 10px; color: var(--green-medium); font-size: 0.9rem;">You selected the <strong>{{ $selectedPlanLabel }}</strong> owner plan.</p>
+                        @endif
                         <div class="role-options">
                             <div class="role-option">
-                                <input type="radio" id="role_client" name="role" value="client" {{ old('role') === 'client' ? 'checked' : '' }}>
+                                <input type="radio" id="role_client" name="role" value="client" {{ $selectedRole === 'client' ? 'checked' : '' }} onchange="updateStepTwo()">
                                 <label for="role_client" class="role-card">
                                     <span class="icon">🏠</span>
                                     <span class="title">Find Accommodation</span>
@@ -660,7 +677,7 @@
                             </div>
                             
                             <div class="role-option">
-                                <input type="radio" id="role_owner" name="role" value="owner" {{ old('role') === 'owner' ? 'checked' : '' }} onchange="updateStepTwo()">
+                                <input type="radio" id="role_owner" name="role" value="owner" {{ $selectedRole === 'owner' ? 'checked' : '' }} onchange="updateStepTwo()">
                                 <label for="role_owner" class="role-card">
                                     <span class="icon">🏨</span>
                                     <span class="title">List My Property</span>

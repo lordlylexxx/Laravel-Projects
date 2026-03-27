@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TenantAdminProvisionedMail;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -52,6 +57,7 @@ class RegisteredUserController extends Controller
         $isOwnerRegistration = ! $isTenantSignup && $request->input('role') === 'owner';
         if ($isOwnerRegistration) {
             $rules = array_merge($rules, [
+                'subscription_plan' => ['nullable', 'in:basic,plus,pro'],
                 'app_title' => ['nullable', 'string', 'max:255'],
                 'primary_color' => ['nullable', 'regex:/^#[0-9A-F]{6}$/i'],
                 'accent_color' => ['nullable', 'regex:/^#[0-9A-F]{6}$/i'],
@@ -79,10 +85,15 @@ class RegisteredUserController extends Controller
             'phone' => $request->phone,
         ]);
 
+        if ($isTenantSignup && $tenant) {
+            $this->syncTenantClientToTenantDatabase($user, $tenant);
+        }
+
         if (! $isTenantSignup && $user->isOwner()) {
             $customizationData = null;
             if ($isOwnerRegistration) {
                 $customizationData = [
+                    'subscription_plan' => $request->input('subscription_plan'),
                     'app_title' => $request->input('app_title'),
                     'primary_color' => $request->input('primary_color', '#2E7D32'),
                     'accent_color' => $request->input('accent_color', '#43A047'),
@@ -101,15 +112,114 @@ class RegisteredUserController extends Controller
                 }
             }
 
-            $user->ensureTenant($customizationData);
+            $provisionedTenant = $user->ensureTenant($customizationData);
+
+            if ($provisionedTenant) {
+                $this->provisionTenantAdminAndSendEmail($user, $provisionedTenant);
+            }
         }
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        // Redirect based on role
+        // For tenant registrations, redirect to landing page; otherwise to dashboard
+        if ($isTenantSignup) {
+            return redirect()->to('/')
+                ->with('success', 'Welcome to ' . $tenant->name . '! Your account has been created. Browse our accommodations below.');
+        }
+
         return redirect($user->getDashboardRoute())
             ->with('success', 'Welcome to Impasugong Accommodations! Your account has been created.');
+    }
+
+    /**
+     * Create a tenant-scoped admin account and send credentials to the owner email.
+     */
+    private function provisionTenantAdminAndSendEmail(User $owner, Tenant $tenant): void
+    {
+        $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
+        $plainPassword = Str::random(12);
+
+        $tenantAdmin = User::create([
+            'name' => $tenant->name . ' Admin',
+            'email' => $adminEmail,
+            'password' => Hash::make($plainPassword),
+            'role' => User::ROLE_ADMIN,
+            'tenant_id' => $tenant->id,
+            'phone' => null,
+        ]);
+
+        try {
+            Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
+                ownerName: $owner->name,
+                businessName: $tenant->name,
+                businessUrl: $tenant->publicUrl(),
+                adminEmail: $tenantAdmin->email,
+                adminPassword: $plainPassword
+            ));
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to send tenant admin provisioning email.', [
+                'owner_user_id' => $owner->id,
+                'tenant_id' => $tenant->id,
+                'admin_user_id' => $tenantAdmin->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Build a unique tenant admin email for login credentials.
+     */
+    private function buildUniqueTenantAdminEmail(Tenant $tenant): string
+    {
+        $base = 'admin@' . ($tenant->domain ?: ($tenant->slug . '.localhost'));
+
+        if (! User::query()->where('email', $base)->exists()) {
+            return $base;
+        }
+
+        $prefix = 'admin+' . ($tenant->slug ?: 'tenant');
+        $domain = 'impastay.local';
+        $counter = 1;
+
+        do {
+            $candidate = $prefix . $counter . '@' . $domain;
+            $counter++;
+        } while (User::query()->where('email', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    /**
+     * Mirror tenant client credentials into the tenant database.
+     */
+    private function syncTenantClientToTenantDatabase(User $user, Tenant $tenant): void
+    {
+        try {
+            $tenant->makeCurrent();
+
+            DB::connection(config('multitenancy.tenant_database_connection_name', 'tenant'))
+                ->table('users')
+                ->updateOrInsert(
+                    ['email' => $user->email],
+                    [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'password' => $user->password,
+                        'role' => $user->role,
+                        'tenant_id' => $tenant->id,
+                        'phone' => $user->phone,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to mirror tenant client to tenant database.', [
+                'user_id' => $user->id,
+                'tenant_id' => $tenant->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

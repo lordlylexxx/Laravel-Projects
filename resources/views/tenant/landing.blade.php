@@ -3,248 +3,477 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $settings['hero_title'] }} - {{ $tenant->name }}</title>
+    <title>{{ $tenant->name }} | Accommodations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary: {{ $settings['primary_color'] }};
-            --accent: {{ $settings['accent_color'] }};
-            --ink: #111827;
-            --paper: #f8fafc;
-            --muted: #6b7280;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        * {
-            box-sizing: border-box;
+        :root {
+            --green-dark: {{ $settings['primary_color'] ?? '#1B5E20' }};
+            --green-primary: {{ $settings['accent_color'] ?? '#2E7D32' }};
+            --green-medium: color-mix(in srgb, var(--green-primary) 82%, #ffffff);
+            --green-light: color-mix(in srgb, var(--green-primary) 70%, #ffffff);
+            --green-pale: color-mix(in srgb, var(--green-primary) 45%, #ffffff);
+            --green-soft: color-mix(in srgb, var(--green-primary) 20%, #ffffff);
+            --green-white: color-mix(in srgb, var(--green-primary) 10%, #ffffff);
+            --white: #FFFFFF;
         }
 
         body {
-            margin: 0;
-            font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
-            color: var(--ink);
-            background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent) 18%, #ffffff), #ffffff 40%),
-                        linear-gradient(160deg, #ffffff 0%, var(--paper) 65%, color-mix(in srgb, var(--primary) 10%, #ffffff) 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 50%, color-mix(in srgb, var(--green-dark) 10%, transparent) 100%),
+                        url('/COMMUNAL.jpg') no-repeat center center/cover;
+            background-attachment: fixed;
             min-height: 100vh;
+            color: var(--green-dark);
         }
 
-        .shell {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 28px 20px 56px;
-        }
-
-        .topbar {
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 36px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 2px solid var(--green-soft);
+            box-shadow: 0 4px 20px color-mix(in srgb, var(--green-dark) 16%, transparent);
         }
 
-        .brand {
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-mark {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
             font-weight: 800;
-            letter-spacing: 0.02em;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            color: var(--white);
+            background: linear-gradient(145deg, var(--green-dark), var(--green-primary));
+            box-shadow: 0 8px 20px color-mix(in srgb, var(--green-primary) 30%, transparent);
         }
 
-        .badge {
-            background: color-mix(in srgb, var(--primary) 12%, #ffffff);
-            color: var(--primary);
-            border: 1px solid color-mix(in srgb, var(--primary) 40%, #ffffff);
-            padding: 8px 12px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 700;
+        .nav-brand .system-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--green-dark);
+            letter-spacing: -0.5px;
         }
+
+        .nav-brand .tagline {
+            font-size: 0.72rem;
+            color: var(--green-medium);
+            margin-left: 8px;
+            display: inline;
+            line-height: 1.2;
+        }
+
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--green-dark);
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        .nav-links a:hover { background: var(--green-soft); color: var(--green-dark); }
+
+        .nav-buttons { display: flex; gap: 12px; }
+        .btn {
+            padding: 12px 26px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--green-dark);
+            border: 2px solid var(--green-primary);
+        }
+        .btn-outline:hover { background: var(--green-primary); color: var(--white); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            color: var(--white);
+            box-shadow: 0 4px 15px color-mix(in srgb, var(--green-primary) 35%, transparent);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px color-mix(in srgb, var(--green-primary) 45%, transparent); }
 
         .hero {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 28px;
-            align-items: stretch;
-        }
-
-        .hero-copy {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
-        }
-
-        h1 {
-            margin: 0 0 14px;
-            font-size: clamp(1.9rem, 4vw, 3rem);
-            line-height: 1.08;
-        }
-
-        .subtitle {
-            margin: 0 0 22px;
-            color: var(--muted);
-            font-size: 1.03rem;
-            line-height: 1.6;
-        }
-
-        .cta {
-            display: inline-block;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 700;
-            padding: 12px 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 35%, transparent);
-            transition: transform 0.2s ease;
-        }
-
-        .cta:hover {
-            transform: translateY(-2px);
-        }
-
-        .login-panel {
-            margin-top: 20px;
-            padding-top: 18px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .login-panel h3 {
-            margin: 0;
-            font-size: 1.05rem;
-            color: var(--ink);
-        }
-
-        .login-panel p {
-            margin: 6px 0 12px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .login-actions {
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 40px 80px;
+            text-align: center;
+            background: linear-gradient(135deg, color-mix(in srgb, var(--green-dark) 8%, transparent) 0%, color-mix(in srgb, var(--green-primary) 5%, transparent) 100%);
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            background: var(--white);
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            border: 2px solid var(--green-soft);
+            box-shadow: 0 4px 15px color-mix(in srgb, var(--green-dark) 10%, transparent);
+        }
+        .hero-badge i { color: var(--green-primary); }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            color: var(--green-dark);
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+        .hero h1 span { color: var(--green-primary); }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--green-medium);
+            max-width: 760px;
+            margin-bottom: 40px;
+            line-height: 1.7;
         }
 
-        .login-btn {
-            display: inline-block;
-            text-decoration: none;
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 0; flex-wrap: wrap; }
+        .hero-buttons .btn { padding: 14px 32px; font-size: 1rem; }
+
+        .carousel-section {
+            padding: 80px 40px;
+            background: var(--white);
+        }
+        .carousel-header { text-align: center; margin-bottom: 50px; }
+        .carousel-header h2 {
+            font-size: 2.2rem;
+            color: var(--green-dark);
+            margin-bottom: 12px;
             font-weight: 700;
-            padding: 10px 14px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
         }
+        .carousel-header p { font-size: 1rem; color: var(--green-medium); }
 
-        .login-btn.owner {
-            background: color-mix(in srgb, var(--primary) 15%, #ffffff);
-            color: var(--primary);
-            border-color: color-mix(in srgb, var(--primary) 35%, #ffffff);
-        }
+        .carousel-container { max-width: 1400px; margin: 0 auto; position: relative; overflow: hidden; }
+        .carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
+        .carousel-slide { min-width: 320px; margin: 0 15px; }
 
-        .login-btn.user {
-            background: color-mix(in srgb, var(--accent) 18%, #ffffff);
-            color: #065f46;
-            border-color: color-mix(in srgb, var(--accent) 45%, #ffffff);
-        }
-
-        .login-btn.signup {
-            background: #ffffff;
-            color: var(--ink);
-            border-color: #d1d5db;
-        }
-
-        .login-btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .hero-media {
+        .property-card {
+            background: var(--white);
             border-radius: 20px;
             overflow: hidden;
-            min-height: 320px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
-            background: linear-gradient(140deg, color-mix(in srgb, var(--primary) 30%, #ffffff), color-mix(in srgb, var(--accent) 26%, #ffffff));
+            box-shadow: 0 8px 30px color-mix(in srgb, var(--green-dark) 14%, transparent);
+            transition: all 0.4s ease;
+            border: 1px solid var(--green-soft);
+        }
+        .property-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px color-mix(in srgb, var(--green-dark) 25%, transparent);
         }
 
-        .hero-media img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
+        .property-img { width: 100%; height: 200px; object-fit: cover; }
+        .property-content { padding: 22px; }
+        .property-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--green-soft);
+            color: var(--green-dark);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
         }
+        .property-content h3 { font-size: 1.15rem; color: var(--green-dark); margin-bottom: 8px; font-weight: 700; }
+        .property-location { display: flex; align-items: center; gap: 6px; color: var(--green-medium); font-size: 0.85rem; margin-bottom: 15px; }
+        .property-features { display: flex; gap: 15px; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid var(--green-soft); }
+        .feature { display: flex; align-items: center; gap: 6px; color: var(--green-dark); font-size: 0.85rem; }
+        .property-footer { display: flex; justify-content: space-between; align-items: center; }
+        .property-price { font-size: 1.4rem; font-weight: 700; color: var(--green-primary); }
+        .property-price span { font-size: 0.85rem; font-weight: 400; color: var(--green-medium); }
+        .property-rating { display: flex; align-items: center; gap: 5px; }
+        .stars { color: #F59E0B; }
+
+        .carousel-controls { display: flex; justify-content: center; gap: 12px; margin-top: 40px; }
+        .carousel-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--green-soft);
+            color: var(--green-dark);
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-btn:hover { background: var(--green-primary); color: var(--white); transform: scale(1.1); }
 
         .about {
-            margin-top: 30px;
-            background: #ffffff;
+            padding: 80px 40px;
+            background: transparent;
+        }
+
+        .about-card {
+            max-width: 980px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.14);
             border-radius: 20px;
-            padding: 26px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.06);
+            padding: 36px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(4px);
+            color: var(--green-dark);
         }
 
-        .about h2 {
-            margin: 0 0 10px;
-            font-size: 1.35rem;
+        .about-card h2 {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            font-weight: 700;
         }
 
-        .about p {
-            margin: 0;
-            color: var(--muted);
-            line-height: 1.65;
+        .about-card p {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--green-dark);
         }
 
-        .foot {
-            margin-top: 32px;
-            color: var(--muted);
-            font-size: 0.9rem;
+        .footer {
+            background: var(--white);
+            padding: 40px;
             text-align: center;
+            border-top: 2px solid var(--green-soft);
+        }
+        .footer p { color: var(--green-medium); font-size: 0.9rem; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate { animation: fadeInUp 0.6s ease forwards; }
+        .delay-1 { animation-delay: 0.15s; }
+        .delay-2 { animation-delay: 0.3s; }
+
+        @media (max-width: 1024px) {
+            .navbar { padding: 15px 25px; }
+            .nav-links { gap: 15px; }
+            .nav-links a { padding: 8px 12px; font-size: 0.9rem; }
+            .hero h1 { font-size: 2.8rem; }
         }
 
-        @media (max-width: 900px) {
-            .hero {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-media {
-                min-height: 240px;
-            }
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; flex-direction: column; gap: 15px; }
+            .nav-brand .tagline { display: none; }
+            .nav-links { display: none; }
+            .hero { padding: 100px 20px 40px; }
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            .hero-buttons { flex-direction: column; align-items: center; }
+            .carousel-section, .about { padding: 50px 20px; }
+            .carousel-slide { min-width: 280px; }
+            .carousel-header h2, .about-card h2 { font-size: 1.6rem; }
         }
     </style>
 </head>
 <body>
-    <div class="shell">
-        <div class="topbar">
-            <div class="brand">{{ $tenant->name }}</div>
-            <div class="badge">{{ strtoupper($tenant->plan) }} PLAN</div>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="brand-mark">{{ strtoupper(substr($tenant->name, 0, 1)) }}</div>
+            <div>
+                <span class="system-name">{{ $tenant->name }}</span>
+                <span class="tagline">| {{ $settings['hero_subtitle'] }}</span>
+            </div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#properties"><i class="fas fa-building"></i> Properties</a></li>
+            <li><a href="#about"><i class="fas fa-circle-info"></i> About</a></li>
+        </ul>
+        <div class="nav-buttons">
+            @auth
+                @if(auth()->user()->isClient())
+                    <a href="{{ route('accommodations.index') }}" class="btn btn-outline"><i class="fas fa-search"></i> Browse</a>
+                @else
+                    <a href="{{ route('owner.dashboard') }}" class="btn btn-outline"><i class="fas fa-gauge"></i> Dashboard</a>
+                @endif
+                <form method="POST" action="/logout">
+                    @csrf
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </form>
+            @else
+                <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> {{ $settings['login_text'] }}</a>
+                <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> {{ $settings['signup_text'] }}</a>
+            @endauth
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge animate">
+            <i class="fas fa-store"></i>
+            <span>Welcome to {{ $tenant->name }}</span>
         </div>
 
-        <section class="hero">
-            <div class="hero-copy">
-                <h1>{{ $settings['hero_title'] }}</h1>
-                <p class="subtitle">{{ $settings['hero_subtitle'] }}</p>
-                <a class="cta" href="{{ $settings['cta_url'] }}">{{ $settings['cta_text'] }}</a>
+        <h1 class="animate delay-1">{{ $tenant->name }} <span>Accommodations</span></h1>
 
-                <div class="login-panel">
-                    <h3>{{ $settings['login_section_title'] }}</h3>
-                    <p>{{ $settings['login_section_subtitle'] }}</p>
-                    <div class="login-actions">
-                        <a class="login-btn owner" href="{{ route('login') }}">{{ $settings['login_text'] }}</a>
-                        <a class="login-btn signup" href="{{ route('register') }}">{{ $settings['signup_text'] }}</a>
+        <p class="animate delay-2">{{ $settings['hero_subtitle'] }}</p>
+
+        <div class="hero-buttons animate delay-2">
+            <a href="{{ route('accommodations.index') }}" class="btn btn-primary"><i class="fas fa-rocket"></i> {{ $settings['cta_text'] }}</a>
+            <a href="#properties" class="btn btn-outline"><i class="fas fa-search"></i> Browse Properties</a>
+        </div>
+    </section>
+
+    <section class="carousel-section" id="properties">
+        <div class="carousel-header animate">
+            <h2><i class="fas fa-star" style="color: var(--green-primary); margin-right: 10px;"></i>Featured Accommodations</h2>
+            <p>Curated stays from {{ $tenant->name }}</p>
+        </div>
+
+        <div class="carousel-container">
+            <div class="carousel-track" id="carouselTrack">
+                <div class="carousel-slide">
+                    <div class="property-card">
+                        <img src="{{ $settings['hero_image_url'] ?: '/COMMUNAL.jpg' }}" alt="{{ $tenant->name }}" class="property-img">
+                        <div class="property-content">
+                            <span class="property-type"><i class="fas fa-home"></i> Signature Stay</span>
+                            <h3>{{ $tenant->name }} Main Property</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
+                            <div class="property-features">
+                                <span class="feature"><i class="fas fa-bed"></i> 2 Beds</span>
+                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
+                                <span class="feature"><i class="fas fa-wifi"></i> WiFi</span>
+                            </div>
+                            <div class="property-footer">
+                                <div class="property-price">From ₱1,500 <span>/ night</span></div>
+                                <div class="property-rating">
+                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-slide">
+                    <div class="property-card">
+                        <img src="/1.jpg" alt="Cozy stay" class="property-img">
+                        <div class="property-content">
+                            <span class="property-type"><i class="fas fa-bed"></i> Traveller-Inn</span>
+                            <h3>Cozy Guest Room</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
+                            <div class="property-features">
+                                <span class="feature"><i class="fas fa-bed"></i> 1 Bed</span>
+                                <span class="feature"><i class="fas fa-bath"></i> 1 Bath</span>
+                                <span class="feature"><i class="fas fa-snowflake"></i> AC</span>
+                            </div>
+                            <div class="property-footer">
+                                <div class="property-price">From ₱900 <span>/ night</span></div>
+                                <div class="property-rating">
+                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-slide">
+                    <div class="property-card">
+                        <img src="/2.jpg" alt="Family suite" class="property-img">
+                        <div class="property-content">
+                            <span class="property-type"><i class="fas fa-calendar"></i> Daily Rental</span>
+                            <h3>Family Suite</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $tenant->domain }}</div>
+                            <div class="property-features">
+                                <span class="feature"><i class="fas fa-bed"></i> 3 Beds</span>
+                                <span class="feature"><i class="fas fa-bath"></i> 2 Baths</span>
+                                <span class="feature"><i class="fas fa-kitchen-set"></i> Kitchen</span>
+                            </div>
+                            <div class="property-footer">
+                                <div class="property-price">From ₱2,400 <span>/ night</span></div>
+                                <div class="property-rating">
+                                    <span class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="hero-media">
-                @if(!empty($settings['hero_image_url']))
-                    <img src="{{ $settings['hero_image_url'] }}" alt="{{ $tenant->name }}">
-                @endif
+            <div class="carousel-controls">
+                <button class="carousel-btn" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
+                <button class="carousel-btn" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section class="about">
+    <section class="about" id="about">
+        <div class="about-card animate">
             <h2>{{ $settings['about_title'] }}</h2>
             <p>{{ $settings['about_text'] }}</p>
-        </section>
-
-        <div class="foot">
-            {{ $tenant->domain }}
         </div>
-    </div>
+    </section>
+
+    <footer class="footer">
+        <p><strong>{{ $tenant->name }}</strong> | Hosted on {{ $tenant->domain }}:{{ env('CENTRAL_PORT', 8000) }}</p>
+    </footer>
+
+    <script>
+        const carouselTrack = document.getElementById('carouselTrack');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let currentIndex = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        const totalSlides = slides.length;
+        const visibleSlides = window.innerWidth < 768 ? 1 : 3;
+        const slideWidth = 350;
+
+        function updateCarousel() {
+            const maxIndex = Math.max(0, totalSlides - visibleSlides);
+            currentIndex = Math.min(currentIndex, maxIndex);
+            const offset = -currentIndex * slideWidth;
+            carouselTrack.style.transform = `translateX(${offset}px)`;
+        }
+
+        prevBtn.addEventListener('click', function() {
+            if (currentIndex > 0) { currentIndex--; updateCarousel(); }
+        });
+
+        nextBtn.addEventListener('click', function() {
+            const maxIndex = Math.max(0, totalSlides - visibleSlides);
+            if (currentIndex < maxIndex) { currentIndex++; updateCarousel(); }
+        });
+
+        setInterval(function() {
+            const maxIndex = Math.max(0, totalSlides - visibleSlides);
+            if (currentIndex < maxIndex) { currentIndex++; } else { currentIndex = 0; }
+            updateCarousel();
+        }, 5000);
+    </script>
 </body>
 </html>

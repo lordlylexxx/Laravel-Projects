@@ -202,6 +202,7 @@
                                 @php
                                     $domainEnabled = (bool) ($tenant->domain_enabled ?? true);
                                     $statusValue = (string) ($tenant->subscription_status ?? 'unknown');
+                                    $centralPort = (int) env('CENTRAL_PORT', 8000);
                                     $statusClass = match ($statusValue) {
                                         'active' => 'active',
                                         'trialing' => 'trialing',
@@ -210,7 +211,9 @@
                                         default => 'cancelled',
                                     };
 
-                                    $domainLabel = $tenant->app_port ? ('127.0.0.1:' . $tenant->app_port) : ($tenant->domain ?: 'Not assigned');
+                                    $domainLabel = $tenant->domain
+                                        ? ($tenant->domain . ':' . $centralPort)
+                                        : ('127.0.0.1:' . $centralPort);
                                     $periodEnds = $tenant->current_period_ends_at ?? $tenant->trial_ends_at;
                                     $dbUsed = $tenant->database ? ($databaseUsageMbByDatabase[$tenant->database] ?? null) : null;
                                 @endphp
@@ -228,9 +231,9 @@
                                             @csrf
                                             @method('PUT')
                                             <select name="plan">
-                                                <option value="basic" {{ $tenant->plan === 'basic' ? 'selected' : '' }}>BASIC</option>
-                                                <option value="plus" {{ $tenant->plan === 'plus' ? 'selected' : '' }}>PLUS</option>
-                                                <option value="pro" {{ $tenant->plan === 'pro' ? 'selected' : '' }}>PRO</option>
+                                                <option value="basic" {{ $tenant->plan === 'basic' ? 'selected' : '' }}>Basic</option>
+                                                <option value="plus" {{ $tenant->plan === 'plus' ? 'selected' : '' }}>Standard</option>
+                                                <option value="pro" {{ $tenant->plan === 'pro' ? 'selected' : '' }}>Premium</option>
                                             </select>
                                             <button type="submit" class="btn save">Save</button>
                                         </form>

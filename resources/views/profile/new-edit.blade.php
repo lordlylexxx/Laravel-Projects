@@ -276,7 +276,6 @@
             @if(Auth::user()->role === 'admin')
                 <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ route('admin.tenants') }}">Tenants</a></li>
-                <li><a href="{{ route('admin.bookings') }}">Bookings</a></li>
             @else
                 <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
             @endif
@@ -285,7 +284,7 @@
         </ul>
         
         <div class="nav-actions">
-            <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+            <form action="/logout" method="POST" style="display: inline;">
                 @csrf
                 <button type="submit" class="nav-btn primary">Logout</button>
             </form>

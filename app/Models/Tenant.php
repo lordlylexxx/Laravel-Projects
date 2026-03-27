@@ -63,17 +63,14 @@ class Tenant extends BaseTenant
 
     public function publicUrl(): string
     {
-        $host = env('TENANCY_BASE_HOST', parse_url((string) config('app.url'), PHP_URL_HOST) ?: '127.0.0.1');
-
-        if ($this->app_port) {
-            return 'http://' . $host . ':' . $this->app_port;
-        }
+        $host = env('TENANCY_BASE_HOST', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
+        $port = ':' . env('CENTRAL_PORT', 8000);
 
         if ($this->domain) {
-            return 'http://' . $this->domain;
+            return 'http://' . $this->domain . $port;
         }
 
-        return 'http://' . $host;
+        return 'http://' . $host . $port;
     }
 
     public function owner(): BelongsTo
@@ -109,16 +106,136 @@ class Tenant extends BaseTenant
     public function maxListings(): ?int
     {
         return match ($this->plan) {
-            self::PLAN_BASIC => 5,
-            self::PLAN_PLUS => 20,
+            self::PLAN_BASIC => 3,
+            self::PLAN_PLUS => 10,
             self::PLAN_PRO => null,
-            default => 5,
+            default => 3,
         };
+    }
+
+    /**
+     * Check if tenant has access to a specific feature based on subscription plan
+     */
+    public function hasFeature(string $feature): bool
+    {
+        if (! $this->hasActiveSubscription()) {
+            return false;
+        }
+
+        return match ($this->plan) {
+            self::PLAN_BASIC => in_array($feature, [
+                'bookings',
+                'basic_reporting',
+            ]),
+            self::PLAN_PLUS => in_array($feature, [
+                'bookings',
+                'messaging',
+                'advanced_reporting',
+                'analytics_dashboard',
+            ]),
+            self::PLAN_PRO => in_array($feature, [
+                'bookings',
+                'messaging',
+                'reviews',
+                'advanced_reporting',
+                'analytics_dashboard',
+                'priority_support',
+                'featured_listings',
+            ]),
+            default => false,
+        };
+    }
+
+    /**
+     * Get an array of all available features for this plan
+     */
+    public function getAvailableFeatures(): array
+    {
+        return match ($this->plan) {
+            self::PLAN_BASIC => [
+                'bookings' => true,
+                'messaging' => false,
+                'reviews' => false,
+                'basic_reporting' => true,
+                'advanced_reporting' => false,
+                'analytics_dashboard' => false,
+                'priority_support' => false,
+                'featured_listings' => false,
+            ],
+            self::PLAN_PLUS => [
+                'bookings' => true,
+                'messaging' => true,
+                'reviews' => false,
+                'basic_reporting' => true,
+                'advanced_reporting' => true,
+                'analytics_dashboard' => true,
+                'priority_support' => false,
+                'featured_listings' => false,
+            ],
+            self::PLAN_PRO => [
+                'bookings' => true,
+                'messaging' => true,
+                'reviews' => true,
+                'basic_reporting' => true,
+                'advanced_reporting' => true,
+                'analytics_dashboard' => true,
+                'priority_support' => true,
+                'featured_listings' => true,
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * Get plan details with features and pricing
+     */
+    public static function getPlanDetails(): array
+    {
+        return [
+            self::PLAN_BASIC => [
+                'name' => 'Basic Plan',
+                'price' => 299,
+                'currency' => '₱',
+                'max_listings' => 3,
+                'features' => [
+                    '3 property listings',
+                    'Basic reporting',
+                    'Booking management',
+                ],
+            ],
+            self::PLAN_PLUS => [
+                'name' => 'Standard Plan',
+                'price' => 499,
+                'currency' => '₱',
+                'max_listings' => 10,
+                'features' => [
+                    'Up to 10 listings',
+                    'Advanced reporting',
+                    'Analytics dashboard',
+                ],
+            ],
+            self::PLAN_PRO => [
+                'name' => 'Premium Plan',
+                'price' => 799,
+                'currency' => '₱',
+                'max_listings' => null, // unlimited
+                'features' => [
+                    'Unlimited listings',
+                    'Priority support',
+                    'Featured listing promotion',
+                    'Advanced analytics',
+                ],
+            ],
+        ];
     }
 
     public function canCreateAccommodation(int $currentCount): bool
     {
         if (! $this->hasActiveSubscription()) {
+            return false;
+        }
+
+        if (! $this->hasFeature('bookings')) {
             return false;
         }
 

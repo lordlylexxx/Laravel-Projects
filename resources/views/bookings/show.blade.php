@@ -122,14 +122,27 @@
             .action-btns { flex-direction: column; }
         }
 
-        @if(auth()->user()?->isClient())
+        @php
+            $authUser = auth()->user();
+            $currentTenant = \App\Models\Tenant::current();
+            $isTenantManager = $authUser && (
+                $authUser->isOwner()
+                || ($authUser->isAdmin() && $currentTenant && (int) $authUser->tenant_id === (int) $currentTenant->id)
+            );
+        @endphp
+
+        @if($isTenantManager)
+            @include('owner.partials.top-navbar-styles')
+        @elseif(auth()->user()?->isClient())
             @include('client.partials.top-navbar-styles')
         @endif
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    @if(auth()->user()?->isClient())
+    @if($isTenantManager)
+    @include('owner.partials.top-navbar')
+    @elseif(auth()->user()?->isClient())
     @include('client.partials.top-navbar', ['active' => 'bookings'])
     @else
     <nav class="navbar">
@@ -148,8 +161,8 @@
                     <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Browse</a></li>
                 @endif
             @endauth
-            <li><a href="{{ route(Auth::check() && Auth::user()->isOwner() && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
-            <li><a href="{{ Auth::check() && Auth::user()->isOwner() ? route('owner.bookings.index') : route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') || request()->routeIs('owner.bookings.*') ? 'active' : '' }}">My Bookings</a></li>
+            <li><a href="{{ route(Auth::check() && $isTenantManager && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
+            <li><a href="{{ Auth::check() && $isTenantManager ? route('owner.bookings.index') : route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') || request()->routeIs('owner.bookings.*') ? 'active' : '' }}">My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
@@ -159,7 +172,7 @@
                 @csrf
                 <button type="submit" class="nav-btn secondary">⚙️ Settings</button>
             </form>
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="/logout" method="POST">
                 @csrf
                 <button type="submit" class="nav-btn primary">Logout</button>
             </form>
@@ -170,7 +183,7 @@
     <!-- Main Content -->
     <main class="main-content">
         @php
-            $bookingsIndexRoute = Auth::check() && Auth::user()->isOwner() ? 'owner.bookings.index' : 'bookings.index';
+            $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
         @endphp
 
         <a href="{{ route($bookingsIndexRoute) }}" class="back-link">← Back to My Bookings</a>
@@ -261,7 +274,7 @@
                     @endif
                     
                     <!-- Action Buttons -->
-                    @if(Auth::check() && Auth::user()->isOwner() && $booking->status === 'pending')
+                    @if(Auth::check() && $isTenantManager && $booking->status === 'pending')
                         <div class="action-btns">
                             <form action="{{ route('owner.bookings.update-status', $booking) }}" method="POST" style="display: inline;">
                                 @csrf

@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $centralPort = (int) env('CENTRAL_PORT', 8000);
+
         // Create Admin User (only if doesn't exist)
         if (!User::where('email', 'admin@impasugong.gov.ph')->exists()) {
             $admin = User::create([
@@ -71,7 +73,7 @@ class DatabaseSeeder extends Seeder
 
         // Seed tenant-scoped admin and user accounts for each tenant
         $tenantAccounts = [];
-        $tenants = Tenant::query()->orderBy('id')->get(['id', 'name', 'owner_user_id', 'app_port']);
+        $tenants = Tenant::query()->orderBy('id')->get(['id', 'name', 'owner_user_id']);
 
         foreach ($tenants as $tenant) {
             $tenantAdminEmail = "tenant{$tenant->id}.admin@impastay.local";
@@ -103,7 +105,7 @@ class DatabaseSeeder extends Seeder
 
             $tenantAccounts[] = [
                 'tenant_name' => $tenant->name,
-                'port' => $tenant->app_port,
+                'port' => $centralPort,
                 'admin_email' => $tenantAdmin->email,
                 'user_email' => $tenantUser->email,
             ];

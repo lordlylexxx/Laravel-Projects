@@ -317,17 +317,17 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <a href="{{ route('dashboard') }}" class="nav-logo">
+        <a href="/dashboard" class="nav-logo">
             <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>ImpaStay</span>
         </a>
         
         <ul class="nav-links">
-            <li><a href="{{ route('dashboard') }}" class="active"><i class="fas fa-search"></i> Browse</a></li>
-            <li><a href="{{ route('accommodations.index') }}"><i class="fas fa-building"></i> Accommodations</a></li>
-            <li><a href="{{ route('bookings.index') }}"><i class="fas fa-calendar-alt"></i> My Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}"><i class="fas fa-envelope"></i> Messages</a></li>
-            <li><a href="{{ route('profile.edit') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            <li><a href="/dashboard" class="active"><i class="fas fa-search"></i> Browse</a></li>
+            <li><a href="/accommodations"><i class="fas fa-building"></i> Accommodations</a></li>
+            <li><a href="/bookings"><i class="fas fa-calendar-alt"></i> My Bookings</a></li>
+            <li><a href="/messages"><i class="fas fa-envelope"></i> Messages</a></li>
+            <li><a href="/profile"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         
         <div class="nav-actions">
@@ -343,7 +343,7 @@
                     <div class="user-role">Client</div>
                 </div>
             </div>
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="/logout" method="POST">
                 @csrf
                 <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </form>
@@ -359,7 +359,7 @@
                 <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
                 
                 <div class="search-section">
-                    <form action="{{ route('accommodations.index') }}" method="GET">
+                    <form action="/accommodations" method="GET">
                         <div class="search-row">
                             <div class="search-input-group">
                                 <label><i class="fas fa-map-marker-alt"></i> Location</label>
@@ -394,7 +394,7 @@
         <section class="section">
             <div class="section-header">
                 <h2><i class="fas fa-th-large"></i>Browse by Type</h2>
-                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
+                <a href="/accommodations" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
             </div>
             
             <div class="categories">
@@ -431,7 +431,7 @@
         <section class="section">
             <div class="section-header">
                 <h2><i class="fas fa-star"></i>Featured Accommodations</h2>
-                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
+                <a href="/accommodations" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
             </div>
             
             <div class="properties-grid">

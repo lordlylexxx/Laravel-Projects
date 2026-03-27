@@ -225,6 +225,62 @@
         .revenue-card .icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.9; }
         .revenue-card .value { font-size: 2rem; font-weight: bold; margin-bottom: 5px; }
         .revenue-card .label { font-size: 0.9rem; opacity: 0.9; }
+
+        /* Pro Plan Section */
+        .pro-section {
+            background: linear-gradient(135deg, #0f3d2e, #14532d);
+            border-radius: 16px;
+            padding: 24px;
+            color: var(--white);
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(20, 83, 45, 0.3);
+        }
+        .pro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .pro-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .pro-badge {
+            background: #facc15;
+            color: #1f2937;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .pro-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .pro-feature-card {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .pro-feature-card .name {
+            font-size: 0.82rem;
+            opacity: 0.88;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .pro-feature-card .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
         
         /* Table */
         .property-table { width: 100%; border-collapse: collapse; }
@@ -291,6 +347,9 @@
                 <h1><i class="fas fa-home" style="color: var(--green-primary); margin-right: 12px;"></i>Unit Management Dashboard</h1>
                 <p>Monitor your properties and booking performance</p>
             </div>
+
+            <!-- Plan Status Card -->
+            <x-plan-status-card />
             
             <!-- Quick Stats -->
             <div class="stats-grid animate delay-1">
@@ -337,27 +396,107 @@
             
             <!-- Quick Actions -->
             <div class="quick-actions animate delay-2">
-                <a href="{{ route('owner.accommodations.create') }}" class="quick-action-card">
+                <a href="/owner/accommodations/create" class="quick-action-card">
                     <div class="icon"><i class="fas fa-plus-circle"></i></div>
                     <h4>Add New Unit</h4>
                     <p>List a new accommodation</p>
                 </a>
-                <a href="{{ route('owner.accommodations.index') }}" class="quick-action-card">
+                <a href="/owner/accommodations" class="quick-action-card">
                     <div class="icon"><i class="fas fa-edit"></i></div>
                     <h4>Manage Units</h4>
                     <p>Edit property details</p>
                 </a>
-                <a href="{{ route('owner.bookings.index') }}" class="quick-action-card">
+                <a href="/owner/bookings" class="quick-action-card">
                     <div class="icon"><i class="fas fa-tasks"></i></div>
                     <h4>Booking Requests</h4>
                     <p>Review pending bookings</p>
                 </a>
-                <a href="{{ route('messages.index') }}" class="quick-action-card">
+                <a href="/messages" class="quick-action-card">
                     <div class="icon"><i class="fas fa-reply"></i></div>
                     <h4>Messages</h4>
                     <p>Respond to inquiries</p>
                 </a>
             </div>
+
+            @if(($proFeatures['is_pro'] ?? false) === true)
+                <div class="pro-section animate delay-3">
+                    <div class="pro-header">
+                        <div class="pro-title">
+                            <i class="fas fa-crown"></i>
+                            Premium Plan Features
+                        </div>
+                        <span class="pro-badge">Pro Active</span>
+                    </div>
+                    <div class="pro-feature-grid">
+                        <div class="pro-feature-card">
+                            <div class="name">Unlimited Listings</div>
+                            <div class="value">
+                                @if(($proFeatures['unlimited_listings'] ?? false) === true)
+                                    Enabled ({{ $proFeatures['total_listings'] ?? 0 }} active)
+                                @else
+                                    Disabled
+                                @endif
+                            </div>
+                        </div>
+                        <div class="pro-feature-card">
+                            <div class="name">Priority Support</div>
+                            <div class="value">
+                                @if(($proFeatures['priority_support'] ?? false) === true)
+                                    Enabled
+                                @else
+                                    Disabled
+                                @endif
+                            </div>
+                        </div>
+                        <div class="pro-feature-card">
+                            <div class="name">Featured Listing Promotion</div>
+                            <div class="value">
+                                @if(($proFeatures['featured_listing_promotion'] ?? false) === true)
+                                    {{ $proFeatures['featured_listings'] ?? 0 }} Featured Listings
+                                @else
+                                    Disabled
+                                @endif
+                            </div>
+                        </div>
+                        <div class="pro-feature-card">
+                            <div class="name">Advanced Analytics</div>
+                            <div class="value">
+                                @if(($proFeatures['advanced_analytics'] ?? false) === true)
+                                    Enabled
+                                @else
+                                    Disabled
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            @endif
+
+            @if(($proFeatures['has_analytics_dashboard'] ?? false) === true)
+                <div class="stats-grid animate delay-3">
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+                        <div class="value">₱{{ number_format($proFeatures['monthly_revenue'] ?? 0, 0, '.', ',') }}</div>
+                        <div class="label">Monthly Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="value">{{ $proFeatures['monthly_bookings'] ?? 0 }}</div>
+                        <div class="label">Monthly Bookings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                        <div class="value">₱{{ number_format($proFeatures['avg_booking_value'] ?? 0, 0, '.', ',') }}</div>
+                        <div class="label">Avg Booking Value</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fas fa-bullseye"></i></div>
+                        <div class="value">{{ number_format($proFeatures['booking_conversion_rate'] ?? 0, 1) }}%</div>
+                        <div class="label">Booking Conversion</div>
+                    </div>
+                </div>
+            @endif
             
             <!-- My Units Table -->
             <div class="dashboard-card animate delay-3">

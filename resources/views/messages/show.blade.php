@@ -160,7 +160,7 @@
             <li><a href="{{ route('messages.index') }}" class="active">Messages</a></li>
         </ul>
         <div class="nav-actions">
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="/logout" method="POST">
                 @csrf
                 <button type="submit" class="nav-btn primary">Logout</button>
             </form>

@@ -17,7 +17,7 @@ class EnsureUserIsOwnerOrTenantAdmin
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         if ($user->isOwner()) {

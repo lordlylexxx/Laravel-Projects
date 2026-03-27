@@ -1,18 +1,28 @@
-@php($current = $active ?? '')
+@php
+    $current = $active ?? '';
+    $isTenantContext = \App\Models\Tenant::checkCurrent();
+    $dashboardHref = $isTenantContext ? '/owner/dashboard' : '/admin/dashboard';
+    $unitsHref = $isTenantContext ? '/owner/accommodations' : '/admin/tenants';
+    $bookingsHref = '/owner/bookings';
+    $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
+    $landingHref = $isTenantContext ? '/' : '/';
+@endphp
 
 <nav class="navbar">
-    <a href="{{ route('landing') }}" class="nav-logo">
+    <a href="{{ $landingHref }}" class="nav-logo">
         <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
         <span>ImpaStay</span>
     </a>
 
     <ul class="nav-links">
-        <li><a href="{{ route('admin.dashboard') }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-        <li><a href="{{ route('admin.tenants') }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> Tenants</a></li>
-        <li><a href="{{ route('admin.bookings') }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-        <li><a href="{{ route('admin.updates.index') }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
-        <li><a href="{{ route('messages.index') }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        <li><a href="{{ route('profile.edit') }}" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+        <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> My Units</a></li>
+        @if($isTenantContext)
+            <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+        @endif
+        <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
+        <li><a href="/messages" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
+        <li><a href="/profile" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>
 
     <div class="nav-actions">
@@ -39,7 +49,7 @@
                 <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
             </div>
         </div>
-        <form action="{{ route('logout') }}" method="POST">
+        <form action="/logout" method="POST">
             @csrf
             <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </form>

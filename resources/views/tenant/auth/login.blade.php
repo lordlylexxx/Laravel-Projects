@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $tenant->name ?? 'Tenant' }} Login</title>
+    <title>Login - {{ $tenant->name ?? 'Tenant' }}</title>
     <style>
         :root {
-            --primary: #14532d;
-            --accent: #16a34a;
+            --primary: {{ $tenant->primary_color ?? '#14532d' }};
+            --accent: {{ $tenant->accent_color ?? '#16a34a' }};
             --paper: #f8fafc;
             --ink: #111827;
             --muted: #6b7280;
@@ -27,9 +27,42 @@
             padding: 20px;
         }
 
+        .shell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: contain;
+            margin-bottom: 14px;
+        }
+
+        .tenant-name {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
         .card {
             width: 100%;
-            max-width: 460px;
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 18px;
@@ -44,16 +77,17 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--primary);
-            background: #ecfdf5;
-            border: 1px solid #86efac;
+            background: color-mix(in srgb, var(--primary) 12%, #ffffff);
+            border: 1px solid color-mix(in srgb, var(--primary) 35%, #ffffff);
             border-radius: 999px;
             padding: 6px 10px;
             margin-bottom: 12px;
         }
 
         h1 {
-            font-size: 1.7rem;
+            font-size: 1.5rem;
             margin-bottom: 6px;
+            color: var(--ink);
         }
 
         .subtitle {
@@ -65,11 +99,11 @@
 
         .status {
             margin-bottom: 14px;
-            background: #ecfdf5;
-            border: 1px solid #86efac;
+            background: color-mix(in srgb, var(--primary) 12%, #ffffff);
+            border: 1px solid color-mix(in srgb, var(--primary) 35%, #ffffff);
             border-radius: 10px;
             padding: 10px;
-            color: #166534;
+            color: var(--primary);
             font-size: 0.9rem;
         }
 
@@ -80,6 +114,7 @@
             font-size: 0.88rem;
             font-weight: 700;
             margin-bottom: 6px;
+            color: var(--ink);
         }
 
         input[type="email"],
@@ -89,12 +124,13 @@
             border-radius: 10px;
             padding: 12px;
             font-size: 0.95rem;
+            color: var(--ink);
         }
 
         input:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
         }
 
         .error {
@@ -112,7 +148,11 @@
             font-size: 0.9rem;
         }
 
-        .row a { color: var(--primary); text-decoration: none; }
+        .row a { 
+            color: var(--primary); 
+            text-decoration: none; 
+            font-weight: 600;
+        }
         .row a:hover { text-decoration: underline; }
 
         .btn {
@@ -124,6 +164,12 @@
             color: #ffffff;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 35%, transparent);
         }
 
         .links {
@@ -143,11 +189,29 @@
         }
 
         .links a:hover { text-decoration: underline; }
+
+        @media (max-width: 640px) {
+            .tenant-name { font-size: 1.5rem; }
+            .card { padding: 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <span class="kicker">{{ $tenant->name ?? 'Tenant Portal' }}</span>
+    <div class="shell">
+        <div class="header">
+            @if($tenant->logo_path)
+                <img src="{{ asset('storage/' . $tenant->logo_path) }}" alt="{{ $tenant->name }}" class="logo">
+            @else
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 1.8rem; margin-bottom: 14px;">
+                    {{ substr($tenant->name, 0, 1) }}
+                </div>
+            @endif
+            <h2 class="tenant-name">{{ $tenant->name }}</h2>
+            <p class="tagline">Property management portal</p>
+        </div>
+
+        <div class="card">
+            <span class="kicker">Login to your account</span>
         <h1>Owner and User Login</h1>
         <p class="subtitle">
             Sign in to access this tenant portal. Owners can manage listings, and users can browse and book accommodations.
@@ -157,7 +221,7 @@
             <div class="status">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}">
+        <form method="POST" action="/login">
             @csrf
 
             <div class="field">
@@ -177,17 +241,18 @@
                     <input type="checkbox" name="remember"> Remember me
                 </label>
                 @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}">Forgot password?</a>
+                    <a href="/forgot-password">Forgot password?</a>
                 @endif
             </div>
 
             <button type="submit" class="btn">Sign In</button>
 
             <div class="links">
-                <div>No account yet? <a href="{{ route('register') }}">Create user account</a></div>
-                <div><a href="{{ route('landing') }}">Back to Tenant Landing</a></div>
+                <div>No account yet? <a href="/register">Create user account</a></div>
+                <div><a href="/">Back to Tenant Landing</a></div>
             </div>
         </form>
+        </div>
     </div>
 </body>
 </html>

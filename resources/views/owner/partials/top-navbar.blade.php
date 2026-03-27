@@ -4,7 +4,7 @@
         $current = $active ?? '';
     @endphp
 
-    <a href="{{ route('owner.dashboard') }}" class="nav-logo">
+    <a href="/owner/dashboard" class="nav-logo">
         <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
         <span>
             ImpaStay
@@ -15,12 +15,12 @@
     </a>
 
     <ul class="nav-links">
-        <li><a href="{{ route('owner.dashboard') }}" class="{{ $current === 'dashboard' || request()->routeIs('owner.dashboard') ? 'active' : '' }}"><i class="fas fa-home"></i> Dashboard</a></li>
-        <li><a href="{{ route('owner.accommodations.index') }}" class="{{ $current === 'accommodations' || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}"><i class="fas fa-building"></i> My Units</a></li>
-        <li><a href="{{ route('owner.bookings.index') }}" class="{{ $current === 'bookings' || request()->routeIs('owner.bookings.*') ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-        <li><a href="{{ route('owner.updates.index') }}" class="{{ $current === 'updates' || request()->routeIs('owner.updates.*') || request()->routeIs('admin.updates.*') ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
-        <li><a href="{{ route('messages.index') }}" class="{{ $current === 'messages' || request()->routeIs('messages.*') ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
-        <li><a href="{{ route('profile.edit') }}" class="{{ $current === 'settings' || request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="/owner/dashboard" class="{{ $current === 'dashboard' || request()->routeIs('owner.dashboard') ? 'active' : '' }}"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="/owner/accommodations" class="{{ $current === 'accommodations' || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}"><i class="fas fa-building"></i> My Units</a></li>
+        <li><a href="/owner/bookings" class="{{ $current === 'bookings' || request()->routeIs('owner.bookings.*') ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+        <li><a href="/owner/system-updates" class="{{ $current === 'updates' || request()->routeIs('owner.updates.*') || request()->routeIs('admin.updates.*') ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
+        <li><a href="/messages" class="{{ $current === 'messages' || request()->routeIs('messages.*') ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages</a></li>
+        <li><a href="/profile" class="{{ $current === 'settings' || request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>
 
     <div class="nav-actions">
@@ -48,7 +48,7 @@
             </div>
         </div>
 
-        <form action="{{ route('logout') }}" method="POST">
+        <form action="/logout" method="POST">
             @csrf
             <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </form>

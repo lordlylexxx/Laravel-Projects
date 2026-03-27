@@ -16,7 +16,7 @@ class EnsureUserIsOwner
         $user = $request->user();
         
         if (!$user) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
         
         // Only owners can access these routes

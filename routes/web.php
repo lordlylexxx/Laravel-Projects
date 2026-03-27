@@ -19,16 +19,9 @@ use App\Models\Tenant;
 use Illuminate\Support\Facades\Route;
 
 $centralDomain = env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
-$centralPort = (int) env('CENTRAL_PORT', 8000);
-$serverPort = (int) ($_SERVER['SERVER_PORT'] ?? 0);
-$appInstance = env('APP_INSTANCE');
-
-if (! $appInstance) {
-    $appInstance = $serverPort > 0 && $serverPort !== $centralPort ? 'tenant' : 'central';
-}
-
-if ($appInstance !== 'tenant') {
-    Route::domain($centralDomain)->middleware('central.port')->group(function () {
+$registerCentralRoutes = function () {
+    // Central app routes
+    Route::middleware('central.port')->group(function () {
         // Landing page route (accessible to everyone)
         Route::get('/', function () {
             return view('landingpage');
@@ -176,8 +169,6 @@ if ($appInstance !== 'tenant') {
             Route::put('/tenants/{tenant}/domain-status', [AdminDashboardController::class, 'toggleTenantDomain'])->name('tenants.toggle-domain');
 
             // Booking Management
-            Route::get('/bookings', [AdminDashboardController::class, 'bookings'])->name('bookings');
-
             // Message Management
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'adminIndex'])->name('messages');
 
@@ -190,11 +181,16 @@ if ($appInstance !== 'tenant') {
 
         require __DIR__.'/auth.php';
     });
+};
+
+$centralHosts = array_values(array_unique([$centralDomain, 'localhost', '127.0.0.1', '::1']));
+
+foreach ($centralHosts as $host) {
+    Route::domain($host)->group($registerCentralRoutes);
 }
 
-if ($appInstance !== 'central') {
-    Route::middleware(['tenant.port', 'tenant.required', 'tenant.session'])
-        ->group(function () {
+Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.session'])
+    ->group(function () {
             Route::get('/', [TenantLandingController::class, 'showPublic'])
                 ->name('landing');
 
@@ -236,6 +232,12 @@ if ($appInstance !== 'central') {
                 Route::get('/home', function () {
                     return redirect()->route('dashboard');
                 })->name('home');
+            });
+
+            // Tenant admin dashboard alias for views shared with central app.
+            Route::middleware(['auth', 'tenant.manager'])->group(function () {
+                Route::get('/admin/dashboard', [OwnerDashboardController::class, 'index'])
+                    ->name('admin.dashboard');
             });
 
             // Tenant manager routes (same owner pages/functions, available to owner or tenant admin)
@@ -282,5 +284,4 @@ if ($appInstance !== 'central') {
             });
 
             require __DIR__.'/auth.php';
-        });
-}
+    });

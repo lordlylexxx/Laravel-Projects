@@ -234,16 +234,25 @@
             .owner-bookings-grid { grid-template-columns: 1fr; }
         }
 
-        @if(auth()->user()?->isOwner())
+        @php
+            $authUser = auth()->user();
+            $currentTenant = \App\Models\Tenant::current();
+            $isTenantManager = $authUser && (
+                $authUser->isOwner()
+                || ($authUser->isAdmin() && $currentTenant && (int) $authUser->tenant_id === (int) $currentTenant->id)
+            );
+        @endphp
+
+        @if($isTenantManager)
             @include('owner.partials.top-navbar-styles')
         @elseif(auth()->user()?->isClient())
             @include('client.partials.top-navbar-styles')
         @endif
     </style>
 </head>
-<body class="{{ auth()->user()?->isOwner() ? 'owner-nav-page' : '' }}">
+<body class="{{ $isTenantManager ? 'owner-nav-page' : '' }}">
     <!-- Navigation -->
-    @if(auth()->user()?->isOwner())
+    @if($isTenantManager)
         @include('owner.partials.top-navbar')
     @else
     @if(auth()->user()?->isClient())
@@ -263,14 +272,14 @@
                     <li><a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">Browse</a></li>
                 @endif
             @endauth
-            <li><a href="{{ route(Auth::check() && Auth::user()->isOwner() && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
+            <li><a href="{{ route(Auth::check() && $isTenantManager && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
             <li><a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') ? 'active' : '' }}">My Bookings</a></li>
             <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
         
         <div class="nav-actions">
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="/logout" method="POST">
                 @csrf
                 <button type="submit" class="nav-btn primary">Logout</button>
             </form>
@@ -280,11 +289,11 @@
     @endif
     
     <!-- Main Content -->
-    <main class="main-content {{ auth()->user()?->isOwner() ? 'with-owner-nav' : '' }}">
+    <main class="main-content {{ $isTenantManager ? 'with-owner-nav' : '' }}">
         @php
-            $isOwner = Auth::check() && Auth::user()->isOwner();
-            $bookingsIndexRoute = Auth::check() && Auth::user()->isOwner() ? 'owner.bookings.index' : 'bookings.index';
-            $bookingsShowRoute = Auth::check() && Auth::user()->isOwner() ? 'owner.bookings.show' : 'bookings.show';
+            $isOwner = $isTenantManager;
+            $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
+            $bookingsShowRoute = Auth::check() && $isTenantManager ? 'owner.bookings.show' : 'bookings.show';
         @endphp
 
         <div class="page-header">

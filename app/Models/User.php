@@ -223,9 +223,19 @@ class User extends Authenticatable
 
         // Apply customization if provided
         if ($customizationData && is_array($customizationData)) {
+            if (!empty($customizationData['subscription_plan'])
+                && in_array($customizationData['subscription_plan'], [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO], true)) {
+                $tenantData['plan'] = $customizationData['subscription_plan'];
+            }
+
             // Use custom app title if provided
             if (!empty($customizationData['app_title'])) {
+                $tenantSlug = $this->buildTenantSlug($customizationData['app_title']);
+
+                $tenantData['name'] = $customizationData['app_title'];
                 $tenantData['app_title'] = $customizationData['app_title'];
+                $tenantData['slug'] = $tenantSlug;
+                $tenantData['domain'] = $this->buildTenantDomainFromSlug($tenantSlug);
                 $tenantData['database'] = $this->buildTenantDatabaseName($customizationData['app_title']);
             }
 
@@ -275,19 +285,52 @@ class User extends Authenticatable
     private function defaultTenantConnectionAttributes(): array
     {
         $baseDomain = env('TENANT_BASE_DOMAIN', env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'));
-        $tenantStartPort = (int) env('TENANT_PORT_START', 8001);
-        $nextPort = max(Tenant::query()->max('app_port') ?? ($tenantStartPort - 1), $tenantStartPort - 1) + 1;
         $slugBase = Str::slug($this->name . '-' . $this->id);
 
         return [
             'domain' => $slugBase . '.' . $baseDomain,
-            'app_port' => $nextPort,
+            // Tenants are now domain-based and share the central app port.
+            'app_port' => null,
             'database' => str_replace('-', '_', $slugBase),
             'db_host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
             'db_port' => (int) env('TENANT_DB_PORT', env('DB_PORT', 3306)),
             'db_username' => env('TENANT_DB_USERNAME', env('DB_USERNAME', 'root')),
             'db_password' => env('TENANT_DB_PASSWORD', env('DB_PASSWORD', '')),
         ];
+    }
+
+    private function buildTenantSlug(string $businessName): string
+    {
+        $base = Str::slug($businessName);
+
+        if ($base === '') {
+            $base = 'tenant-' . $this->id;
+        }
+
+        // Keep room for uniqueness suffixes.
+        $base = substr($base, 0, 48);
+        $slug = $base;
+
+        if (Tenant::query()->where('slug', $slug)->exists()) {
+            $suffix = '-' . $this->id;
+            $slug = substr($base, 0, max(1, 63 - strlen($suffix))) . $suffix;
+        }
+
+        $counter = 2;
+        while (Tenant::query()->where('slug', $slug)->exists()) {
+            $suffix = '-' . $this->id . '-' . $counter;
+            $slug = substr($base, 0, max(1, 63 - strlen($suffix))) . $suffix;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    private function buildTenantDomainFromSlug(string $slug): string
+    {
+        $baseDomain = env('TENANT_BASE_DOMAIN', env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'));
+
+        return $slug . '.' . $baseDomain;
     }
 
     private function buildTenantDatabaseName(string $businessName): string

@@ -33,7 +33,10 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        if (! Tenant::checkCurrent() && $request->user()?->isClient()) {
+        $currentTenant = Tenant::current();
+        $user = $request->user();
+
+        if (! $currentTenant && $user?->isClient()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -43,15 +46,29 @@ class AuthenticatedSessionController extends Controller
             ])->onlyInput('email');
         }
 
+        // Prevent central admins from authenticating on a tenant subdomain.
+        if ($currentTenant && $user?->isAdmin() && (int) ($user->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'This admin account does not belong to this tenant.',
+            ])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         // Update last login
-        $request->user()->updateLastLogin();
+        $user?->updateLastLogin();
 
-        // In tenant mode, avoid cross-app intended URL leakage (8000 <-> 8001)
-        // and always land on the tenant dashboard.
-        if (Tenant::checkCurrent()) {
-            return redirect()->route('dashboard');
+        // In tenant mode, redirect to the correct tenant dashboard by role.
+        if ($currentTenant) {
+            if ($user?->isOwner() || $user?->isAdmin()) {
+                return redirect()->to('/owner/dashboard');
+            }
+
+            return redirect()->to('/dashboard');
         }
 
         return redirect()->intended($request->user()->getDashboardRoute());
@@ -62,12 +79,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $isTenantContext = Tenant::checkCurrent();
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return $isTenantContext ? redirect()->to('/') : redirect('/');
     }
 }

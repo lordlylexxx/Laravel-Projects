@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $tenant->name ?? 'Tenant' }} Sign Up</title>
+    <title>Sign Up - {{ $tenant->name ?? 'Tenant' }}</title>
     <style>
         :root {
-            --primary: #14532d;
-            --accent: #16a34a;
+            --primary: {{ $tenant->primary_color ?? '#14532d' }};
+            --accent: {{ $tenant->accent_color ?? '#16a34a' }};
             --paper: #f8fafc;
             --ink: #111827;
             --muted: #6b7280;
@@ -27,9 +27,42 @@
             padding: 20px;
         }
 
+        .shell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: contain;
+            margin-bottom: 14px;
+        }
+
+        .tenant-name {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
         .card {
             width: 100%;
-            max-width: 520px;
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 18px;
@@ -44,16 +77,17 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--primary);
-            background: #ecfdf5;
-            border: 1px solid #86efac;
+            background: color-mix(in srgb, var(--primary) 12%, #ffffff);
+            border: 1px solid color-mix(in srgb, var(--primary) 35%, #ffffff);
             border-radius: 999px;
             padding: 6px 10px;
             margin-bottom: 12px;
         }
 
         h1 {
-            font-size: 1.7rem;
+            font-size: 1.5rem;
             margin-bottom: 6px;
+            color: var(--ink);
         }
 
         .subtitle {
@@ -70,6 +104,7 @@
             font-size: 0.88rem;
             font-weight: 700;
             margin-bottom: 6px;
+            color: var(--ink);
         }
 
         input[type="text"],
@@ -81,12 +116,13 @@
             border-radius: 10px;
             padding: 12px;
             font-size: 0.95rem;
+            color: var(--ink);
         }
 
         input:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
         }
 
         .grid {
@@ -111,6 +147,12 @@
             background: linear-gradient(135deg, var(--primary), var(--accent));
             cursor: pointer;
             margin-top: 4px;
+            font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 35%, transparent);
         }
 
         .links {
@@ -133,18 +175,33 @@
 
         @media (max-width: 680px) {
             .grid { grid-template-columns: 1fr; }
+            .tenant-name { font-size: 1.5rem; }
+            .card { padding: 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <span class="kicker">{{ $tenant->name ?? 'Tenant Portal' }}</span>
-        <h1>Create User Account</h1>
-        <p class="subtitle">Join this tenant portal to book accommodations and message property owners.</p>
+    <div class="shell">
+        <div class="header">
+            @if($tenant->logo_path)
+                <img src="{{ asset('storage/' . $tenant->logo_path) }}" alt="{{ $tenant->name }}" class="logo">
+            @else
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 1.8rem; margin-bottom: 14px;">
+                    {{ substr($tenant->name, 0, 1) }}
+                </div>
+            @endif
+            <h2 class="tenant-name">{{ $tenant->name }}</h2>
+            <p class="tagline">Property management portal</p>
+        </div>
 
-        <form method="POST" action="{{ route('register') }}">
-            @csrf
-            <input type="hidden" name="role" value="client">
+        <div class="card">
+            <span class="kicker">Create user account</span>
+            <h1>Join {{ $tenant->name }}</h1>
+            <p class="subtitle">Book accommodations, manage reservations, and connect with property owners.</p>
+
+            <form method="POST" action="/register">
+                @csrf
+                <input type="hidden" name="role" value="client">
 
             <div class="field">
                 <label for="name">Full Name</label>
@@ -180,10 +237,11 @@
             <button type="submit" class="btn">Create Account</button>
 
             <div class="links">
-                <div>Already registered? <a href="{{ route('login', ['portal' => 'user']) }}">Sign In</a></div>
-                <div><a href="{{ route('landing') }}">Back to Tenant Landing</a></div>
+                <div>Already registered? <a href="/login">Sign In</a></div>
+                <div><a href="/">Back to Tenant Landing</a></div>
             </div>
-        </form>
+            </form>
+        </div>
     </div>
 </body>
 </html>

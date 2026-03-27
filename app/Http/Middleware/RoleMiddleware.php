@@ -16,7 +16,7 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, string $role): Response
     {
         if (!$request->user()) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         if (!$request->user()->hasRole($role)) {

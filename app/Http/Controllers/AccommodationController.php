@@ -84,7 +84,15 @@ class AccommodationController extends Controller
      */
     public function create()
     {
-        return view('owner.accommodations.create');
+        $this->authorize('create', Accommodation::class);
+
+        $tenant = Tenant::current();
+        $currentCount = Accommodation::query()->where('tenant_id', $tenant->id)->count();
+        $maxListings = $tenant->maxListings();
+        $canCreate = $tenant->canCreateAccommodation($currentCount);
+        $availableFeatures = $tenant->getAvailableFeatures();
+
+        return view('owner.accommodations.create', compact('canCreate', 'currentCount', 'maxListings', 'availableFeatures'));
     }
 
     /**
@@ -92,6 +100,8 @@ class AccommodationController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Accommodation::class);
+
         [$tenant, $ownerId] = $this->resolveManagedTenantAndOwner($request);
 
         if (! $tenant || ! $ownerId) {
