@@ -27,10 +27,10 @@ The system operates on a subscription-based model (Basic, Plus, Pro) and include
 
 - One shared platform serves multiple Unit Owners.
 - Each Unit Owner has isolated data for:
-- Listings
-- Bookings
-- Reports
-- Tenant communications
+  - Listings
+  - Bookings
+  - Reports
+  - Tenant communications
 - Admin has full system-wide visibility.
 - Tenants interact through a separate Tenant App.
 
@@ -196,9 +196,12 @@ This module ensures the system remains updated, customizable, and maintainable.
 
 #### Communication Flow
 
-- Tenant and Unit Owner (direct messaging)
-- Admin and Unit Owner (management/support)
-- Admin and Tenant (support)
+- Client and owner (booking-related messages and general inbox threads on the tenant app)
+- Tenant owner or **tenant admin** can start conversations from **Messages → New conversation** with:
+  - Registered **clients** (guests) on that tenant
+  - **Team** (other tenant admins and the business owner)
+  - **ImpaStay (Central Admin)** — in-app thread via a per-tenant support proxy user; optional email alert to platform staff (see Environment)
+- Central (landlord) admin and tenant users where the product exposes shared admin tools
 
 #### Administration Flow
 
@@ -232,7 +235,10 @@ This module ensures the system remains updated, customizable, and maintainable.
 - Accommodation browsing for authenticated users
 - Owner property management for listings
 - Booking flow with status updates (pending, confirmed, paid, completed, cancelled)
-- In-app user messaging with reply, read, and archive actions
+- In-app messaging with reply, read, and archive; inbox lists the **counterparty** per thread
+- **Tenant managers** (owner or tenant-scoped admin): **New conversation** at `/messages/create` to message clients, team, or central support (proxy user in the tenant DB)
+- Optional `IMPASTAY_CENTRAL_SUPPORT_NOTIFY_EMAIL`: plain-text mail when a tenant manager messages central support
+- Shared **client top navbar** styles (`client/partials/top-navbar-styles`) and content offsets for fixed navigation across client pages
 - Profile management with additional user details and avatar upload
 - Admin dashboards for tenants, bookings, messages, and monitoring
 - Admin tenant management: update tenant plan (Basic/Plus/Pro)
@@ -245,6 +251,8 @@ This module ensures the system remains updated, customizable, and maintainable.
 - Laravel 12
 - PHP 8.2+
 - MySQL or SQLite
+- [Spatie Laravel Multitenancy](https://github.com/spatie/laravel-multitenancy) (tenant DB isolation)
+- [Spatie Laravel Permission](https://github.com/spatie/laravel-permission) (RBAC on tenant manager flows)
 - Vite + Tailwind CSS + Alpine.js
 - Pest / PHPUnit for testing
 
@@ -274,7 +282,15 @@ cp .env.example .env
 php artisan key:generate
 ~~~
 
-Update your .env database values before migrating.
+Update your `.env` database values before migrating.
+
+**Optional messaging / platform support**
+
+| Variable | Purpose |
+|----------|---------|
+| `IMPASTAY_CENTRAL_SUPPORT_NOTIFY_EMAIL` | When set, tenant owners/admins messaging **ImpaStay (Central Admin)** also triggers a plain email to this address (requires working `MAIL_*` settings). |
+
+Related config: `config/impastay.php`.
 
 ### 3) Migrate and seed
 
@@ -338,13 +354,15 @@ php artisan optimize:clear
 
 ## Project Structure (High Level)
 
-- app/Models: User, Tenant, Accommodation, Booking, Message, UpdateLog
-- app/Http/Controllers: auth, booking, messaging, dashboards
-- app/Http/Middleware: role and access middleware
-- app/Multitenancy: tenant finder and tenant DB switching tasks
-- database/migrations and database/seeders: schema and sample data
-- resources/views: blade templates for guest/client/owner/admin
-- routes/web.php: application routes
+- `app/Models`: User, Tenant, Accommodation, Booking, Message, UpdateLog, Role/Permission (Spatie)
+- `app/Http/Controllers`: auth, booking, messaging, dashboards, owner tenant user management
+- `app/Http/Middleware`: role, tenant context, tenant manager (owner or tenant admin), client access
+- `app/Services/Messaging`: e.g. central-support proxy user helper for tenant-scoped messages
+- `app/Multitenancy`: tenant finder and tenant DB switching tasks
+- `config/impastay.php`: ImpaStay-specific options (central support notify email)
+- `database/migrations` and `database/seeders`: landlord + tenant migrations, sample data
+- `resources/views`: Blade for guest/client/owner/admin; shared nav partials under `client/partials`, `owner/partials`, `admin/partials`
+- `routes/web.php`: central vs tenant host groups, messages, owner routes
 
 ## Admin Tenant Management
 
@@ -355,6 +373,20 @@ Central admin tenant controls are available in the Tenants page:
 - `PUT /admin/tenants/{tenant}/domain-status`
 
 Changing plan updates subscription lifecycle values, and disabling a domain blocks tenant resolution in tenant routing.
+
+## Messaging (tenant host)
+
+Routes live in the tenant domain group in `routes/web.php` (see `messages.*` names).
+
+| Method | Path | Who |
+|--------|------|-----|
+| GET | `/messages` | Authenticated users on the tenant app |
+| GET | `/messages/create` | Tenant **owner** or **tenant admin** (`tenant.manager`) |
+| POST | `/messages` | New thread: managers send `recipient_key` (`central` or `user:{id}`); others use legacy `receiver_id` where applicable |
+| GET | `/messages/{message}` | Participant in thread |
+| POST | `/messages/{message}/reply` | Participant |
+
+The central-support **proxy** user is created in the tenant database on first use; it is excluded from **Owner → Users** management.
 
 ## Update System
 
