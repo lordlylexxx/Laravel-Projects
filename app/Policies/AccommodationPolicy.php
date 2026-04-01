@@ -3,57 +3,107 @@
 namespace App\Policies;
 
 use App\Models\Accommodation;
+use App\Models\Tenant;
 use App\Models\User;
 
 class AccommodationPolicy
 {
     /**
-     * Allow admins to bypass other checks.
+     * Platform super-admins (no tenant scope) bypass checks.
      */
     public function before(User $user, string $ability): ?bool
     {
-        return $user->isAdmin() ? true : null;
+        if ($user->isAdmin() && $user->tenant_id === null) {
+            return true;
+        }
+
+        return null;
     }
 
     /**
-     * Owners can create accommodations if they have an active subscription
-     * and haven't exceeded their plan's listing limit.
+     * Owners and tenant admins may create listings up to the tenant plan limit (Basic 3, Standard 10, Premium unlimited).
      */
     public function create(User $user): bool
     {
+        $currentTenant = Tenant::current();
+
+        if ($user->isAdmin() && $user->tenant_id !== null && $currentTenant && (int) $user->tenant_id === (int) $currentTenant->id) {
+            if (! $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_CREATE)) {
+                return false;
+            }
+
+            $currentCount = $currentTenant->accommodations()->count();
+
+            return $currentTenant->hasActiveSubscription()
+                && $currentTenant->hasFeature('bookings')
+                && $currentTenant->canCreateAccommodation($currentCount);
+        }
+
         if (! $user->isOwner()) {
             return false;
         }
 
-        $tenant = $user->tenant;
+        $tenant = $user->tenant ?? $user->ownedTenant;
+
+        if (! $tenant) {
+            $tenant = $user->ensureTenant();
+        }
+
         if (! $tenant) {
             return false;
         }
 
-        // Check if they have booking feature enabled for their plan
         if (! $tenant->hasFeature('bookings')) {
             return false;
         }
 
-        // Check if they've reached their listing limit
         $currentCount = $tenant->accommodations()->count();
 
-        return $tenant->canCreateAccommodation($currentCount);
+        return $tenant->canCreateAccommodation($currentCount)
+            && $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_CREATE);
     }
 
     /**
-     * Owners can update only their own accommodations.
+     * Owners may update their listings; tenant admins may update any listing on their tenant.
      */
     public function update(User $user, Accommodation $accommodation): bool
     {
-        return $user->isOwner() && (int) $accommodation->owner_id === (int) $user->id;
+        if ($user->isOwner() && (int) $accommodation->owner_id === (int) $user->id) {
+            return $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_UPDATE);
+        }
+
+        return $this->tenantAdminForAccommodation($user, $accommodation)
+            && $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_UPDATE);
     }
 
     /**
-     * Owners can delete only their own accommodations.
+     * Owners may delete their listings; tenant admins may delete any listing on their tenant.
      */
     public function delete(User $user, Accommodation $accommodation): bool
     {
-        return $user->isOwner() && (int) $accommodation->owner_id === (int) $user->id;
+        if ($user->isOwner() && (int) $accommodation->owner_id === (int) $user->id) {
+            return $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_DELETE);
+        }
+
+        return $this->tenantAdminForAccommodation($user, $accommodation)
+            && $this->hasPermissionOrLegacy($user, User::PERM_ACCOMMODATIONS_DELETE);
+    }
+
+    private function tenantAdminForAccommodation(User $user, Accommodation $accommodation): bool
+    {
+        if (! $user->isAdmin() || $user->tenant_id === null) {
+            return false;
+        }
+
+        return (int) $user->tenant_id === (int) $accommodation->tenant_id;
+    }
+
+    private function hasPermissionOrLegacy(User $user, string $permission): bool
+    {
+        if ($user->hasPermission($permission)) {
+            return true;
+        }
+
+        return $user->isOwner() || ($user->isAdmin() && $user->tenant_id !== null);
     }
 }

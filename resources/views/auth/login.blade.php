@@ -66,17 +66,25 @@
         
         .logo-container {
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: center;
-            margin-bottom: 30px;
+            gap: clamp(12px, 3vw, 28px);
+            margin-bottom: 28px;
+            max-width: min(100%, 920px);
+            margin-left: auto;
+            margin-right: auto;
         }
         
-        .municipality-logo {
-            width: 400px;
-            height: 400px;
-            border-radius: 12px;
-            border: none;
+        .branding-logo {
+            width: 160px;
+            height: 160px;
             object-fit: contain;
+            flex-shrink: 0;
+            border: none;
+            border-radius: 12px;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
         }
         
         .branding-content h1 {
@@ -296,11 +304,13 @@
     <div class="branding-section">
         <div class="branding-content">
             <div class="logo-container">
-                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
+                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong" class="branding-logo" width="160" height="160">
+                <img src="{{ asset('SYSTEMLOGO.png') }}" alt="ImpaStay Logo" class="branding-logo" width="160" height="160">
+                <img src="{{ asset('Lgu Socmed Template-02.png') }}" alt="LGU Impasugong" class="branding-logo" width="160" height="160">
             </div>
             
             <h1>Impasugong Accommodations</h1>
-            <p>Your Gateway to Municipal Services</p>
+            <p>Discover stays, inns, and rentals across Impasugong.</p>
             
             <ul class="features-list">
                 <li>Browse unique accommodations</li>

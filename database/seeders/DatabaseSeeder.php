@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Accommodation;
 use App\Models\Booking;
-use App\Models\Message;
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -19,8 +18,10 @@ class DatabaseSeeder extends Seeder
     {
         $centralPort = (int) env('CENTRAL_PORT', 8000);
 
+        $this->call(RolesAndPermissionsSeeder::class);
+
         // Create Admin User (only if doesn't exist)
-        if (!User::where('email', 'admin@impasugong.gov.ph')->exists()) {
+        if (! User::where('email', 'admin@impasugong.gov.ph')->exists()) {
             $admin = User::create([
                 'name' => 'Admin User',
                 'email' => 'admin@impasugong.gov.ph',
@@ -38,12 +39,12 @@ class DatabaseSeeder extends Seeder
             'maria.lopez@email.com',
             'john.davis@email.com',
         ];
-        
+
         $ownerUsers = [];
         foreach ($ownerEmails as $email) {
-            if (!User::where('email', $email)->exists()) {
+            if (! User::where('email', $email)->exists()) {
                 $ownerData = [
-                    'name' => match($email) {
+                    'name' => match ($email) {
                         'sarah.chen@email.com' => 'Sarah Chen',
                         'maria.lopez@email.com' => 'Maria Lopez',
                         'john.davis@email.com' => 'John Davis',
@@ -51,7 +52,7 @@ class DatabaseSeeder extends Seeder
                     'email' => $email,
                     'password' => Hash::make('password'),
                     'role' => 'owner',
-                    'phone' => match($email) {
+                    'phone' => match ($email) {
                         'sarah.chen@email.com' => '+63 912 345 6789',
                         'maria.lopez@email.com' => '+63 923 456 7890',
                         'john.davis@email.com' => '+63 934 567 8901',
@@ -86,7 +87,7 @@ class DatabaseSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'role' => 'admin',
                     'tenant_id' => $tenant->id,
-                    'phone' => '+63 900 100 ' . str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
+                    'phone' => '+63 900 100 '.str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
                     'is_active' => true,
                 ]
             );
@@ -98,7 +99,7 @@ class DatabaseSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'role' => 'client',
                     'tenant_id' => $tenant->id,
-                    'phone' => '+63 900 200 ' . str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
+                    'phone' => '+63 900 200 '.str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
                     'is_active' => true,
                 ]
             );
@@ -117,12 +118,12 @@ class DatabaseSeeder extends Seeder
             'robert.perez@email.com',
             'emily.santos@email.com',
         ];
-        
+
         $clientUsers = [];
         foreach ($clientEmails as $email) {
-            if (!User::where('email', $email)->exists()) {
+            if (! User::where('email', $email)->exists()) {
                 $clientData = [
-                    'name' => match($email) {
+                    'name' => match ($email) {
                         'juan.miguel@email.com' => 'Juan Miguel',
                         'robert.perez@email.com' => 'Robert Perez',
                         'emily.santos@email.com' => 'Emily Santos',
@@ -130,7 +131,7 @@ class DatabaseSeeder extends Seeder
                     'email' => $email,
                     'password' => Hash::make('password'),
                     'role' => 'client',
-                    'phone' => match($email) {
+                    'phone' => match ($email) {
                         'juan.miguel@email.com' => '+63 945 678 9012',
                         'robert.perez@email.com' => '+63 956 789 0123',
                         'emily.santos@email.com' => '+63 967 890 1234',
@@ -150,7 +151,7 @@ class DatabaseSeeder extends Seeder
 
         // Get all accommodations
         $allAccommodations = Accommodation::all();
-        
+
         if ($allAccommodations->isEmpty()) {
             // Create Accommodations if Seeder didn't run
             $this->command->warn('No accommodations found. Please run: php artisan db:seed --class=AccommodationSeeder');
@@ -216,7 +217,7 @@ class DatabaseSeeder extends Seeder
         unset($booking);
 
         foreach ($bookings as $booking) {
-            if (!Booking::where('client_id', $booking['client_id'])
+            if (! Booking::where('client_id', $booking['client_id'])
                 ->where('accommodation_id', $booking['accommodation_id'])
                 ->exists()) {
                 Booking::create($booking);
@@ -240,6 +241,12 @@ class DatabaseSeeder extends Seeder
                 $this->command->info("      user:  {$account['user_email']}");
             }
         }
+
+        // Ensure newly created users remain synchronized with RBAC roles.
+        User::query()->select(['id', 'role'])->chunkById(200, function ($users): void {
+            foreach ($users as $user) {
+                $user->syncRbacFromLegacyRole();
+            }
+        });
     }
 }
-

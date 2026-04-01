@@ -126,8 +126,16 @@
                                 <tr>
                                     <td>{{ $log->created_at?->format('M d, Y h:i A') }}</td>
                                     <td>
-                                        <strong>{{ $log->tenant?->name ?? 'N/A' }}</strong><br>
-                                        <span style="color:#6B7280; font-size:0.8rem;">{{ $log->tenant?->slug ?? 'N/A' }}</span>
+                                        @php
+                                            $logName = $log->tenant?->name;
+                                            $logSlug = $log->tenant?->slug;
+                                            if ($log->action === 'tenant.deleted' && ! $log->tenant) {
+                                                $logName = $log->before_state['name'] ?? null;
+                                                $logSlug = $log->before_state['slug'] ?? null;
+                                            }
+                                        @endphp
+                                        <strong>{{ $logName ?? 'N/A' }}</strong><br>
+                                        <span style="color:#6B7280; font-size:0.8rem;">{{ $logSlug ?? 'N/A' }}</span>
                                     </td>
                                     <td><code>{{ $log->action }}</code></td>
                                     <td>{{ $log->actor?->name ?? 'System' }}</td>

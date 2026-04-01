@@ -38,3 +38,24 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrorsIn('updatePassword', 'current_password')
         ->assertRedirect('/profile');
 });
+
+test('tenant admin can update password', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/profile')
+        ->put('/password', [
+            'current_password' => 'password',
+            'password' => 'tenant-admin-new-password',
+            'password_confirmation' => 'tenant-admin-new-password',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/profile');
+
+    $this->assertTrue(Hash::check('tenant-admin-new-password', $admin->refresh()->password));
+});

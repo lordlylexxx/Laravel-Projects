@@ -6,6 +6,15 @@
     <title>My Bookings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @php
+            $authUser = auth()->user();
+            $currentTenant = \App\Models\Tenant::current();
+            $isTenantManager = $authUser && (
+                $authUser->isOwner()
+                || ($authUser->isAdmin() && $currentTenant && (int) $authUser->tenant_id === (int) $currentTenant->id)
+            );
+            $useLegacyBookingsNav = ! $isTenantManager && ! $authUser?->isClient();
+        @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
@@ -17,14 +26,7 @@
             --gray-800: #1F2937;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
-            min-height: 100vh;
-            color: var(--gray-800);
-        }
-        
-        /* Navigation */
+        @if($useLegacyBookingsNav)
         .navbar {
             background: var(--white);
             padding: 0 40px;
@@ -40,22 +42,40 @@
             right: 0;
             z-index: 1000;
         }
-        
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
-        
         .nav-links { display: flex; gap: 25px; list-style: none; }
         .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
         .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
-        
         .nav-actions { display: flex; gap: 15px; align-items: center; }
         .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
+        @endif
+
+        @if($isTenantManager)
+            @include('owner.partials.top-navbar-styles')
+        @elseif($authUser?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
+
+        body {
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
         
         /* Main Layout */
-        .main-content { padding-top: 100px; padding-bottom: 40px; max-width: 1400px; margin: 0 auto; padding-left: 40px; padding-right: 40px; }
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: var(--client-nav-offset, 100px);
+            padding-bottom: 40px;
+            padding-left: 40px;
+            padding-right: 40px;
+        }
         
         /* Page Header */
         .page-header { margin-bottom: 30px; }
@@ -224,9 +244,16 @@
         
         /* Responsive */
         @media (max-width: 768px) {
+            @if($useLegacyBookingsNav)
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
-            .main-content { padding: 100px 20px 40px; }
+            @endif
+            .main-content {
+                padding-top: calc(var(--client-nav-offset, 100px) - 10px);
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: 40px;
+            }
             .booking-body { flex-direction: column; }
             .property-image { width: 100%; height: 200px; }
             .booking-footer { flex-direction: column; gap: 15px; align-items: stretch; }
@@ -234,20 +261,6 @@
             .owner-bookings-grid { grid-template-columns: 1fr; }
         }
 
-        @php
-            $authUser = auth()->user();
-            $currentTenant = \App\Models\Tenant::current();
-            $isTenantManager = $authUser && (
-                $authUser->isOwner()
-                || ($authUser->isAdmin() && $currentTenant && (int) $authUser->tenant_id === (int) $currentTenant->id)
-            );
-        @endphp
-
-        @if($isTenantManager)
-            @include('owner.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @endif
     </style>
 </head>
 <body class="{{ $isTenantManager ? 'owner-nav-page' : '' }}">
@@ -297,6 +310,8 @@
             $isOwner = $isTenantManager;
             $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
             $bookingsShowRoute = Auth::check() && $isTenantManager ? 'owner.bookings.show' : 'bookings.show';
+            $ownerBookingsBase = '/owner/bookings';
+            $ownerAccommodationsBase = '/owner/accommodations';
         @endphp
 
         <div class="page-header">
@@ -306,11 +321,11 @@
         
         <!-- Filter Tabs -->
         <div class="filter-tabs">
-            <a href="{{ route($bookingsIndexRoute) }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">All</a>
-            <a href="{{ route($bookingsIndexRoute, ['status' => 'pending']) }}" class="filter-tab {{ request('status') == 'pending' ? 'active' : '' }}">Pending</a>
-            <a href="{{ route($bookingsIndexRoute, ['status' => 'confirmed']) }}" class="filter-tab {{ request('status') == 'confirmed' ? 'active' : '' }}">Confirmed</a>
-            <a href="{{ route($bookingsIndexRoute, ['status' => 'completed']) }}" class="filter-tab {{ request('status') == 'completed' ? 'active' : '' }}">Completed</a>
-            <a href="{{ route($bookingsIndexRoute, ['status' => 'cancelled']) }}" class="filter-tab {{ request('status') == 'cancelled' ? 'active' : '' }}">Cancelled</a>
+            <a href="{{ $isOwner ? $ownerBookingsBase : route($bookingsIndexRoute) }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">All</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=pending') : route($bookingsIndexRoute, ['status' => 'pending']) }}" class="filter-tab {{ request('status') == 'pending' ? 'active' : '' }}">Pending</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=confirmed') : route($bookingsIndexRoute, ['status' => 'confirmed']) }}" class="filter-tab {{ request('status') == 'confirmed' ? 'active' : '' }}">Confirmed</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=completed') : route($bookingsIndexRoute, ['status' => 'completed']) }}" class="filter-tab {{ request('status') == 'completed' ? 'active' : '' }}">Completed</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=cancelled') : route($bookingsIndexRoute, ['status' => 'cancelled']) }}" class="filter-tab {{ request('status') == 'cancelled' ? 'active' : '' }}">Cancelled</a>
         </div>
         
         <!-- Bookings List -->
@@ -325,7 +340,7 @@
                         
                         <div class="booking-body">
                             @if($booking->accommodation && $booking->accommodation->primary_image)
-                                <img src="{{ asset('storage/' . $booking->accommodation->primary_image) }}" alt="{{ $booking->accommodation->name }}" class="property-image">
+                                <img src="{{ $booking->accommodation->primary_image_url }}" alt="{{ $booking->accommodation->name }}" class="property-image">
                             @else
                                 <img src="/COMMUNAL.jpg" alt="Property" class="property-image">
                             @endif
@@ -364,15 +379,15 @@
                                     Show Actions
                                 </button>
                                 <div class="action-btns owner-actions-panel" id="owner-actions-{{ $booking->id }}">
-                                    <a href="{{ route($bookingsShowRoute, $booking) }}" class="btn btn-primary">View Details</a>
+                                    <a href="{{ $ownerBookingsBase . '/' . $booking->id }}" class="btn btn-primary">View Details</a>
                                     @if($booking->status === 'pending')
-                                        <form action="{{ route('owner.bookings.update-status', $booking) }}" method="POST" style="display: inline;">
+                                        <form action="/owner/bookings/{{ $booking->id }}/status" method="POST" style="display: inline;">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="status" value="confirmed">
                                             <button type="submit" class="btn btn-primary">Approve</button>
                                         </form>
-                                        <form action="{{ route('owner.bookings.update-status', $booking) }}" method="POST" style="display: inline;">
+                                        <form action="/owner/bookings/{{ $booking->id }}/status" method="POST" style="display: inline;">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="status" value="cancelled">
@@ -384,7 +399,7 @@
                                 <div class="action-btns">
                                     <a href="{{ route($bookingsShowRoute, $booking) }}" class="btn btn-primary">View Details</a>
                                     @if(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
-                                        @if($booking->status === 'pending')
+                                        @if($booking->status === 'confirmed')
                                             <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">Pay Now</a>
                                         @endif
                                         <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">
@@ -412,7 +427,7 @@
                 <div class="empty-icon">📅</div>
                 <h3>No Bookings Found</h3>
                 <p>You haven't made any bookings yet. Start exploring accommodations!</p>
-                <a href="{{ route(Auth::check() && Auth::user()->isOwner() && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="btn btn-primary">Browse Properties</a>
+                <a href="{{ $isOwner ? $ownerAccommodationsBase : route((\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="btn btn-primary">Browse Properties</a>
             </div>
         @endif
     </main>

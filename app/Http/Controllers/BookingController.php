@@ -7,7 +7,6 @@ use App\Models\Booking;
 use App\Models\Message;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class BookingController extends Controller
 {
@@ -28,7 +27,7 @@ class BookingController extends Controller
             Booking::STATUS_PAID,
         ];
         $statusFilter = in_array($status, $allowedStatuses, true) ? $status : null;
-        
+
         if ($user->isOwner()) {
             $bookings = Booking::forOwner($user->id)
                 ->when($tenantId, fn ($query) => $query->forTenant($tenantId))
@@ -59,6 +58,18 @@ class BookingController extends Controller
      */
     public function store(Request $request, Accommodation $accommodation)
     {
+        $user = $request->user();
+
+        // Only client accounts can create bookings.
+        if (! $user || ! $user->isClient()) {
+            return back()->with('error', 'Only client accounts can book accommodations.');
+        }
+
+        // Prevent self-booking of own listings.
+        if ((int) $accommodation->owner_id === (int) $user->id) {
+            return back()->with('error', 'You cannot book your own accommodation.');
+        }
+
         $currentTenant = Tenant::current();
 
         if ($currentTenant && (int) $accommodation->tenant_id !== (int) $currentTenant->id) {
@@ -75,7 +86,7 @@ class BookingController extends Controller
 
         // Validate guests
         if ($validated['number_of_guests'] > $accommodation->max_guests) {
-            return back()->withErrors(['number_of_guests' => 'Maximum guests allowed is ' . $accommodation->max_guests]);
+            return back()->withErrors(['number_of_guests' => 'Maximum guests allowed is '.$accommodation->max_guests]);
         }
 
         // Check availability
@@ -88,7 +99,7 @@ class BookingController extends Controller
         $checkOut = \Carbon\Carbon::parse($validated['check_out_date']);
         $totalPrice = $accommodation->calculateTotalPrice($checkIn, $checkOut, $validated['number_of_guests']);
 
-        $validated['client_id'] = $request->user()->id;
+        $validated['client_id'] = $user->id;
         $validated['accommodation_id'] = $accommodation->id;
         $validated['tenant_id'] = $currentTenant?->id
             ?? $accommodation->tenant_id
@@ -100,17 +111,17 @@ class BookingController extends Controller
 
         // Send message to owner
         Message::create([
-            'sender_id' => $request->user()->id,
+            'sender_id' => $user->id,
             'receiver_id' => $accommodation->owner_id,
             'booking_id' => $booking->id,
             'tenant_id' => $booking->tenant_id,
-            'subject' => 'New Booking Request: ' . $accommodation->name,
+            'subject' => 'New Booking Request: '.$accommodation->name,
             'content' => $validated['client_message'] ?? 'I would like to book this accommodation.',
-            'type' => Message::TYPE_BOOKING_INQUIRY
+            'type' => Message::TYPE_BOOKING_INQUIRY,
         ]);
 
-        return redirect()->route('bookings.payment', $booking)
-            ->with('success', 'Booking request created. Complete payment to confirm your reservation.');
+        return redirect()->route('bookings.show', $booking)
+            ->with('success', 'Booking request submitted. The host will review and approve or decline it. You can complete payment after approval.');
     }
 
     /**
@@ -143,6 +154,11 @@ class BookingController extends Controller
             abort(403);
         }
 
+        if ($booking->status !== Booking::STATUS_CONFIRMED) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Payment is available after your booking has been approved.');
+        }
+
         $booking->load(['accommodation', 'accommodation.owner']);
 
         return view('bookings.payment', compact('booking'));
@@ -164,6 +180,11 @@ class BookingController extends Controller
             abort(403);
         }
 
+        if ($booking->status === Booking::STATUS_PENDING) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Please wait for the host to approve your booking before paying.');
+        }
+
         if ($booking->status === Booking::STATUS_PAID || $booking->status === Booking::STATUS_COMPLETED) {
             return redirect()->route('bookings.show', $booking)
                 ->with('success', 'Booking is already paid.');
@@ -183,15 +204,15 @@ class BookingController extends Controller
 
         $last4 = substr(preg_replace('/\D+/', '', $validated['card_number']) ?: '0000', -4);
 
-        $booking->markAsPaid('mock_card', 'MOCK-' . now()->format('YmdHis') . '-' . $last4);
+        $booking->markAsPaid('mock_card', 'MOCK-'.now()->format('YmdHis').'-'.$last4);
 
         Message::create([
             'sender_id' => $request->user()->id,
             'receiver_id' => $booking->accommodation->owner_id,
             'booking_id' => $booking->id,
             'tenant_id' => $booking->tenant_id,
-            'subject' => 'Payment Completed: ' . ($booking->accommodation->name ?? 'Booking #' . $booking->id),
-            'content' => 'Client payment has been completed for booking #' . $booking->id . '.',
+            'subject' => 'Payment Completed: '.($booking->accommodation->name ?? 'Booking #'.$booking->id),
+            'content' => 'Client payment has been completed for booking #'.$booking->id.'.',
             'type' => Message::TYPE_BOOKING_RESPONSE,
         ]);
 
@@ -217,7 +238,7 @@ class BookingController extends Controller
             $booking->cancel();
         }
 
-        if (!empty($validated['owner_response'])) {
+        if (! empty($validated['owner_response'])) {
             $booking->update(['owner_response' => $validated['owner_response']]);
 
             // Send message to client
@@ -226,9 +247,9 @@ class BookingController extends Controller
                 'receiver_id' => $booking->client_id,
                 'booking_id' => $booking->id,
                 'tenant_id' => $booking->tenant_id,
-                'subject' => 'Booking Update: ' . $booking->accommodation->name,
+                'subject' => 'Booking Update: '.$booking->accommodation->name,
                 'content' => $validated['owner_response'],
-                'type' => Message::TYPE_BOOKING_RESPONSE
+                'type' => Message::TYPE_BOOKING_RESPONSE,
             ]);
         }
 
@@ -242,14 +263,14 @@ class BookingController extends Controller
     {
         $this->authorize('cancel', $booking);
 
-        if (!$booking->canBeCancelled()) {
+        if (! $booking->canBeCancelled()) {
             return back()->with('error', 'This booking cannot be cancelled.');
         }
 
         $booking->update([
             'status' => Booking::STATUS_CANCELLED,
             'cancelled_at' => now(),
-            'owner_response' => $request->reason ?? 'Cancelled by client'
+            'owner_response' => $request->reason ?? 'Cancelled by client',
         ]);
 
         return back()->with('success', 'Booking cancelled successfully.');
@@ -297,8 +318,8 @@ class BookingController extends Controller
         ]);
 
         $sender = $request->user();
-        $receiver = $sender->id === $booking->client_id 
-            ? $booking->accommodation->owner_id 
+        $receiver = $sender->id === $booking->client_id
+            ? $booking->accommodation->owner_id
             : $booking->client_id;
 
         Message::create([
@@ -307,10 +328,9 @@ class BookingController extends Controller
             'booking_id' => $booking->id,
             'tenant_id' => $booking->tenant_id,
             'content' => $validated['message'],
-            'type' => Message::TYPE_GENERAL
+            'type' => Message::TYPE_GENERAL,
         ]);
 
         return back()->with('success', 'Message sent successfully.');
     }
 }
-

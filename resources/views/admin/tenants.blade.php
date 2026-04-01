@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tenant Management - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -187,6 +188,15 @@
             @if(session('success'))
                 <div class="flash">{{ session('success') }}</div>
             @endif
+            @if($errors->any())
+                <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-800" role="alert">
+                    <ul class="list-inside list-disc space-y-1">
+                        @foreach($errors->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <div class="page-header">
                 <h1>Tenant Management</h1>
@@ -198,24 +208,26 @@
                     <h3>Tenants ({{ $tenants->total() }})</h3>
                     <span style="color: var(--gray-500); font-size: 0.85rem;">
                         Plan + Domain controls |
-                        <a href="{{ route('admin.tenants.lifecycle-logs') }}" style="color: var(--green-primary); font-weight: 700;">View Lifecycle Logs</a>
+                        <a href="/admin/tenant-lifecycle-logs" style="color: var(--green-primary); font-weight: 700;">View Lifecycle Logs</a>
                     </span>
                 </div>
 
-                <div class="table-wrap">
-                    <table>
-                        <thead>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
                             <tr>
-                                <th>Tenant</th>
-                                <th>Owner</th>
-                                <th>Plan</th>
-                                <th>Domain</th>
-                                <th>Subscription</th>
-                                <th>DB Used (MB)</th>
-                                <th>Period Ends</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Tenant</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Owner</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Plan</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Domain</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Subscription</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">DB Used (MB)</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Bandwidth (MB)</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Period Ends</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Delete</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse($tenants as $tenant)
                                 @php
                                     $domainEnabled = (bool) ($tenant->domain_enabled ?? true);
@@ -235,94 +247,117 @@
                                         : ('127.0.0.1:' . $centralPort);
                                     $periodEnds = $tenant->current_period_ends_at ?? $tenant->trial_ends_at;
                                     $dbUsed = $tenant->database ? ($databaseUsageMbByDatabase[$tenant->database] ?? null) : null;
+                                    $bandwidthUsed = $tenant->database ? ($bandwidthUsageMbByDatabase[$tenant->database] ?? null) : null;
+                                    $isCustomPlan = str_starts_with((string) $tenant->plan, 'custom:');
+                                    $customPlanName = $isCustomPlan ? str_replace('-', ' ', substr((string) $tenant->plan, 7)) : '';
                                 @endphp
-                                <tr>
-                                    <td>
-                                        <strong>{{ $tenant->name }}</strong>
-                                        <div style="font-size:0.78rem; color: var(--gray-500); margin-top:3px;">{{ $tenant->slug }}</div>
-                                        <form class="inline-form stacked" action="{{ route('admin.tenants.update-profile', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                <tr class="align-top hover:bg-slate-50/60">
+                                    <td class="px-4 py-4">
+                                        <strong class="text-slate-800">{{ $tenant->name }}</strong>
+                                        <div class="mt-1 text-xs text-slate-500">{{ $tenant->slug }}</div>
+                                        <form class="mt-3 flex flex-col gap-2" action="/admin/tenants/{{ $tenant->id }}/profile" method="POST">
                                             @csrf
                                             @method('PUT')
-                                            <input type="text" name="name" value="{{ $tenant->name }}" placeholder="Tenant name">
-                                            <input type="text" name="app_title" value="{{ $tenant->app_title }}" placeholder="App title">
-                                            <select name="locale">
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="name" value="{{ $tenant->name }}" placeholder="Tenant name">
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="app_title" value="{{ $tenant->app_title }}" placeholder="App title">
+                                            <select class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" name="locale">
                                                 <option value="en" {{ ($tenant->locale ?? 'en') === 'en' ? 'selected' : '' }}>EN</option>
                                                 <option value="es" {{ ($tenant->locale ?? 'en') === 'es' ? 'selected' : '' }}>ES</option>
                                                 <option value="fr" {{ ($tenant->locale ?? 'en') === 'fr' ? 'selected' : '' }}>FR</option>
                                                 <option value="de" {{ ($tenant->locale ?? 'en') === 'de' ? 'selected' : '' }}>DE</option>
                                             </select>
-                                            <input type="text" name="reason" placeholder="Reason (required)" required>
-                                            <button type="submit" class="btn save">Update Profile</button>
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason (required)" required>
+                                            <button type="submit" class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Update Profile</button>
                                         </form>
                                     </td>
-                                    <td>
+                                    <td class="px-4 py-4">
                                         {{ $tenant->owner?->name ?? 'Unassigned' }}
-                                        <div style="font-size:0.78rem; color: var(--gray-500); margin-top:3px;">{{ $tenant->owner?->email ?? 'N/A' }}</div>
-                                        <form class="inline-form stacked" action="{{ route('admin.tenants.resend-onboarding-email', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                        <div class="mt-1 text-xs text-slate-500">{{ $tenant->owner?->email ?? 'N/A' }}</div>
+                                        <form class="mt-3 flex flex-col gap-2" action="/admin/tenants/{{ $tenant->id }}/resend-onboarding-email" method="POST">
                                             @csrf
-                                            <input type="text" name="reason" placeholder="Reason to resend (required)" required>
-                                            <button type="submit" class="btn secondary">Resend Onboarding Email</button>
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason to resend (required)" required>
+                                            <button type="submit" class="rounded-md bg-slate-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">Resend Onboarding Email</button>
                                         </form>
                                     </td>
-                                    <td>
-                                        <form class="inline-form" action="{{ route('admin.tenants.update-plan', $tenant) }}" method="POST">
+                                    <td class="px-4 py-4">
+                                        <form class="flex flex-col gap-2" action="/admin/tenants/{{ $tenant->id }}/plan" method="POST">
                                             @csrf
                                             @method('PUT')
-                                            <select name="plan">
+                                            <select class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" name="plan" id="plan-{{ $tenant->id }}">
                                                 <option value="basic" {{ $tenant->plan === 'basic' ? 'selected' : '' }}>Basic</option>
                                                 <option value="plus" {{ $tenant->plan === 'plus' ? 'selected' : '' }}>Standard</option>
                                                 <option value="pro" {{ $tenant->plan === 'pro' ? 'selected' : '' }}>Premium</option>
+                                                <option value="custom" {{ $isCustomPlan ? 'selected' : '' }}>Custom</option>
                                             </select>
-                                            <input type="text" name="reason" placeholder="Reason (required)" required>
-                                            <button type="submit" class="btn save">Save</button>
+                                            <div class="flex gap-2">
+                                                <input class="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="custom_plan" id="custom-plan-{{ $tenant->id }}" value="{{ $customPlanName ? ucwords($customPlanName) : '' }}" placeholder="Custom plan name">
+                                                <button type="button" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700" onclick="setCustomPlan({{ $tenant->id }})">Add</button>
+                                            </div>
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason (required)" required>
+                                            <button type="submit" class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Save</button>
                                         </form>
                                     </td>
-                                    <td>
-                                        <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+                                    <td class="px-4 py-4">
+                                        <div class="flex flex-wrap items-center gap-2">
                                             @if($domainEnabled)
-                                                <a href="{{ $tenant->publicUrl() }}" class="tenant-url" target="_blank">{{ $domainLabel }}</a>
+                                                <a href="{{ $tenant->publicUrl() }}" class="font-semibold text-emerald-700 hover:underline" target="_blank">{{ $domainLabel }}</a>
                                             @else
-                                                <span style="color:#B91C1C; font-weight:700;">{{ $domainLabel }}</span>
+                                                <span class="font-semibold text-rose-700">{{ $domainLabel }}</span>
                                             @endif
 
-                                            <form class="inline-form" action="{{ route('admin.tenants.toggle-domain', $tenant) }}" method="POST">
+                                            <form class="flex flex-col gap-2" action="/admin/tenants/{{ $tenant->id }}/domain-status" method="POST">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="domain_enabled" value="{{ $domainEnabled ? 0 : 1 }}">
-                                                <input type="text" name="reason" placeholder="Reason (required)" required>
-                                                <button type="submit" class="btn {{ $domainEnabled ? 'disable' : 'enable' }}">
+                                                <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason (required)" required>
+                                                <button type="submit" class="rounded-md px-3 py-1.5 text-xs font-semibold text-white {{ $domainEnabled ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700' }}">
                                                     {{ $domainEnabled ? 'Disable' : 'Enable' }}
                                                 </button>
                                             </form>
                                         </div>
                                     </td>
-                                    <td>
-                                        <span class="status-badge {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $statusValue)) }}</span>
-                                        <form class="inline-form" action="{{ route('admin.tenants.update-subscription', $tenant) }}" method="POST" style="margin-top: 8px;">
+                                    <td class="px-4 py-4">
+                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass === 'active' ? 'bg-emerald-100 text-emerald-700' : ($statusClass === 'trialing' ? 'bg-amber-100 text-amber-700' : ($statusClass === 'past-due' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700')) }}">{{ ucfirst(str_replace('_', ' ', $statusValue)) }}</span>
+                                        <form class="mt-2 flex flex-col gap-2" action="/admin/tenants/{{ $tenant->id }}/subscription" method="POST">
                                             @csrf
                                             @method('PUT')
-                                            <select name="subscription_status">
+                                            <select class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" name="subscription_status">
                                                 <option value="trialing" {{ $statusValue === 'trialing' ? 'selected' : '' }}>Trialing</option>
                                                 <option value="active" {{ $statusValue === 'active' ? 'selected' : '' }}>Active</option>
                                                 <option value="past_due" {{ $statusValue === 'past_due' ? 'selected' : '' }}>Past Due</option>
                                                 <option value="cancelled" {{ $statusValue === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                             </select>
-                                            <input type="text" name="reason" placeholder="Reason (required)" required>
-                                            <button type="submit" class="btn save">Update</button>
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason (required)" required>
+                                            <button type="submit" class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Update</button>
                                         </form>
                                         @if($latestLifecycle)
-                                            <div style="margin-top: 8px; font-size:0.78rem; color: var(--gray-500);">
+                                            <div class="mt-2 text-xs text-slate-500">
                                                 Last: <strong>{{ str_replace('.', ' ', ucfirst($latestLifecycle->action)) }}</strong><br>
                                                 {{ $latestLifecycle->created_at?->format('M d, Y h:i A') }}
                                             </div>
                                         @endif
                                     </td>
-                                    <td>{{ is_null($dbUsed) ? 'N/A' : number_format((float) $dbUsed, 2) }}</td>
-                                    <td>{{ $periodEnds ? $periodEnds->format('M d, Y') : 'N/A' }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ is_null($dbUsed) ? 'N/A' : number_format((float) $dbUsed, 2) }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ is_null($bandwidthUsed) ? 'N/A' : number_format((float) $bandwidthUsed, 2) }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ $periodEnds ? $periodEnds->format('M d, Y') : 'N/A' }}</td>
+                                    <td class="px-4 py-4">
+                                        <form
+                                            class="flex max-w-[200px] flex-col gap-2"
+                                            action="{{ route('admin.tenants.destroy', $tenant, false) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('This permanently deletes the tenant, its landlord record, and (on MySQL) its database. Continue?');"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="reason" placeholder="Reason (required)" required>
+                                            <input class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs" type="text" name="confirm_slug" placeholder="Type slug: {{ $tenant->slug }}" required autocomplete="off">
+                                            <button type="submit" class="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700">Delete tenant</button>
+                                        </form>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" style="text-align:center; color: var(--gray-500);">No tenants found.</td>
+                                    <td colspan="9" class="px-4 py-10 text-center text-sm text-slate-500">No tenants found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -337,5 +372,14 @@
             </div>
         </main>
     </div>
+    <script>
+        function setCustomPlan(tenantId) {
+            const planSelect = document.getElementById(`plan-${tenantId}`);
+            const customInput = document.getElementById(`custom-plan-${tenantId}`);
+            if (!planSelect || !customInput) return;
+            planSelect.value = 'custom';
+            customInput.focus();
+        }
+    </script>
 </body>
 </html>

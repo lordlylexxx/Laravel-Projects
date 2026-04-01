@@ -11,9 +11,10 @@
             <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
                 <div class="flex items-center gap-4">
                     @if(Auth::user()->avatar)
-                        <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" 
+                        <img src="{{ '/storage/avatars/' . Auth::user()->avatar }}" 
                              alt="{{ Auth::user()->name }}" 
-                             class="w-16 h-16 rounded-full object-cover">
+                            class="w-16 h-16 rounded-full object-cover"
+                            onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
                     @else
                         <div class="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center text-white text-xl font-bold">
                             {{ substr(Auth::user()->name, 0, 2) }}

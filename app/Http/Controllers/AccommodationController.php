@@ -43,16 +43,16 @@ class AccommodationController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
-        // Featured accommodations
-        $featured = $query->featured()->limit(6)->get();
+        // Featured accommodations should not mutate the base listing query.
+        $featured = (clone $query)->featured()->limit(6)->get();
 
         // All accommodations with pagination
-        $accommodations = $query->latest()->paginate(12);
+        $accommodations = (clone $query)->latest()->paginate(12);
 
         return view('client.accommodations.index', compact('accommodations', 'featured'));
     }
@@ -70,7 +70,7 @@ class AccommodationController extends Controller
 
         $accommodation->load(['owner', 'bookings' => function ($query) {
             $query->whereIn('status', ['pending', 'confirmed', 'paid'])
-                  ->where('check_out_date', '>=', now()->toDateString());
+                ->where('check_out_date', '>=', now()->toDateString());
         }]);
 
         $amenities = is_array($accommodation->amenities) ? $accommodation->amenities : [];
@@ -128,32 +128,55 @@ class AccommodationController extends Controller
             'price_per_day' => 'nullable|numeric|min:0',
             'bedrooms' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
-            'max_guests' => 'nullable|integer|min:1',
+            'max_guests' => 'required|integer|min:1',
             'amenities' => [
                 'nullable',
                 function ($attribute, $value, $fail) {
-                    if (!is_array($value) && !is_string($value)) {
+                    if (! is_array($value) && ! is_string($value)) {
                         $fail('The amenities field must be a valid list.');
                     }
                 },
             ],
             'house_rules' => 'nullable|string',
             'check_in_instructions' => 'nullable|string',
+            'primary_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $validated['owner_id'] = $ownerId;
         $validated['tenant_id'] = $tenant->id;
+        $validated['max_guests'] = (int) $validated['max_guests'];
+        $validated['is_available'] = true;
+        $validated['is_verified'] = true;
         $validated['amenities'] = $this->normalizeAmenities($request->input('amenities', []));
-        
-        // Handle image upload
+
+        $galleryImages = [];
+
+        // Handle cover image upload
         if ($request->hasFile('primary_image')) {
             $validated['primary_image'] = $request->file('primary_image')->store('accommodations', 'public');
         }
 
+        // Handle gallery images upload
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $imageFile) {
+                $galleryImages[] = $imageFile->store('accommodations', 'public');
+            }
+        }
+
+        if (! empty($galleryImages)) {
+            $validated['images'] = $galleryImages;
+        }
+
+        if (empty($validated['primary_image']) && ! empty($galleryImages)) {
+            $validated['primary_image'] = $galleryImages[0];
+        }
+
         $accommodation = Accommodation::create($validated);
 
-        return redirect()->route('owner.accommodations.index')
-            ->with('success', 'Accommodation listed successfully! It will be visible after verification.');
+        return redirect('/owner/accommodations')
+            ->with('success', 'Accommodation listed successfully! It is now visible to tenant clients.');
     }
 
     /**
@@ -162,7 +185,7 @@ class AccommodationController extends Controller
     public function edit(Accommodation $accommodation)
     {
         $this->authorize('update', $accommodation);
-        
+
         return view('owner.accommodations.edit', compact('accommodation'));
     }
 
@@ -183,11 +206,11 @@ class AccommodationController extends Controller
             'price_per_day' => 'nullable|numeric|min:0',
             'bedrooms' => 'nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
-            'max_guests' => 'nullable|integer|min:1',
+            'max_guests' => 'required|integer|min:1',
             'amenities' => [
                 'nullable',
                 function ($attribute, $value, $fail) {
-                    if (!is_array($value) && !is_string($value)) {
+                    if (! is_array($value) && ! is_string($value)) {
                         $fail('The amenities field must be a valid list.');
                     }
                 },
@@ -195,12 +218,16 @@ class AccommodationController extends Controller
             'house_rules' => 'nullable|string',
             'check_in_instructions' => 'nullable|string',
             'is_available' => 'nullable|boolean',
+            'primary_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $validated['amenities'] = $this->normalizeAmenities($request->input('amenities', []));
+        $validated['max_guests'] = (int) $validated['max_guests'];
         $validated['is_available'] = $request->has('is_available');
 
-        // Handle image upload
+        // Handle cover image upload
         if ($request->hasFile('primary_image')) {
             // Delete old image if exists
             if ($accommodation->primary_image) {
@@ -209,9 +236,28 @@ class AccommodationController extends Controller
             $validated['primary_image'] = $request->file('primary_image')->store('accommodations', 'public');
         }
 
+        // Handle gallery images upload (replaces existing gallery when provided)
+        if ($request->hasFile('images')) {
+            $oldGalleryImages = is_array($accommodation->images) ? $accommodation->images : [];
+            foreach ($oldGalleryImages as $oldImagePath) {
+                Storage::disk('public')->delete((string) $oldImagePath);
+            }
+
+            $galleryImages = [];
+            foreach ($request->file('images') as $imageFile) {
+                $galleryImages[] = $imageFile->store('accommodations', 'public');
+            }
+
+            $validated['images'] = $galleryImages;
+
+            if (! isset($validated['primary_image']) && ! empty($galleryImages)) {
+                $validated['primary_image'] = $galleryImages[0];
+            }
+        }
+
         $accommodation->update($validated);
 
-        return redirect()->route('owner.accommodations.index')
+        return redirect('/owner/accommodations')
             ->with('success', 'Accommodation updated successfully!');
     }
 
@@ -227,9 +273,14 @@ class AccommodationController extends Controller
             Storage::disk('public')->delete($accommodation->primary_image);
         }
 
+        $galleryImages = is_array($accommodation->images) ? $accommodation->images : [];
+        foreach ($galleryImages as $imagePath) {
+            Storage::disk('public')->delete((string) $imagePath);
+        }
+
         $accommodation->delete();
 
-        return redirect()->route('owner.accommodations.index')
+        return redirect('/owner/accommodations')
             ->with('success', 'Accommodation deleted successfully!');
     }
 
@@ -258,7 +309,31 @@ class AccommodationController extends Controller
                 ->paginate(10);
         }
 
-        return view('owner.accommodations.index', compact('accommodations'));
+        $tenantForLimits = $currentTenant;
+        if (! $tenantForLimits && $user->isOwner()) {
+            $tenantForLimits = $user->tenant ?? $user->ownedTenant;
+        }
+
+        $listingUsage = null;
+        $canCreateListing = false;
+
+        if ($tenantForLimits) {
+            $totalForTenant = Accommodation::query()->where('tenant_id', $tenantForLimits->id)->count();
+            $listingUsage = [
+                'plan_label' => match ($tenantForLimits->plan) {
+                    Tenant::PLAN_BASIC => 'Basic',
+                    Tenant::PLAN_PLUS => 'Standard',
+                    Tenant::PLAN_PRO => 'Premium',
+                    default => ucfirst((string) $tenantForLimits->plan),
+                },
+                'used' => $totalForTenant,
+                'max' => $tenantForLimits->maxListings(),
+                'remaining' => $tenantForLimits->maxListings() === null ? null : max(0, $tenantForLimits->maxListings() - $totalForTenant),
+            ];
+            $canCreateListing = $tenantForLimits->canCreateAccommodation($totalForTenant);
+        }
+
+        return view('owner.accommodations.index', compact('accommodations', 'listingUsage', 'canCreateListing'));
     }
 
     /**
@@ -291,9 +366,10 @@ class AccommodationController extends Controller
     {
         $this->authorize('update', $accommodation);
 
-        $accommodation->update(['is_available' => !$accommodation->is_available]);
+        $accommodation->update(['is_available' => ! $accommodation->is_available]);
 
         $status = $accommodation->is_available ? 'available' : 'unavailable';
+
         return back()->with('success', "Accommodation is now {$status}.");
     }
 
@@ -306,13 +382,13 @@ class AccommodationController extends Controller
             $amenities = preg_split('/\r\n|\r|\n|,/', $amenities) ?: [];
         }
 
-        if (!is_array($amenities)) {
+        if (! is_array($amenities)) {
             return [];
         }
 
         return collect($amenities)
             ->flatMap(function ($item) {
-                if (!is_string($item)) {
+                if (! is_string($item)) {
                     return [];
                 }
 
@@ -324,4 +400,3 @@ class AccommodationController extends Controller
             ->all();
     }
 }
-

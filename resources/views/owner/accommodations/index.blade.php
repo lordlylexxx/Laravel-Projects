@@ -128,6 +128,20 @@
             gap: 8px;
         }
         .add-btn:hover { background: var(--green-dark); transform: translateY(-2px); }
+        .add-btn-disabled, .add-btn.add-btn-disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            pointer-events: none;
+            background: var(--gray-400);
+        }
+        .plan-usage-line {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: var(--gray-700);
+            max-width: 520px;
+            line-height: 1.45;
+        }
+        .plan-usage-line strong { color: var(--green-dark); }
         
         /* Stats Row */
         .stats-row {
@@ -338,10 +352,31 @@
             <div>
                 <h1>My Properties</h1>
                 <p>Manage your accommodations and listings</p>
+                @if(isset($listingUsage))
+                    <p class="plan-usage-line">
+                        <strong>{{ $listingUsage['plan_label'] }} plan</strong>
+                        @if($listingUsage['max'] === null)
+                            — {{ $listingUsage['used'] }} active listing(s) (unlimited on Premium).
+                        @else
+                            — {{ $listingUsage['used'] }} / {{ $listingUsage['max'] }} listings
+                            @if(($listingUsage['remaining'] ?? 0) > 0)
+                                <span style="color: var(--gray-500);">({{ $listingUsage['remaining'] }} remaining)</span>
+                            @elseif(($listingUsage['remaining'] ?? 0) === 0)
+                                <span style="color: #B45309; font-weight: 600;">(limit reached)</span>
+                            @endif
+                        @endif
+                    </p>
+                @endif
             </div>
-            <a href="{{ route('owner.accommodations.create') }}" class="add-btn">
-                ➕ Add Property
-            </a>
+            @if($canCreateListing ?? false)
+                <a href="/owner/accommodations/create" class="add-btn">
+                    ➕ Add Property
+                </a>
+            @else
+                <span class="add-btn add-btn-disabled" title="You’ve reached your plan limit or your subscription isn’t active. Upgrade or remove a listing to add more.">
+                    ➕ Add Property
+                </span>
+            @endif
         </div>
         
         <!-- Stats Row -->
@@ -401,7 +436,7 @@
                                 <td>
                                     <div class="property-cell">
                                         @if($accommodation->primary_image)
-                                            <img src="{{ asset('storage/' . $accommodation->primary_image) }}" alt="{{ $accommodation->name }}" class="property-thumb">
+                                            <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-thumb">
                                         @else
                                             <img src="/COMMUNAL.jpg" alt="{{ $accommodation->name }}" class="property-thumb">
                                         @endif
@@ -430,9 +465,9 @@
                                 </td>
                                 <td>
                                     <div class="action-btns">
-                                        <a href="{{ route('owner.accommodations.show', $accommodation) }}" class="action-btn view" title="View">👁️</a>
-                                        <a href="{{ route('owner.accommodations.edit', $accommodation) }}" class="action-btn edit" title="Edit">✏️</a>
-                                        <form action="{{ route('owner.accommodations.destroy', $accommodation) }}" method="POST" style="display: inline;">
+                                        <a href="/owner/accommodations/{{ $accommodation->id }}" class="action-btn view" title="View">👁️</a>
+                                        <a href="/owner/accommodations/{{ $accommodation->id }}/edit" class="action-btn edit" title="Edit">✏️</a>
+                                        <form action="/owner/accommodations/{{ $accommodation->id }}" method="POST" style="display: inline;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="action-btn delete" title="Delete" onclick="return confirm('Are you sure you want to delete this property?')">🗑️</button>
@@ -455,7 +490,11 @@
                     </svg>
                     <h3>No Properties Yet</h3>
                     <p>Start by adding your first property to the platform.</p>
-                    <a href="{{ route('owner.accommodations.create') }}" class="add-btn">➕ Add Your First Property</a>
+                    @if($canCreateListing ?? false)
+                        <a href="/owner/accommodations/create" class="add-btn">➕ Add Your First Property</a>
+                    @else
+                        <span class="add-btn add-btn-disabled" title="You’ve reached your plan limit or your subscription isn’t active.">➕ Add Your First Property</span>
+                    @endif
                 </div>
             @endif
         </div>

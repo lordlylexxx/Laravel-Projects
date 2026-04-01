@@ -37,7 +37,7 @@ class EnsureUserIsOwnerOrTenantAdmin
         }
 
         if ($user->isAdmin()) {
-            if ((int) $user->tenant_id === (int) $currentTenant->id) {
+            if ($user->tenant_id === null || (int) $user->tenant_id === (int) $currentTenant->id) {
                 return $next($request);
             }
         }

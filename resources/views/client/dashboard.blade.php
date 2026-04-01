@@ -18,174 +18,80 @@
             --blue-500: #3B82F6; --orange-500: #F97316; --purple-500: #8B5CF6;
             --amber-500: #F59E0B;
         }
+
+        @include('client.partials.top-navbar-styles')
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
             background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
             min-height: 100vh;
             color: var(--gray-800);
         }
         
-        /* Navigation */
-        .navbar {
-            background: var(--white);
-            padding: 0 40px;
-            height: 70px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
-            position: fixed;
-            width: 100%;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
+        /* No padding-top on .main-content — it showed body gradient between nav and hero.
+           Offset is inside .hero so the hero background fills flush under the fixed bar. */
+        .main-content { padding-top: 0; }
         
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
-        .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
-        
-        .nav-links { display: flex; gap: 8px; list-style: none; }
-        .nav-links a { 
-            text-decoration: none; 
-            color: var(--gray-600); 
-            font-weight: 500; 
-            padding: 10px 16px; 
-            border-radius: 8px; 
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-links a:hover, .nav-links a.active { 
-            background: linear-gradient(135deg, var(--green-primary), var(--green-medium)); 
-            color: var(--white);
-            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
-        }
-        
-        .nav-actions { display: flex; gap: 15px; align-items: center; }
-        .user-display {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, var(--green-soft), var(--green-white));
-            border-radius: 10px;
-            border: 1px solid var(--green-soft);
-        }
-        .user-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-        .user-info {
-            text-align: left;
-        }
-        .user-name {
-            font-weight: 700;
-            color: var(--green-dark);
-            font-size: 0.95rem;
-            line-height: 1.2;
-        }
-        .user-role {
-            font-size: 0.75rem;
-            color: var(--green-medium);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .nav-btn {
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            text-decoration: none; 
-            transition: all 0.3s; 
-            cursor: pointer; 
-            border: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-btn.primary { 
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary)); 
-            color: var(--white); 
-        }
-        .nav-btn.primary:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
-        }
-        
-        /* Main Content */
-        .main-content { padding-top: 90px; }
-        
-        /* Hero Section */
+        /* Hero Section — overflow must not be hidden or drop-shadows clip (logos look cropped) */
         .hero {
             background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            padding: 60px 40px;
+            padding: calc(var(--client-nav-offset, 108px) + 52px) 40px 64px;
             color: var(--white);
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
         .hero::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: url('/COMMUNAL.jpg') no-repeat center center/cover;
             opacity: 0.1;
+            pointer-events: none;
         }
-        .hero-content { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
-        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
-        .hero p { font-size: 1.1rem; opacity: 0.9; margin-bottom: 30px; }
-        
-        /* Search Section */
-        .search-section {
-            background: var(--white);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(27, 94, 32, 0.15);
+        .hero-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            text-align: center;
         }
-        .search-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
-        .search-input-group { flex: 1; min-width: 200px; }
-        .search-input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--green-dark); font-size: 0.9rem; }
-        .search-input-group input, .search-input-group select {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--green-soft);
-            border-radius: 10px;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s;
+        .hero-logos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(12px, 2.5vw, 24px);
+            margin-bottom: 8px;
+            padding: 6px 0 4px;
+            min-height: 150px;
         }
-        .search-input-group input:focus, .search-input-group select:focus {
-            border-color: var(--green-primary);
-            box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
-        }
-        .search-btn {
-            padding: 14px 30px;
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            color: var(--white);
+        .hero-logos img {
+            display: block;
+            width: 150px;
+            height: 150px;
+            max-width: 150px;
+            max-height: 150px;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 0;
+            background: transparent;
+            padding: 0;
             border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
+            flex-shrink: 0;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.35em;
         }
-        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4); }
+        .hero h1 > i { margin: 0; }
+        .hero p { font-size: 1.1rem; opacity: 0.9; margin-bottom: 0; }
         
         /* Section */
         .section { padding: 50px 40px; max-width: 1400px; margin: 0 auto; }
@@ -356,16 +262,27 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar { padding: 0 20px; height: 60px; }
-            .nav-links { display: none; }
-            .hero { padding: 40px 20px; }
+            .hero {
+                padding-top: calc(var(--client-nav-offset, 108px) + 40px);
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: 40px;
+            }
             .hero h1 { font-size: 1.8rem; }
-            .search-row { flex-direction: column; }
+            .hero-logos {
+                min-height: 120px;
+                margin-bottom: 6px;
+                padding: 4px 0 2px;
+            }
+            .hero-logos img {
+                width: 120px;
+                height: 120px;
+                max-width: 120px;
+                max-height: 120px;
+            }
             .section { padding: 30px 20px; }
         }
 
-        @include('client.partials.top-navbar-styles')
-        
         /* Animations */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate { animation: fadeInUp 0.6s ease forwards; }
@@ -376,45 +293,20 @@
 </head>
 <body>
     <!-- Navigation -->
-    @include('client.partials.top-navbar', ['active' => 'browse'])
+    @include('client.partials.top-navbar', ['active' => 'dashboard'])
     
     <!-- Main Content -->
     <div class="main-content">
         <!-- Hero Section -->
         <section class="hero">
             <div class="hero-content">
-                <h1><i class="fas fa-home" style="margin-right: 12px;"></i>Find Your Perfect Stay</h1>
-                <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
-                
-                <div class="search-section">
-                    <form action="{{ route('accommodations.index') }}" method="GET">
-                        <div class="search-row">
-                            <div class="search-input-group">
-                                <label><i class="fas fa-map-marker-alt"></i> Location</label>
-                                <input type="text" name="search" placeholder="Where do you want to stay?" value="{{ request('search') }}">
-                            </div>
-                            <div class="search-input-group">
-                                <label><i class="fas fa-calendar-check"></i> Check In</label>
-                                <input type="date" name="check_in" min="{{ date('Y-m-d') }}" value="{{ request('check_in') }}">
-                            </div>
-                            <div class="search-input-group">
-                                <label><i class="fas fa-calendar-times"></i> Check Out</label>
-                                <input type="date" name="check_out" min="{{ date('Y-m-d', strtotime('+1 day')) }}" value="{{ request('check_out') }}">
-                            </div>
-                            <div class="search-input-group">
-                                <label><i class="fas fa-users"></i> Guests</label>
-                                <select name="guests">
-                                    <option value="1" @selected(request('guests') == 1)>1 Guest</option>
-                                    <option value="2" @selected(request('guests') == 2)>2 Guests</option>
-                                    <option value="3" @selected(request('guests') == 3)>3 Guests</option>
-                                    <option value="4" @selected(request('guests') == 4)>4 Guests</option>
-                                    <option value="5" @selected(request('guests') == 5)>5+ Guests</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="search-btn"><i class="fas fa-search"></i> Search</button>
-                        </div>
-                    </form>
+                <div class="hero-logos">
+                    <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong" width="150" height="150">
+                    <img src="{{ asset('SYSTEMLOGO.png') }}" alt="ImpaStay Logo" width="150" height="150">
+                    <img src="{{ asset('Lgu Socmed Template-02.png') }}" alt="LGU Impasugong" width="150" height="150">
                 </div>
+                <h1><i class="fas fa-home" aria-hidden="true"></i>Find Your Perfect Stay</h1>
+                <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
             </div>
         </section>
         

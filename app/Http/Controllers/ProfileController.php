@@ -27,7 +27,7 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Update basic info
         $user->fill($request->validated());
 
@@ -39,11 +39,11 @@ class ProfileController extends Controller
         if ($request->has('phone')) {
             $user->phone = $request->phone;
         }
-        
+
         if ($request->has('address')) {
             $user->address = $request->address;
         }
-        
+
         if ($request->has('bio')) {
             $user->bio = $request->bio;
         }
@@ -62,7 +62,7 @@ class ProfileController extends Controller
 
         $user->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::to('/profile')->with('status', 'profile-updated');
     }
 
     /**

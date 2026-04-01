@@ -12,7 +12,9 @@ use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 class Tenant extends BaseTenant
 {
     public const PLAN_BASIC = 'basic';
+
     public const PLAN_PLUS = 'plus';
+
     public const PLAN_PRO = 'pro';
 
     protected $fillable = [
@@ -72,13 +74,13 @@ class Tenant extends BaseTenant
     public function publicUrl(): string
     {
         $host = env('TENANCY_BASE_HOST', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
-        $port = ':' . env('CENTRAL_PORT', 8000);
+        $port = ':'.env('CENTRAL_PORT', 8000);
 
         if ($this->domain) {
-            return 'http://' . $this->domain . $port;
+            return 'http://'.$this->domain.$port;
         }
 
-        return 'http://' . $host . $port;
+        return 'http://'.$host.$port;
     }
 
     public function owner(): BelongsTo
@@ -113,7 +115,7 @@ class Tenant extends BaseTenant
 
     public function maxListings(): ?int
     {
-        return match ($this->plan) {
+        return match ($this->normalizedPlan()) {
             self::PLAN_BASIC => 3,
             self::PLAN_PLUS => 10,
             self::PLAN_PRO => null,
@@ -130,7 +132,7 @@ class Tenant extends BaseTenant
             return false;
         }
 
-        return match ($this->plan) {
+        return match ($this->normalizedPlan()) {
             self::PLAN_BASIC => in_array($feature, [
                 'bookings',
                 'basic_reporting',
@@ -159,7 +161,7 @@ class Tenant extends BaseTenant
      */
     public function getAvailableFeatures(): array
     {
-        return match ($this->plan) {
+        return match ($this->normalizedPlan()) {
             self::PLAN_BASIC => [
                 'bookings' => true,
                 'messaging' => false,
@@ -192,6 +194,18 @@ class Tenant extends BaseTenant
             ],
             default => [],
         };
+    }
+
+    private function normalizedPlan(): string
+    {
+        $plan = (string) $this->plan;
+
+        if (str_starts_with($plan, 'custom:')) {
+            // Custom plans default to premium capabilities unless explicitly modeled later.
+            return self::PLAN_PRO;
+        }
+
+        return $plan;
     }
 
     /**
@@ -273,8 +287,8 @@ class Tenant extends BaseTenant
         $ownerName = $this->owner?->name ?? 'Owner';
 
         return [
-            'hero_title' => $this->name . ' Stays',
-            'hero_subtitle' => 'Book trusted accommodations managed by ' . $ownerName . '.',
+            'hero_title' => $this->name.' Stays',
+            'hero_subtitle' => 'Book trusted accommodations managed by '.$ownerName.'.',
             'cta_text' => 'Browse Accommodations',
             'cta_url' => '/accommodations',
             'login_section_title' => 'Access Your Account',
@@ -319,7 +333,7 @@ class Tenant extends BaseTenant
      */
     public function getLogoUrl(): ?string
     {
-        return $this->logo_path ? asset('storage/' . $this->logo_path) : null;
+        return $this->logo_path ? asset('storage/'.$this->logo_path) : null;
     }
 
     /**
@@ -327,11 +341,11 @@ class Tenant extends BaseTenant
      */
     public function isFeatureEnabled(string $feature): bool
     {
-        $featureKey = 'feature_' . $feature;
-        if (!property_exists($this, $featureKey)) {
+        $featureKey = 'feature_'.$feature;
+        if (! property_exists($this, $featureKey)) {
             return false;
         }
-        
+
         return (bool) $this->{$featureKey};
     }
 
@@ -356,4 +370,3 @@ class Tenant extends BaseTenant
         return $this->locale ?? 'en';
     }
 }
-

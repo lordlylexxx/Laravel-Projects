@@ -6,6 +6,12 @@
     <title>Messages - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @php
+            $authUser = auth()->user();
+            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
+            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
+            $useLegacyMessagesNav = ! $useOwnerNavbar && ! $authUser?->isClient() && ! $authUser?->isAdmin();
+        @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
@@ -14,38 +20,84 @@
             --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151;
             --gray-800: #1F2937;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%); min-height: 100vh; }
-        
-        /* Navigation */
+        @if($useLegacyMessagesNav)
         .navbar { background: var(--white); padding: 0 40px; height: 70px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(27, 94, 32, 0.1); position: fixed; width: 100%; top: 0; left: 0; right: 0; z-index: 1000; }
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
-        
         .nav-links { display: flex; gap: 25px; list-style: none; }
         .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
         .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
-        
         .nav-actions { display: flex; gap: 15px; align-items: center; }
         .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
-        
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        @endif
+
+        @if($useOwnerNavbar)
+            @include('owner.partials.top-navbar-styles')
+        @elseif($authUser?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @elseif($authUser?->isAdmin())
+            @include('admin.partials.top-navbar-styles')
+        @endif
+
+        body { font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%); min-height: 100vh; }
         
         /* Main Content */
-        .main-content { padding-top: 100px; max-width: 1400px; margin: 0 auto; padding: 100px 40px 40px; }
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: var(--client-nav-offset, 100px);
+            padding-left: 40px;
+            padding-right: 40px;
+            padding-bottom: 40px;
+        }
         
         .page-header { margin-bottom: 30px; }
         .page-header h1 { font-size: 2rem; color: var(--green-dark); margin-bottom: 5px; }
         .page-header p { color: var(--gray-500); }
+        .page-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .page-header-row .page-header-text { flex: 1; min-width: 200px; }
+        .btn-compose {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
+            color: var(--white);
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(46, 125, 50, 0.25);
+        }
+        .btn-compose:hover { filter: brightness(1.05); }
         
         /* Messages Layout */
         .messages-container { display: grid; grid-template-columns: 350px 1fr; gap: 25px; }
         
         .message-list { background: var(--white); border-radius: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); overflow: hidden; }
-        .message-list-header { padding: 20px; border-bottom: 1px solid var(--green-soft); }
-        .message-list-header h3 { color: var(--green-dark); font-size: 1.1rem; font-weight: 600; }
+        .message-list-header { padding: 20px; border-bottom: 1px solid var(--green-soft); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .message-list-header h3 { color: var(--green-dark); font-size: 1.1rem; font-weight: 600; margin: 0; }
+        .mark-all-read-form { margin: 0; }
+        .mark-all-read-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 2px solid var(--green-primary);
+            background: var(--white);
+            color: var(--green-dark);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .mark-all-read-btn:hover { background: var(--green-soft); }
+        .flash-banner { margin-bottom: 20px; padding: 14px 18px; border-radius: 12px; font-weight: 500; font-size: 0.95rem; }
+        .flash-banner.success { background: var(--green-soft); color: var(--green-dark); }
         
         .message-item { display: flex; gap: 15px; padding: 20px; border-bottom: 1px solid var(--green-soft); cursor: pointer; transition: background 0.3s; }
         .message-item:hover, .message-item.active { background: var(--green-white); }
@@ -105,26 +157,19 @@
         .empty-state .icon { font-size: 4rem; margin-bottom: 20px; }
         .empty-state h3 { color: var(--gray-700); margin-bottom: 10px; }
         
-        @media (max-width: 768px) { 
+        @media (max-width: 768px) {
+            @if($useLegacyMessagesNav)
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
+            @endif
             .messages-container { grid-template-columns: 1fr; }
-            .main-content { padding: 100px 20px 40px; }
+            .main-content {
+                padding-top: calc(var(--client-nav-offset, 100px) - 10px);
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: 40px;
+            }
         }
-
-        @php
-            $authUser = auth()->user();
-            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
-            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
-        @endphp
-
-        @if($useOwnerNavbar)
-            @include('owner.partials.top-navbar-styles')
-        @elseif($authUser?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @elseif($authUser?->isAdmin())
-            @include('admin.partials.top-navbar-styles')
-        @endif
     </style>
 </head>
 <body class="{{ $useOwnerNavbar ? 'owner-nav-page' : '' }}">
@@ -165,10 +210,19 @@
     @endif
     
     <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : '' }}">
-        <div class="page-header">
-            <h1>Messages</h1>
-            <p>Your conversations and inquiries</p>
+        <div class="page-header page-header-row">
+            <div class="page-header-text">
+                <h1>Messages</h1>
+                <p>Your conversations and inquiries</p>
+            </div>
+            @if($useOwnerNavbar)
+                <a href="{{ route('messages.create') }}" class="btn-compose"><i class="fas fa-plus"></i> New conversation</a>
+            @endif
         </div>
+
+        @if (session('success'))
+            <div class="flash-banner success">{{ session('success') }}</div>
+        @endif
         
         @if(isset($messages) && count($messages) > 0)
             <div class="messages-container">
@@ -176,13 +230,24 @@
                 <div class="message-list">
                     <div class="message-list-header">
                         <h3>Inbox</h3>
+                        @if(($unreadCount ?? 0) > 0)
+                            <form method="POST" action="/messages/mark-all-read" class="mark-all-read-form">
+                                @csrf
+                                <button type="submit" class="mark-all-read-btn">Mark all as read</button>
+                            </form>
+                        @endif
                     </div>
                     @foreach($messages as $message)
-                        <div class="message-item {{ $message->is_unread ? 'unread' : '' }}" onclick="window.location='{{ route('messages.show', $message) }}'">
-                            <div class="message-avatar">{{ substr($message->sender->name ?? 'U', 0, 2) }}</div>
+                        @php
+                            $otherParty = (int) $message->sender_id === (int) Auth::id()
+                                ? $message->receiver
+                                : $message->sender;
+                        @endphp
+                        <div class="message-item {{ $message->is_unread ? 'unread' : '' }}" onclick="window.location='/messages/{{ $message->id }}'">
+                            <div class="message-avatar">{{ strtoupper(substr($otherParty->name ?? 'U', 0, 2)) }}</div>
                             <div class="message-content">
                                 <div class="message-header">
-                                    <span class="message-sender">{{ $message->sender->name ?? 'Unknown' }}</span>
+                                    <span class="message-sender">{{ $otherParty->name ?? 'Unknown' }}</span>
                                     <span class="message-time">{{ $message->created_at->diffForHumans() }}</span>
                                 </div>
                                 <div class="message-subject">{{ $message->subject ?? 'No Subject' }}</div>
@@ -251,7 +316,7 @@
 
                     @if($selectedMessage)
                         <div class="reply-section">
-                            <form method="POST" action="{{ route('messages.reply', $selectedMessage) }}">
+                            <form method="POST" action="/messages/{{ $selectedMessage->id }}/reply">
                                 @csrf
                                 <textarea name="content" class="reply-textarea" placeholder="Type your message..." required></textarea>
                                 <button type="submit" class="btn btn-primary">Send</button>
@@ -264,7 +329,12 @@
             <div class="empty-state">
                 <div class="icon">💬</div>
                 <h3>No Messages Yet</h3>
-                <p>You haven't received any messages yet.</p>
+                <p>You don't have any conversations yet.@if($useOwnerNavbar) Start one with a guest, a team member, or ImpaStay central support.@endif</p>
+                @if($useOwnerNavbar)
+                    <p style="margin-top: 20px;">
+                        <a href="{{ route('messages.create') }}" class="btn-compose" style="display: inline-flex;"><i class="fas fa-plus"></i> New conversation</a>
+                    </p>
+                @endif
             </div>
         @endif
     </main>

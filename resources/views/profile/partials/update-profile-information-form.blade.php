@@ -9,20 +9,21 @@
         </p>
     </header>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
+    <form id="send-verification" method="post" action="/email/verification-notification">
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6" enctype="multipart/form-data">
+    <form method="post" action="/profile" class="mt-6 space-y-6" enctype="multipart/form-data">
         @csrf
         @method('patch')
 
         <!-- Avatar -->
         <div class="flex items-center gap-6">
             @if ($user->avatar)
-                <img src="{{ asset('storage/avatars/' . $user->avatar) }}" 
+                 <img src="{{ '/storage/avatars/' . $user->avatar }}" 
                      alt="{{ $user->name }}" 
-                     class="w-16 h-16 rounded-full object-cover border-2 border-green-500">
+                     class="w-16 h-16 rounded-full object-cover border-2 border-green-500"
+                     onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
             @else
                 <div class="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center text-white text-xl font-bold border-2 border-green-500">
                     {{ substr($user->name, 0, 2) }}

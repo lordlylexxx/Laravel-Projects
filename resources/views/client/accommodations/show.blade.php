@@ -6,6 +6,14 @@
     <title>{{ $accommodation->name }} - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @php
+            $authUser = auth()->user();
+            $currentTenant = \App\Models\Tenant::current();
+            $isTenantManager = $authUser && (
+                $authUser->isOwner()
+                || ($authUser->isAdmin() && $currentTenant && ((int) $authUser->tenant_id === (int) $currentTenant->id || $authUser->tenant_id === null))
+            );
+        @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
@@ -19,14 +27,8 @@
             --orange-500: #F97316;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
-            min-height: 100vh;
-            color: var(--gray-800);
-        }
-        
-        /* Navigation */
+        @unless($isTenantManager || $authUser?->isClient())
+        /* Legacy fixed nav (guest / non–client) */
         .navbar {
             background: var(--white);
             padding: 0 40px;
@@ -42,23 +44,42 @@
             right: 0;
             z-index: 1000;
         }
-        
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
-        
         .nav-links { display: flex; gap: 25px; list-style: none; }
         .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
         .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
-        
         .nav-actions { display: flex; gap: 15px; align-items: center; }
+        @endunless
+
+        @if($isTenantManager)
+            @include('owner.partials.top-navbar-styles')
+        @elseif($authUser?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
+
+        body {
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+        
         .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--green-primary); color: var(--white); }
         .btn-primary:hover { background: var(--green-dark); }
         .btn-secondary { background: var(--green-soft); color: var(--green-dark); }
         
         /* Main Container */
-        .main-container { padding-top: 90px; max-width: 1200px; margin: 0 auto; padding: 90px 20px 40px; }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: var(--client-nav-offset, 90px);
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 40px;
+        }
         
         /* Breadcrumb */
         .breadcrumb { display: flex; gap: 10px; margin-bottom: 20px; font-size: 0.9rem; }
@@ -122,11 +143,6 @@
         .amenity-item span { color: var(--green-primary); font-size: 1.2rem; }
         
         /* Map Section */
-        .map-container { margin-bottom: 25px; }
-        .map-placeholder { width: 100%; height: 300px; background: var(--cream); border-radius: 15px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
-        .map-icon { font-size: 3rem; }
-        .map-placeholder p { color: var(--gray-500); }
-        .map-address { display: flex; align-items: center; gap: 10px; color: var(--green-primary); font-weight: 500; }
         
         /* Booking Card */
         .booking-card {
@@ -186,17 +202,16 @@
         }
         
         @media (max-width: 768px) {
+            @unless($isTenantManager || $authUser?->isClient())
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
+            @endunless
+            .main-container { padding-top: calc(var(--client-nav-offset, 90px) - 10px); }
             .main-image { height: 300px; }
             .form-row { grid-template-columns: 1fr; }
             .property-header { flex-direction: column; gap: 15px; }
         }
 
-        @if(auth()->user()?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @endif
-        
         /* Animations */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate { animation: fadeInUp 0.6s ease forwards; }
@@ -205,9 +220,11 @@
         .delay-3 { animation-delay: 0.3s; }
     </style>
 </head>
-<body>
+<body class="{{ $isTenantManager ? 'owner-nav-page' : '' }}">
     <!-- Navigation -->
-    @if(auth()->user()?->isClient())
+    @if($isTenantManager)
+    @include('owner.partials.top-navbar', ['active' => 'accommodations'])
+    @elseif(auth()->user()?->isClient())
     @include('client.partials.top-navbar', ['active' => 'accommodations'])
     @else
     <nav class="navbar">
@@ -250,7 +267,7 @@
     @endif
     
     <!-- Main Container -->
-    <div class="main-container">
+    <div class="main-container {{ $isTenantManager ? 'with-owner-nav' : '' }}">
         <!-- Breadcrumb -->
         <div class="breadcrumb animate">
             <a href="{{ route('landing') }}">Home</a>
@@ -264,16 +281,31 @@
         <div class="gallery-container animate delay-1">
             @php
                 $images = is_array($accommodation->images) ? $accommodation->images : [];
-                $primaryImage = $accommodation->primary_image ?? ($images[0] ?? 'COMMUNAL.jpg');
+                $galleryImages = collect($images)
+                    ->filter(fn ($image) => is_string($image) && trim($image) !== '')
+                    ->values()
+                    ->all();
+
+                if ($accommodation->primary_image) {
+                    array_unshift($galleryImages, $accommodation->primary_image);
+                }
+
+                $galleryImages = collect($galleryImages)
+                    ->map(fn ($image) => '/storage/' . ltrim((string) $image, '/'))
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $primaryImageUrl = $galleryImages[0] ?? '/COMMUNAL.jpg';
             @endphp
-            <img src="/{{ $primaryImage }}" alt="{{ $accommodation->name }}" class="main-image" id="mainImage">
-            @if(count($images) > 1)
+            <img src="{{ $primaryImageUrl }}" alt="{{ $accommodation->name }}" class="main-image" id="mainImage">
+            @if(count($galleryImages) > 1)
                 <div class="thumbnail-row">
-                    @foreach($images as $index => $image)
-                        <img src="/{{ $image }}" 
+                    @foreach($galleryImages as $index => $imageUrl)
+                        <img src="{{ $imageUrl }}" 
                              alt="{{ $accommodation->name }}" 
                              class="thumbnail {{ $index === 0 ? 'active' : '' }}"
-                             onclick="changeImage(this, '{{ $image }}')">
+                             onclick="changeImage(this, '{{ $imageUrl }}')">
                     @endforeach
                 </div>
             @endif
@@ -334,13 +366,6 @@
                                 <p>{{ $accommodation->max_guests }}</p>
                             </div>
                         </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">📏</span>
-                            <div class="feature-text">
-                                <h4>Area</h4>
-                                <p>~{{ $accommodation->bedrooms * 25 }} sqm</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 
@@ -356,24 +381,6 @@
                                 </div>
                             @endforeach
                         @endif
-                    </div>
-                </div>
-                
-                <!-- Map -->
-                <div class="info-card animate delay-2">
-                    <h3 class="section-title">Location</h3>
-                    <div class="map-container">
-                        <div class="map-placeholder">
-                            <span class="map-icon">🗺️</span>
-                            <p>Google Maps Integration</p>
-                            <div class="map-address">
-                                <span>📍</span>
-                                {{ $accommodation->address }}
-                            </div>
-                            <p style="font-size: 0.85rem; color: var(--gray-400);">
-                                Coordinates: {{ $accommodation->latitude }}, {{ $accommodation->longitude }}
-                            </p>
-                        </div>
                     </div>
                 </div>
                 
@@ -408,7 +415,13 @@
                         @endif
                     </div>
                     
+                    @php
+                        $authUser = auth()->user();
+                        $canBookAccommodation = $authUser && $authUser->isClient() && (int) $accommodation->owner_id !== (int) $authUser->id;
+                    @endphp
+
                     @auth
+                        @if($canBookAccommodation)
                         <form class="booking-form" method="POST" action="{{ route('accommodations.book', $accommodation) }}">
                             @csrf
                             <div class="form-row">
@@ -440,11 +453,16 @@
                                 Continue to Payment
                             </button>
                         </form>
-                        
+                        @else
+                            <div style="text-align: center; padding: 16px 0 10px; color: var(--gray-600); font-weight: 600;">
+                                Booking is available for client accounts only.
+                            </div>
+                        @endif
+
                         <button class="btn btn-wishlist">
                             ❤️ Add to Wishlist
                         </button>
-                        
+
                         <div class="host-info">
                             <div class="host-avatar">{{ substr($accommodation->owner->name ?? 'HO', 0, 2) }}</div>
                             <div class="host-details">
@@ -466,7 +484,7 @@
     
     <script>
         function changeImage(thumbnail, imageUrl) {
-            document.getElementById('mainImage').src = '/' + imageUrl;
+            document.getElementById('mainImage').src = imageUrl;
             document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
             thumbnail.classList.add('active');
         }

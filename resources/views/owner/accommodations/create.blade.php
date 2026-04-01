@@ -3,6 +3,7 @@
     $currentPlan = FeatureHelper::currentPlan();
     $remainingListings = FeatureHelper::remainingListings();
     $hasReachedLimit = FeatureHelper::hasReachedListingLimit();
+    $cannotCreate = ! ($canCreate ?? false);
 @endphp
 
 <!DOCTYPE html>
@@ -280,6 +281,25 @@
             margin-bottom: 4px;
         }
 
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
+            margin-top: 4px;
+        }
+
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .amenity-item input[type="checkbox"] {
+            width: auto;
+        }
+
         @media (max-width: 768px) { 
             .grid { grid-template-columns: 1fr; }
             .container { padding: 20px; }
@@ -293,7 +313,7 @@
             <h1>
                 <i class="fas fa-plus-circle"></i> Create New Accommodation
             </h1>
-            <a href="{{ route('owner.accommodations.index') }}">
+            <a href="/owner/accommodations">
                 <i class="fas fa-arrow-left"></i> Back to Listings
             </a>
         </div>
@@ -321,22 +341,26 @@
             </div>
         </div>
 
-        <!-- Limit Warning (if reached) -->
-        @if($hasReachedLimit)
+        <!-- Limit / subscription: cannot add listings -->
+        @if($cannotCreate)
             <div class="limit-warning">
                 <div class="limit-warning-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <div class="limit-warning-content">
-                    <h3>You've Reached Your Listing Limit</h3>
-                    <p>Your current plan allows {{ $currentPlan['max_listings'] }} property listings. To add more properties, upgrade your plan.</p>
+                    @if($hasReachedLimit && ($currentPlan['max_listings'] ?? null) !== null)
+                        <h3>You've Reached Your Listing Limit</h3>
+                        <p>Your current plan allows {{ $currentPlan['max_listings'] }} property listings (Basic: 3, Standard: 10, Premium: unlimited). Upgrade to add more.</p>
+                    @else
+                        <h3>Cannot Add Listings</h3>
+                        <p>Your subscription may be inactive or your plan does not allow new listings. Contact support or upgrade your plan.</p>
+                    @endif
                     <a href="{{ route('owner.updates.index') }}" class="upgrade-btn">
-                        <i class="fas fa-arrow-up"></i> Upgrade Your Plan
+                        <i class="fas fa-arrow-up"></i> View plan &amp; updates
                     </a>
                 </div>
             </div>
 
-            <!-- Disabled Form -->
             <div class="form-disabled">
         @endif
 
@@ -351,7 +375,7 @@
             </div>
         @endif
 
-        <form action="{{ route('owner.accommodations.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="/owner/accommodations" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="section-title">
@@ -425,8 +449,8 @@
                 </div>
 
                 <div class="field-group">
-                    <label for="max_guests">Max Guests</label>
-                    <input id="max_guests" name="max_guests" type="number" min="1" value="{{ old('max_guests') }}" placeholder="1">
+                    <label for="max_guests">Max Guests *</label>
+                    <input id="max_guests" name="max_guests" type="number" min="1" value="{{ old('max_guests', 1) }}" placeholder="1" required>
                 </div>
 
                 <div class="field-group">
@@ -434,16 +458,51 @@
                     <input id="primary_image" name="primary_image" type="file" accept="image/*">
                     <div class="hint">JPG, PNG or GIF (Max 5MB)</div>
                 </div>
+
+                <div class="field-group">
+                    <label for="images">Room Photos (Multiple)</label>
+                    <input id="images" name="images[]" type="file" accept="image/*" multiple>
+                    <div class="hint">Upload up to 10 photos (JPG, PNG, or WebP, max 5MB each).</div>
+                </div>
             </div>
 
             <div class="section-title">
                 <i class="fas fa-star"></i> Amenities & Rules
             </div>
 
+            @php
+                $basicAmenities = [
+                    'WiFi',
+                    'Air Conditioning',
+                    'Kitchen',
+                    'Parking',
+                    'TV',
+                    'Hot Shower',
+                    'Refrigerator',
+                    'Toiletries',
+                ];
+                $amenitiesInput = old('amenities', []);
+                if (is_string($amenitiesInput)) {
+                    $amenitiesInput = preg_split('/\r\n|\r|\n|,/', $amenitiesInput) ?: [];
+                }
+                $selectedAmenities = collect($amenitiesInput)
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all();
+            @endphp
+
             <div class="full field-group">
-                <label for="amenities">Amenities (comma-separated)</label>
-                <textarea id="amenities" name="amenities" placeholder="e.g., WiFi, Air Conditioning, Kitchen, Parking...">{{ old('amenities') }}</textarea>
-                <div class="hint">List amenities separated by commas</div>
+                <label>Basic Amenities</label>
+                <div class="amenities-grid">
+                    @foreach($basicAmenities as $amenity)
+                        <label class="amenity-item">
+                            <input type="checkbox" name="amenities[]" value="{{ $amenity }}" {{ in_array($amenity, $selectedAmenities, true) ? 'checked' : '' }}>
+                            <span>{{ $amenity }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <div class="hint">Select all amenities available in this property.</div>
             </div>
 
             <div class="full field-group">
@@ -457,18 +516,18 @@
             </div>
 
             <div class="actions">
-                <a href="{{ route('owner.accommodations.index') }}" class="btn btn-secondary">
+                <a href="/owner/accommodations" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Cancel
                 </a>
-                <button type="submit" class="btn btn-primary" @if($hasReachedLimit) disabled @endif>
+                <button type="submit" class="btn btn-primary" @if($cannotCreate) disabled @endif>
                     <i class="fas fa-check"></i> Create Property
                 </button>
             </div>
 
         </form>
 
-        @if($hasReachedLimit)
-            </div> <!-- End disabled form div -->
+        @if($cannotCreate)
+            </div>
         @endif
     </div>
 </body>

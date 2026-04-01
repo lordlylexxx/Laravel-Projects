@@ -1,583 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ImpaStay | Impasugong Accommodations</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
-            --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
-            --green-white: #E8F5E9; --white: #FFFFFF;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 50%, rgba(27, 94, 32, 0.1) 100%),
-                        url('/COMMUNAL.jpg') no-repeat center center/cover;
-            background-attachment: fixed;
-            min-height: 100vh;
-            color: var(--green-dark);
-        }
-        
-        /* Navigation */
-        .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 15px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            border-bottom: 2px solid var(--green-soft);
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
-        }
-        
-        .nav-brand { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-        }
-        .nav-brand img.main-logo { 
-            height: 55px; 
-            width: auto; 
-            border-radius: 8px; 
-        }
-        .nav-brand .logo-divider { 
-            height: 45px; 
-            width: 3px; 
-            background: linear-gradient(180deg, var(--green-dark), var(--green-primary), var(--green-medium)); 
-            border-radius: 2px; 
-        }
-        .nav-brand .collaboration-logos { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-        .nav-brand .collaboration-logos img { 
-            height: 45px; 
-            width: auto; 
-            border-radius: 6px;
-        }
-        .nav-brand .system-name { 
-            font-size: 1.5rem; 
-            font-weight: 800; 
-            color: var(--green-dark); 
-            letter-spacing: -0.5px; 
-        }
-        .nav-brand .tagline { 
-            font-size: 0.7rem; 
-            color: var(--green-medium); 
-            margin-left: 8px;
-            display: inline;
-            line-height: 1.2;
-        }
-        
-        .nav-links { display: flex; gap: 30px; list-style: none; }
-        .nav-links a { 
-            text-decoration: none; 
-            color: var(--green-dark); 
-            font-weight: 600; 
-            padding: 10px 18px; 
-            border-radius: 8px; 
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.95rem;
-        }
-        .nav-links a:hover { background: var(--green-soft); color: var(--green-dark); }
-        
-        .nav-buttons { display: flex; gap: 12px; }
-        .btn {
-            padding: 12px 26px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-outline {
-            background: transparent;
-            color: var(--green-dark);
-            border: 2px solid var(--green-primary);
-        }
-        .btn-outline:hover { background: var(--green-primary); color: var(--white); }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            color: var(--white);
-            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4); }
-        
-        /* Hero Section */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 120px 40px 80px;
-            text-align: center;
-            background: linear-gradient(135deg, rgba(27, 94, 32, 0.08) 0%, rgba(46, 125, 50, 0.05) 100%);
-        }
-        
-        .hero-badge { 
-            display: inline-flex; 
-            align-items: center;
-            gap: 10px;
-            background: var(--white); 
-            padding: 12px 28px; 
-            border-radius: 50px; 
-            font-size: 0.9rem; 
-            font-weight: 600; 
-            margin-bottom: 30px; 
-            border: 2px solid var(--green-soft);
-            box-shadow: 0 4px 15px rgba(27, 94, 32, 0.1);
-        }
-        .hero-badge i { color: var(--green-primary); }
-        
-        .hero h1 { 
-            font-size: 3.5rem; 
-            color: var(--green-dark); 
-            margin-bottom: 20px; 
-            letter-spacing: -1px;
-            font-weight: 800;
-        }
-        .hero h1 span { color: var(--green-primary); }
-        
-        .hero p { 
-            font-size: 1.2rem; 
-            color: var(--green-medium); 
-            max-width: 700px; 
-            margin-bottom: 40px; 
-            line-height: 1.7;
-        }
-        
-        .hero-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 0; }
-        .hero-buttons .btn { padding: 14px 32px; font-size: 1rem; }
-        
-        /* Carousel Section */
-        .carousel-section { 
-            padding: 80px 40px; 
-            background: var(--white);
-        }
-        .carousel-header { text-align: center; margin-bottom: 50px; }
-        .carousel-header h2 { 
-            font-size: 2.2rem; 
-            color: var(--green-dark); 
-            margin-bottom: 12px; 
-            font-weight: 700;
-        }
-        .carousel-header p { font-size: 1rem; color: var(--green-medium); }
-        
-        .carousel-container { max-width: 1400px; margin: 0 auto; position: relative; overflow: hidden; }
-        .carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
-        .carousel-slide { min-width: 320px; margin: 0 15px; }
-        
-        .property-card {
-            background: var(--white);
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 8px 30px rgba(27, 94, 32, 0.12);
-            transition: all 0.4s ease;
-            border: 1px solid var(--green-soft);
-        }
-        .property-card:hover { 
-            transform: translateY(-10px); 
-            box-shadow: 0 20px 50px rgba(27, 94, 32, 0.2); 
-        }
-        
-        .property-img { width: 100%; height: 200px; object-fit: cover; }
-        .property-content { padding: 22px; }
-        .property-type { 
-            display: inline-flex; 
-            align-items: center;
-            gap: 6px;
-            background: var(--green-soft); 
-            color: var(--green-dark); 
-            padding: 6px 14px; 
-            border-radius: 50px; 
-            font-size: 0.8rem; 
-            font-weight: 600; 
-            margin-bottom: 12px;
-        }
-        .property-content h3 { font-size: 1.15rem; color: var(--green-dark); margin-bottom: 8px; font-weight: 700; }
-        .property-location { display: flex; align-items: center; gap: 6px; color: var(--green-medium); font-size: 0.85rem; margin-bottom: 15px; }
-        .property-features { display: flex; gap: 15px; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid var(--green-soft); }
-        .feature { display: flex; align-items: center; gap: 6px; color: var(--green-dark); font-size: 0.85rem; }
-        .property-footer { display: flex; justify-content: space-between; align-items: center; }
-        .property-price { font-size: 1.4rem; font-weight: 700; color: var(--green-primary); }
-        .property-price span { font-size: 0.85rem; font-weight: 400; color: var(--green-medium); }
-        .property-rating { display: flex; align-items: center; gap: 5px; }
-        .stars { color: #F59E0B; }
-        
-        .carousel-controls { display: flex; justify-content: center; gap: 12px; margin-top: 40px; }
-        .carousel-btn {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--green-soft);
-            color: var(--green-dark);
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .carousel-btn:hover { background: var(--green-primary); color: var(--white); transform: scale(1.1); }
-        
-        /* Pricing Section */
-        .pricing-section {
-            padding: 100px 40px; 
-            background: transparent;
-        }
-
-        .pricing-header {
-            text-align: center;
-            color: var(--green-dark);
-            max-width: 760px;
-            margin: 0 auto 45px;
-        }
-        .pricing-header h2 {
-            font-size: 2.2rem;
-            margin-bottom: 12px;
-            font-weight: 700;
-        }
-        .pricing-header p {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--green-dark);
-        }
-
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .pricing-card {
-            background: rgba(255, 255, 255, 0.14);
-            border-radius: 20px;
-            padding: 36px 30px;
-            transition: all 0.4s ease;
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(4px);
-        }
-        .pricing-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-        }
-        .pricing-card.featured {
-            border: 2px solid var(--green-primary);
-            transform: scale(1.03);
-        }
-        .plan-name {
-            font-size: 1.25rem;
-            color: var(--green-dark);
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        .plan-price {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--green-dark);
-            margin-bottom: 20px;
-        }
-        .plan-features {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            color: var(--green-dark);
-        }
-        .plan-features li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-        .plan-features li::before {
-            content: '\f00c';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            color: var(--green-dark);
-        }
-        .plan-register-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            margin-top: 22px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 700;
-            border: 1px solid var(--green-primary);
-            color: var(--green-primary);
-            background: rgba(255, 255, 255, 0.75);
-            transition: all 0.25s ease;
-        }
-        .plan-register-btn:hover {
-            background: var(--green-primary);
-            color: var(--white);
-            transform: translateY(-2px);
-        }
-        
-        /* Footer */
-        .footer { 
-            background: var(--white); 
-            padding: 40px; 
-            text-align: center; 
-            border-top: 2px solid var(--green-soft);
-        }
-        .footer p { color: var(--green-medium); font-size: 0.9rem; }
-        .footer a { color: var(--green-primary); text-decoration: none; font-weight: 600; }
-        .footer a:hover { text-decoration: underline; }
-        
-        /* Animations */
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .animate { animation: fadeInUp 0.6s ease forwards; }
-        .delay-1 { animation-delay: 0.15s; }
-        .delay-2 { animation-delay: 0.3s; }
-        .delay-3 { animation-delay: 0.45s; }
-        
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .navbar { padding: 15px 25px; }
-            .nav-links { gap: 15px; }
-            .nav-links a { padding: 8px 12px; font-size: 0.9rem; }
-            .hero h1 { font-size: 2.8rem; }
-        }
-        
-        @media (max-width: 768px) {
-            .navbar { padding: 15px 20px; flex-direction: column; gap: 15px; }
-            .nav-brand .tagline { display: none; }
-            .nav-links { display: none; }
-            .hero { padding: 100px 20px 40px; }
-            .hero h1 { font-size: 2rem; }
-            .hero p { font-size: 1rem; }
-            .hero-buttons { flex-direction: column; align-items: center; }
-            .carousel-section, .pricing-section { padding: 50px 20px; }
-            .carousel-slide { min-width: 280px; }
-            .carousel-header h2 { font-size: 1.6rem; }
-            .pricing-header h2 { font-size: 1.6rem; }
-            .pricing-card.featured { transform: none; }
-        }
-    </style>
+    @include('partials.central-public-head', ['pageTitle' => 'IMPASUGONG TOURISM | Impasugong Accommodations'])
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="main-logo">
-            <div>
-                <span class="system-name">ImpaStay</span>
-                <span class="tagline">| Impasugong Accommodations</span>
-            </div>
-        </div>
-        <ul class="nav-links">
-            <li><a href="#properties"><i class="fas fa-building"></i> Properties</a></li>
-            <li><a href="#pricing"><i class="fas fa-tags"></i> Pricing</a></li>
-        </ul>
-        <div class="nav-buttons">
-            <a href="/login" class="btn btn-outline"><i class="fas fa-sign-in-alt"></i> Login</a>
-            <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Register</a>
-        </div>
-    </nav>
-    
+<body
+    class="min-h-screen font-sans text-brand-dark antialiased bg-cover bg-center bg-fixed"
+    style="background-image: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 50%, rgba(27, 94, 32, 0.1) 100%), url('/COMMUNAL.jpg');"
+>
+    @include('partials.central-public-nav', ['active' => 'landing'])
+
     <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-badge animate">
-            <i class="fas fa-home"></i>
+    <section class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[rgba(27,94,32,0.08)] to-[rgba(46,125,50,0.05)] px-5 pb-20 pt-24 text-center md:px-10 md:pt-28">
+        <div class="mb-5 flex flex-wrap items-center justify-center gap-3.5 opacity-0 animate-fade-in-up-d1">
+            <img src="/Love%20Impasugong.png" alt="Love Impasugong Logo" class="h-[102px] w-[102px] object-contain md:h-[200px] md:w-[200px]">
+            <img src="/SYSTEMLOGO.png" alt="System Logo" class="h-[102px] w-[102px] object-contain md:h-[200px] md:w-[200px]">
+            <img src="/Lgu%20Socmed%20Template-02.png" alt="LGU Impasugong" class="h-[102px] w-[102px] object-contain md:h-[200px] md:w-[200px]">
+        </div>
+
+        <h1 class="mb-5 text-3xl font-extrabold tracking-tight text-brand-dark opacity-0 animate-fade-in-up-d1 md:text-5xl lg:text-[3.5rem]">
+            Find Your Perfect <span class="text-brand-primary">Stay</span>
+        </h1>
+
+        <div class="mb-8 inline-flex items-center gap-2.5 rounded-full border-2 border-brand-soft bg-white px-7 py-3 text-sm font-semibold text-brand-dark shadow-[0_4px_15px_rgba(27,94,32,0.1)] opacity-0 animate-fade-in-up-d1">
+            <i class="fas fa-home text-brand-primary"></i>
             <span>Your Gateway to Impasugong Accommodations</span>
         </div>
-        
-        <h1 class="animate delay-1">Find Your Perfect <span>Stay</span></h1>
-        
-        <p class="animate delay-2">
-            Discover traveller-inns, Airbnb stays, and daily rentals. 
+
+        <p class="mb-10 max-w-[700px] text-base leading-relaxed text-brand-medium opacity-0 animate-fade-in-up-d2 md:text-xl">
+            Discover traveller-inns, Airbnb stays, and daily rentals.
             Book unique accommodations and experience local hospitality.
         </p>
-        
-        <div class="hero-buttons animate delay-2">
-            <a href="/register" class="btn btn-primary"><i class="fas fa-rocket"></i> Get Started</a>
-            <a href="#properties" class="btn btn-outline"><i class="fas fa-search"></i> Browse Tenant Portals</a>
+
+        <div class="flex flex-col items-center justify-center gap-4 opacity-0 animate-fade-in-up-d2 sm:flex-row">
+            <a href="/register" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-brand-dark to-brand-primary px-8 py-3.5 text-base font-semibold text-white shadow-[0_4px_15px_rgba(46,125,50,0.3)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(46,125,50,0.4)]">
+                <i class="fas fa-rocket"></i> Get Started
+            </a>
+            <a href="#properties" class="inline-flex items-center gap-2 rounded-lg border-2 border-brand-primary bg-transparent px-8 py-3.5 text-base font-semibold text-brand-dark transition-all hover:bg-brand-primary hover:text-white">
+                <i class="fas fa-search"></i> Browse Tenant Portals
+            </a>
         </div>
-        
     </section>
-    
+
     <!-- Tenant Carousel Section -->
-    <section class="carousel-section" id="properties">
-        <div class="carousel-header animate">
-            <h2><i class="fas fa-store" style="color: var(--green-primary); margin-right: 10px;"></i>Featured Tenant Portals</h2>
-            <p>Explore active accommodation providers in Impasugong</p>
+    <section class="bg-white px-5 py-12 md:px-10 md:py-20" id="properties">
+        <div class="mb-12 text-center opacity-0 animate-fade-in-up">
+            <h2 class="mb-3 text-2xl font-bold text-brand-dark md:text-4xl">
+                <i class="fas fa-store mr-2.5 text-brand-primary"></i>Featured Tenant Portals
+            </h2>
+            <p class="text-base text-brand-medium">Explore active accommodation providers in Impasugong</p>
         </div>
-        
-        <div class="carousel-container">
-            <div class="carousel-track" id="carouselTrack">
+
+        <div class="relative mx-auto max-w-[1400px] overflow-hidden">
+            <div class="flex transition-transform duration-500 ease-in-out" id="carouselTrack">
                 @forelse(($featuredTenants ?? collect()) as $tenant)
                     @php
                         $settings = $tenant->landingSettings();
                         $tenantLogo = $tenant->getLogoUrl() ?: ($settings['hero_image_url'] ?? '/SYSTEMLOGO.png');
-                        $planName = match ($tenant->plan) {
-                            'pro' => 'Premium',
-                            'plus' => 'Standard',
-                            'basic' => 'Basic',
+                        $plan = (string) ($tenant->plan ?? '');
+                        $planName = match (true) {
+                            str_starts_with($plan, 'custom:') => 'Custom',
+                            $plan === 'pro' => 'Premium',
+                            $plan === 'plus' => 'Standard',
+                            $plan === 'basic' => 'Basic',
                             default => 'Tenant',
                         };
                     @endphp
-                    <div class="carousel-slide">
-                        <div class="property-card">
-                            <img src="{{ $tenantLogo }}" alt="{{ $tenant->name }}" class="property-img">
-                            <div class="property-content">
-                                <span class="property-type"><i class="fas fa-store"></i> {{ $planName }} Portal</span>
-                                <h3>{{ $tenant->name }}</h3>
-                                <div class="property-location"><i class="fas fa-globe"></i> {{ $tenant->domain ?: 'localhost' }}</div>
-                                <div class="property-features">
-                                    <span class="feature"><i class="fas fa-calendar-check"></i> Booking Enabled</span>
-                                    <span class="feature"><i class="fas fa-message"></i> Messaging {{ $tenant->feature_messaging ? 'On' : 'Off' }}</span>
-                                    <span class="feature"><i class="fas fa-user"></i> Owner: {{ $tenant->owner?->name ?? 'N/A' }}</span>
+                    <div class="carousel-slide flex w-[312px] shrink-0 justify-center sm:w-[328px]">
+                        <div class="flex h-[520px] w-[288px] flex-col overflow-hidden rounded-[20px] border border-brand-soft bg-white shadow-[0_8px_30px_rgba(27,94,32,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(27,94,32,0.18)] sm:w-[300px]">
+                            <div class="flex h-[200px] w-full shrink-0 items-center justify-center overflow-hidden bg-gradient-to-b from-slate-50 to-white p-2">
+                                <img src="{{ $tenantLogo }}" alt="{{ $tenant->name }}" class="h-full w-full object-contain object-center">
+                            </div>
+                            <div class="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3">
+                                <span class="mb-2.5 inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-dark">
+                                    <i class="fas fa-store text-[0.7rem]"></i> {{ $planName }} Portal
+                                </span>
+                                <h3 class="line-clamp-2 min-h-[2.75rem] text-base font-bold leading-snug text-brand-dark">{{ $tenant->name }}</h3>
+                                <div class="mt-1 flex min-h-[1.375rem] items-start gap-1.5 text-xs text-brand-medium" title="{{ $tenant->domain ?: 'localhost' }}">
+                                    <i class="fas fa-globe mt-0.5 shrink-0 text-[0.7rem]"></i>
+                                    <span class="line-clamp-1 break-all">{{ $tenant->domain ?: 'localhost' }}</span>
                                 </div>
-                                <div class="property-footer">
-                                    <div class="property-price">Visit Portal <span>live app</span></div>
-                                    <div class="property-rating">
-                                        <a href="{{ $tenant->publicUrl() }}" class="btn btn-outline" style="padding: 8px 14px; font-size: 0.85rem;">Open</a>
+                                <div class="mt-3 flex shrink-0 flex-col gap-2 border-b border-brand-soft pb-3 text-xs text-brand-dark">
+                                    <span class="flex items-center gap-1.5"><i class="fas fa-calendar-check w-4 shrink-0 text-brand-primary"></i> Booking Enabled</span>
+                                    <span class="flex items-center gap-1.5"><i class="fas fa-message w-4 shrink-0 text-brand-primary"></i> Messaging {{ $tenant->feature_messaging ? 'On' : 'Off' }}</span>
+                                    <span class="flex items-center gap-1.5"><i class="fas fa-user w-4 shrink-0 text-brand-primary"></i> Owner: {{ $tenant->owner?->name ?? 'N/A' }}</span>
+                                </div>
+                                <div class="mt-auto flex shrink-0 items-end justify-between gap-2 border-t border-transparent pt-3">
+                                    <div class="min-w-0 text-sm font-bold leading-tight text-brand-primary">
+                                        Visit Portal
+                                        <span class="block text-xs font-normal text-brand-medium">live app</span>
                                     </div>
+                                    <a href="{{ $tenant->publicUrl() }}" class="inline-flex shrink-0 items-center rounded-lg border-2 border-brand-primary bg-transparent px-3 py-2 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-primary hover:text-white sm:text-sm">
+                                        Open
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 @empty
-                    <div class="carousel-slide" style="min-width: 100%; margin: 0;">
-                        <div class="property-card" style="padding: 32px; text-align: center;">
-                            <h3 style="margin-bottom: 12px;">No Tenant Portals Yet</h3>
-                            <p style="color: var(--green-medium);">Tenant showcases will appear here as owners complete onboarding.</p>
+                    <div class="carousel-slide m-0 min-w-full px-3">
+                        <div class="rounded-[20px] border border-brand-soft bg-white p-8 text-center shadow-[0_8px_30px_rgba(27,94,32,0.12)]">
+                            <h3 class="mb-3 text-lg font-bold text-brand-dark">No Tenant Portals Yet</h3>
+                            <p class="text-brand-medium">Tenant showcases will appear here as owners complete onboarding.</p>
                         </div>
                     </div>
                 @endforelse
             </div>
-            
-            <div class="carousel-controls">
-                <button class="carousel-btn" id="prevBtn"><i class="fas fa-chevron-left"></i></button>
-                <button class="carousel-btn" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
+
+            <div class="mt-10 flex justify-center gap-3">
+                <button type="button" class="flex h-12 w-12 items-center justify-center rounded-full border-0 bg-brand-soft text-xl text-brand-dark transition-all hover:scale-110 hover:bg-brand-primary hover:text-white" id="prevBtn" aria-label="Previous">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="flex h-12 w-12 items-center justify-center rounded-full border-0 bg-brand-soft text-xl text-brand-dark transition-all hover:scale-110 hover:bg-brand-primary hover:text-white" id="nextBtn" aria-label="Next">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         </div>
     </section>
-    
+
     <!-- Pricing Section -->
-    <section class="pricing-section" id="pricing">
-        <div class="pricing-header animate">
-            <h2><i class="fas fa-tags" style="margin-right: 10px;"></i>Pricing Plans for Property Owners</h2>
-            <p>Choose a plan that fits your rental business and unlock the tools you need to grow on ImpaStay.</p>
+    <section class="px-5 py-16 md:px-10 md:py-24" id="pricing">
+        <div class="mx-auto mb-11 max-w-[760px] text-center text-brand-dark opacity-0 animate-fade-in-up">
+            <h2 class="mb-3 text-2xl font-bold md:text-4xl">
+                <i class="fas fa-tags mr-2.5"></i>Pricing Plans for Property Owners
+            </h2>
+            <p class="text-base leading-relaxed">Choose a plan that fits your rental business and unlock the tools you need to grow on ImpaStay.</p>
         </div>
 
-        <div class="pricing-grid">
-            <div class="pricing-card animate delay-1">
-                <h3 class="plan-name">Basic Plan</h3>
-                <div class="plan-price">₱299</div>
-                <ul class="plan-features">
-                    <li>3 property listings</li>
-                    <li>Basic reporting</li>
-                    <li>Booking management</li>
+        <div class="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div class="rounded-[20px] border border-white/35 bg-white/15 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-2.5 hover:shadow-2xl opacity-0 animate-fade-in-up-d1">
+                <h3 class="mb-2.5 text-xl font-bold text-brand-dark">Basic Plan</h3>
+                <div class="mb-5 text-3xl font-extrabold text-brand-dark">₱299</div>
+                <ul class="space-y-3 text-brand-dark">
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> 3 property listings</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Basic reporting</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Booking management</li>
                 </ul>
-                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'basic']) }}" class="plan-register-btn">
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'basic']) }}" class="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-brand-primary bg-white/75 px-3.5 py-3 font-bold text-brand-primary transition-all hover:-translate-y-0.5 hover:bg-brand-primary hover:text-white">
                     Register for Basic
                 </a>
             </div>
 
-            <div class="pricing-card featured animate delay-2">
-                <h3 class="plan-name">Standard Plan</h3>
-                <div class="plan-price">₱499</div>
-                <ul class="plan-features">
-                    <li>Up to 10 listings</li>
-                    <li>Advanced reporting</li>
-                    <li>Analytics dashboard</li>
+            <div class="rounded-[20px] border-2 border-brand-primary bg-white/15 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-2.5 hover:shadow-2xl max-md:scale-100 md:scale-[1.03] opacity-0 animate-fade-in-up-d2">
+                <h3 class="mb-2.5 text-xl font-bold text-brand-dark">Standard Plan</h3>
+                <div class="mb-5 text-3xl font-extrabold text-brand-dark">₱499</div>
+                <ul class="space-y-3 text-brand-dark">
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Up to 10 listings</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Advanced reporting</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Analytics dashboard</li>
                 </ul>
-                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'plus']) }}" class="plan-register-btn">
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'plus']) }}" class="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-brand-primary bg-white/75 px-3.5 py-3 font-bold text-brand-primary transition-all hover:-translate-y-0.5 hover:bg-brand-primary hover:text-white">
                     Register for Standard
                 </a>
             </div>
 
-            <div class="pricing-card animate delay-3">
-                <h3 class="plan-name">Premium Plan</h3>
-                <div class="plan-price">₱799</div>
-                <ul class="plan-features">
-                    <li>Unlimited listings</li>
-                    <li>Priority support</li>
-                    <li>Featured listing promotion</li>
-                    <li>Advanced analytics</li>
+            <div class="rounded-[20px] border border-white/35 bg-white/15 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-2.5 hover:shadow-2xl md:col-span-2 lg:col-span-1 opacity-0 animate-fade-in-up-d3">
+                <h3 class="mb-2.5 text-xl font-bold text-brand-dark">Premium Plan</h3>
+                <div class="mb-5 text-3xl font-extrabold text-brand-dark">₱799</div>
+                <ul class="space-y-3 text-brand-dark">
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Unlimited listings</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Priority support</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Featured listing promotion</li>
+                    <li class="flex items-start gap-2.5 text-[0.95rem] leading-snug"><i class="fa-solid fa-check mt-0.5 text-brand-dark"></i> Advanced analytics</li>
                 </ul>
-                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'pro']) }}" class="plan-register-btn">
+                <a href="{{ route('register', ['role' => 'owner', 'plan' => 'pro']) }}" class="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-brand-primary bg-white/75 px-3.5 py-3 font-bold text-brand-primary transition-all hover:-translate-y-0.5 hover:bg-brand-primary hover:text-white">
                     Register for Premium
                 </a>
             </div>
         </div>
     </section>
-    
-    <!-- Footer -->
-    <footer class="footer">
-        <p><strong>ImpaStay</strong> | Impasugong Accommodations Platform</p>
-        <p style="margin-top: 10px;">
-            <a href="#">Privacy Policy</a> | 
-            <a href="#">Terms of Service</a> | 
-            <a href="#">Contact Us</a>
-        </p>
-    </footer>
-    
+
+    @include('partials.central-public-footer')
+
     <script>
-        // Carousel functionality
         const carouselTrack = document.getElementById('carouselTrack');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
-        
+
         let currentIndex = 0;
         const slides = document.querySelectorAll('.carousel-slide');
         const totalSlides = slides.length;
-        const visibleSlides = window.innerWidth < 768 ? 1 : 3;
-        const slideWidth = 350;
-        
+
+        function slideWidthPx() {
+            return window.innerWidth < 640 ? 312 : 328;
+        }
+
+        function visibleSlides() {
+            return window.innerWidth < 768 ? 1 : 3;
+        }
+
         function updateCarousel() {
-            const maxIndex = Math.max(0, totalSlides - visibleSlides);
+            if (!carouselTrack) return;
+            const v = visibleSlides();
+            const maxIndex = Math.max(0, totalSlides - v);
             currentIndex = Math.min(currentIndex, maxIndex);
-            const offset = -currentIndex * slideWidth;
+            const offset = -currentIndex * slideWidthPx();
             carouselTrack.style.transform = `translateX(${offset}px)`;
         }
-        
-        prevBtn.addEventListener('click', function() {
-            if (currentIndex > 0) { currentIndex--; updateCarousel(); }
+
+        prevBtn?.addEventListener('click', function () {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCarousel();
+            }
         });
-        
-        nextBtn.addEventListener('click', function() {
-            const maxIndex = Math.max(0, totalSlides - visibleSlides);
-            if (currentIndex < maxIndex) { currentIndex++; updateCarousel(); }
+
+        nextBtn?.addEventListener('click', function () {
+            const maxIndex = Math.max(0, totalSlides - visibleSlides());
+            if (currentIndex < maxIndex) {
+                currentIndex++;
+                updateCarousel();
+            }
         });
-        
-        setInterval(function() {
-            const maxIndex = Math.max(0, totalSlides - visibleSlides);
-            if (currentIndex < maxIndex) { currentIndex++; } else { currentIndex = 0; }
+
+        window.addEventListener('resize', updateCarousel);
+
+        setInterval(function () {
+            const maxIndex = Math.max(0, totalSlides - visibleSlides());
+            if (currentIndex < maxIndex) {
+                currentIndex++;
+            } else {
+                currentIndex = 0;
+            }
             updateCarousel();
         }, 5000);
+
+        updateCarousel();
     </script>
 </body>
 </html>

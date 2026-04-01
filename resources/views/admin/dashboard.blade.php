@@ -356,17 +356,10 @@
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-icon blue"><i class="fas fa-bed"></i></div>
-                    <div class="kpi-info">
-                        <h3>{{ $occupancyRate ?? 0 }}%</h3>
-                        <p>Occupancy Rate</p>
-                    </div>
-                </div>
-                <div class="kpi-card">
                     <div class="kpi-icon orange"><i class="fas fa-trophy"></i></div>
                     <div class="kpi-info">
-                        <h3 style="font-size: 1.2rem;">{{ $topProperty->accommodation->name ?? 'N/A' }}</h3>
-                        <p>Top Performing Unit</p>
+                        <h3 style="font-size: 1.2rem;">{{ $topTenantByBookings->name ?? 'N/A' }}</h3>
+                        <p>Top Tenant by Bookings</p>
                     </div>
                 </div>
             </div>
@@ -421,11 +414,11 @@
                         </div>
                     </div>
                     
-                    <!-- Bookings Per Month -->
+                    <!-- Guests Per Month -->
                     <div class="dashboard-card animate delay-3">
-                        <h3><i class="fas fa-chart-bar icon"></i>Bookings Per Month</h3>
+                        <h3><i class="fas fa-chart-bar icon"></i>Guests Per Month</h3>
                         <div class="chart-container">
-                            <canvas id="bookingsChart"></canvas>
+                            <canvas id="guestsChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -540,27 +533,27 @@
                 }
             });
             
-            // Bookings Bar Chart
-            const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
-            new Chart(bookingsCtx, {
+            // Guests Per Month (sum of number_of_guests on bookings created in each month)
+            const guestsCtx = document.getElementById('guestsChart').getContext('2d');
+            new Chart(guestsCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                     datasets: [{
-                        label: 'Bookings',
+                        label: 'Guests',
                         data: [
-                            {{ $monthlyBookingsData['jan'] ?? 0 }},
-                            {{ $monthlyBookingsData['feb'] ?? 0 }},
-                            {{ $monthlyBookingsData['mar'] ?? 0 }},
-                            {{ $monthlyBookingsData['apr'] ?? 0 }},
-                            {{ $monthlyBookingsData['may'] ?? 0 }},
-                            {{ $monthlyBookingsData['jun'] ?? 0 }},
-                            {{ $monthlyBookingsData['jul'] ?? 0 }},
-                            {{ $monthlyBookingsData['aug'] ?? 0 }},
-                            {{ $monthlyBookingsData['sep'] ?? 0 }},
-                            {{ $monthlyBookingsData['oct'] ?? 0 }},
-                            {{ $monthlyBookingsData['nov'] ?? 0 }},
-                            {{ $monthlyBookingsData['dec'] ?? 0 }}
+                            {{ $monthlyGuestsData['jan'] ?? 0 }},
+                            {{ $monthlyGuestsData['feb'] ?? 0 }},
+                            {{ $monthlyGuestsData['mar'] ?? 0 }},
+                            {{ $monthlyGuestsData['apr'] ?? 0 }},
+                            {{ $monthlyGuestsData['may'] ?? 0 }},
+                            {{ $monthlyGuestsData['jun'] ?? 0 }},
+                            {{ $monthlyGuestsData['jul'] ?? 0 }},
+                            {{ $monthlyGuestsData['aug'] ?? 0 }},
+                            {{ $monthlyGuestsData['sep'] ?? 0 }},
+                            {{ $monthlyGuestsData['oct'] ?? 0 }},
+                            {{ $monthlyGuestsData['nov'] ?? 0 }},
+                            {{ $monthlyGuestsData['dec'] ?? 0 }}
                         ],
                         backgroundColor: 'rgba(59, 162, 246, 0.8)',
                         borderColor: 'rgb(59, 162, 246)',

@@ -245,7 +245,7 @@
         
         <!-- Content Section -->
         <div class="content-section animate-in delay-2">
-            <h2>Your Gateway to Municipal Services</h2>
+            <h2>Discover stays, inns, and rentals across Impasugong.</h2>
             <p>
                 Experience seamless access to government services and information. 
                 Our digital platform connects you with essential municipal resources, 

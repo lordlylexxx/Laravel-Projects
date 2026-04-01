@@ -6,17 +6,44 @@
     <title>Message Detail - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @php
+            $authUser = auth()->user();
+            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
+            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
+            $useLegacyMessagesNav = ! $useOwnerNavbar && ! $authUser?->isClient() && ! $authUser?->isAdmin();
+        @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
             --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
             --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
-            --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-700: #374151; --gray-800: #1F2937;
+            --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
         }
 
+        @if($useLegacyMessagesNav)
+        .navbar { background: var(--white); padding: 0 40px; height: 70px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(27, 94, 32, 0.1); position: fixed; width: 100%; top: 0; left: 0; right: 0; z-index: 1000; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
+        .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
+        .nav-links { display: flex; gap: 25px; list-style: none; }
+        .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
+        .nav-btn.primary { background: var(--green-primary); color: var(--white); }
+        @endif
+
+        @if($useOwnerNavbar)
+            @include('owner.partials.top-navbar-styles')
+        @elseif($authUser?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @elseif($authUser?->isAdmin())
+            @include('admin.partials.top-navbar-styles')
+        @endif
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
             background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
             min-height: 100vh;
             color: var(--gray-800);
@@ -25,7 +52,10 @@
         .main-content {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 100px 20px 40px;
+            padding-top: var(--client-nav-offset, 100px);
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 40px;
         }
 
         body.owner-nav-page .main-content.with-owner-nav {
@@ -130,22 +160,17 @@
         }
 
         @media (max-width: 768px) {
-            .main-content { padding: 86px 15px 30px; }
+            @if($useLegacyMessagesNav)
+            .navbar { padding: 0 20px; height: 60px; }
+            .nav-links { display: none; }
+            @endif
+            .main-content {
+                padding-top: calc(var(--client-nav-offset, 100px) - 14px);
+                padding-left: 15px;
+                padding-right: 15px;
+                padding-bottom: 30px;
+            }
         }
-
-        @php
-            $authUser = auth()->user();
-            $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
-            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
-        @endphp
-
-        @if($useOwnerNavbar)
-            @include('owner.partials.top-navbar-styles')
-        @elseif($authUser?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @elseif($authUser?->isAdmin())
-            @include('admin.partials.top-navbar-styles')
-        @endif
     </style>
 </head>
 <body class="{{ $useOwnerNavbar ? 'owner-nav-page' : '' }}">
@@ -166,7 +191,7 @@
         </a>
         <ul class="nav-links">
             <li><a href="{{ $adminDashboardHref }}">Dashboard</a></li>
-            <li><a href="{{ route('messages.index') }}" class="active">Messages</a></li>
+            <li><a href="/messages" class="active">Messages</a></li>
         </ul>
         <div class="nav-actions">
             <form action="/logout" method="POST">
@@ -185,7 +210,7 @@
 
     <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : '' }}">
         <div class="top-actions">
-            <a href="{{ route('messages.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
+            <a href="/messages" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
         </div>
 
         <section class="chat-panel">
@@ -213,7 +238,7 @@
             </div>
 
             <div class="chat-composer">
-                <form method="POST" action="{{ route('messages.reply', $message) }}">
+                <form method="POST" action="/messages/{{ $message->id }}/reply">
                     @csrf
                     <textarea name="content" class="reply-textarea" placeholder="Type your message..." required></textarea>
                     <button type="submit" class="btn">Send</button>

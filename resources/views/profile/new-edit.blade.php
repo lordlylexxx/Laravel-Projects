@@ -6,6 +6,10 @@
     <title>Profile Settings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @php
+            $authUser = auth()->user();
+            $useLegacyProfileNav = $authUser && ! $authUser->isOwner() && ! $authUser->isClient() && ! $authUser->isAdmin();
+        @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
@@ -18,14 +22,7 @@
             --gray-900: #111827;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
-            min-height: 100vh;
-            color: var(--gray-800);
-        }
-        
-        /* Navigation */
+        @if($useLegacyProfileNav)
         .navbar {
             background: var(--white);
             padding: 0 40px;
@@ -41,24 +38,44 @@
             right: 0;
             z-index: 1000;
         }
-        
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.2rem; font-weight: 700; color: var(--green-dark); }
-        
         .nav-links { display: flex; gap: 25px; list-style: none; }
         .nav-links a { text-decoration: none; color: var(--gray-600); font-weight: 500; padding: 8px 12px; border-radius: 8px; transition: all 0.3s; }
         .nav-links a:hover, .nav-links a.active { background: var(--green-soft); color: var(--green-dark); }
-        
         .nav-actions { display: flex; gap: 15px; align-items: center; }
         .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.primary:hover { background: var(--green-dark); transform: translateY(-2px); }
         .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
         .nav-btn.secondary:hover { background: var(--green-pale); }
+        @endif
+
+        @if(auth()->user()?->isOwner())
+            @include('owner.partials.top-navbar-styles')
+        @elseif(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @elseif(auth()->user()?->isAdmin())
+            @include('admin.partials.top-navbar-styles')
+        @endif
+
+        body {
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
         
         /* Main Container */
-        .main-container { padding-top: 80px; max-width: 900px; margin: 0 auto; padding: 90px 20px 40px; }
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding-top: var(--client-nav-offset, 90px);
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 40px;
+        }
         
         /* Page Header */
         .page-header { margin-bottom: 30px; }
@@ -77,25 +94,35 @@
             gap: 20px;
         }
         
-        .user-avatar {
-            width: 80px;
-            height: 80px;
+        /* Scoped so .user-avatar / .user-info in the fixed client nav are not overridden */
+        .user-card .user-avatar,
+        .avatar-upload .user-avatar {
             border-radius: 50%;
             background: var(--green-primary);
             color: var(--white);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
             font-weight: 700;
             border: 4px solid var(--green-soft);
             overflow: hidden;
         }
+        .user-card .user-avatar {
+            width: 80px;
+            height: 80px;
+            font-size: 1.8rem;
+        }
+        .avatar-upload .user-avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 2.2rem;
+            flex-shrink: 0;
+        }
+        .user-card .user-avatar img,
+        .avatar-upload .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
         
-        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .user-info h2 { font-size: 1.3rem; color: var(--gray-800); margin-bottom: 4px; }
-        .user-info p { color: var(--gray-500); margin-bottom: 8px; }
+        .user-card .user-info h2 { font-size: 1.3rem; color: var(--gray-800); margin-bottom: 4px; }
+        .user-card .user-info p { color: var(--gray-500); margin-bottom: 8px; }
         
         .role-badge {
             display: inline-block;
@@ -155,7 +182,6 @@
         
         /* Avatar Upload */
         .avatar-upload { display: flex; align-items: center; gap: 20px; margin-bottom: 25px; }
-        .avatar-upload .user-avatar { width: 100px; height: 100px; font-size: 2.2rem; flex-shrink: 0; }
         .avatar-upload-area { flex: 1; }
         .avatar-upload-area input[type="file"] { display: none; }
         .avatar-upload-btn {
@@ -229,9 +255,16 @@
         
         /* Responsive */
         @media (max-width: 768px) {
+            @if($useLegacyProfileNav)
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
-            .main-container { padding: 80px 15px 30px; }
+            @endif
+            .main-container {
+                padding-top: calc(var(--client-nav-offset, 90px) - 10px);
+                padding-left: 15px;
+                padding-right: 15px;
+                padding-bottom: 30px;
+            }
             .form-row { grid-template-columns: 1fr; }
             .user-card { flex-direction: column; text-align: center; }
             .avatar-upload { flex-direction: column; }
@@ -240,14 +273,6 @@
         body.owner-nav-page .main-container.with-owner-nav {
             padding-top: 100px;
         }
-
-        @if(auth()->user()?->isOwner())
-            @include('owner.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @elseif(auth()->user()?->isAdmin())
-            @include('admin.partials.top-navbar-styles')
-        @endif
         
         /* Breadcrumb */
         .breadcrumb { display: flex; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; }
@@ -341,7 +366,7 @@
         <div class="user-card">
             @if(Auth::user()->avatar)
                 <div class="user-avatar">
-                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}">
+                    <img src="{{ '/storage/avatars/' . Auth::user()->avatar }}" alt="{{ Auth::user()->name }}" onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
                 </div>
             @else
                 <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
@@ -360,7 +385,7 @@
                 <p>Update your personal details and contact information</p>
             </div>
             
-            <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+            <form method="POST" action="/profile" enctype="multipart/form-data">
                 @csrf
                 @method('patch')
                 
@@ -368,7 +393,7 @@
                 <div class="avatar-upload">
                     @if(Auth::user()->avatar)
                         <div class="user-avatar">
-                            <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" alt="Avatar">
+                            <img src="{{ '/storage/avatars/' . Auth::user()->avatar }}" alt="Avatar" onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
                         </div>
                     @else
                         <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
@@ -445,8 +470,20 @@
                 <h2>Change Password</h2>
                 <p>Ensure your account is using a secure password</p>
             </div>
+
+            @if (session('status') === 'password-updated')
+                <div class="message success">Password updated successfully.</div>
+            @endif
+
+            @if ($errors->updatePassword->any())
+                <div class="message error">
+                    @foreach ($errors->updatePassword->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
             
-            <form method="POST" action="{{ route('password.update') }}">
+            <form method="POST" action="/password">
                 @csrf
                 @method('put')
                 
@@ -454,16 +491,25 @@
                     <div class="form-group">
                         <label for="current_password">Current Password</label>
                         <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+                        @if ($errors->updatePassword->has('current_password'))
+                            <small style="color:#991B1B; display:block; margin-top:6px;">{{ $errors->updatePassword->first('current_password') }}</small>
+                        @endif
                     </div>
                     
                     <div class="form-group">
                         <label for="password">New Password</label>
                         <input type="password" id="password" name="password" required autocomplete="new-password">
+                        @if ($errors->updatePassword->has('password'))
+                            <small style="color:#991B1B; display:block; margin-top:6px;">{{ $errors->updatePassword->first('password') }}</small>
+                        @endif
                     </div>
                     
                     <div class="form-group">
                         <label for="password_confirmation">Confirm New Password</label>
                         <input type="password" id="password_confirmation" name="password_confirmation" required autocomplete="new-password">
+                        @if ($errors->updatePassword->has('password_confirmation'))
+                            <small style="color:#991B1B; display:block; margin-top:6px;">{{ $errors->updatePassword->first('password_confirmation') }}</small>
+                        @endif
                     </div>
                 </div>
                 
@@ -479,7 +525,7 @@
                 <h3>Delete Account</h3>
                 <p>Once your account is deleted, all of its resources and data will be permanently deleted. This action cannot be undone.</p>
                 
-                <form method="POST" action="{{ route('profile.destroy') }}" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
+                <form method="POST" action="/profile" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
                     @csrf
                     @method('delete')
                     

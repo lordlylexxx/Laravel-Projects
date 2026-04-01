@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'role.access' => \App\Http\Middleware\RoleAccessMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'client' => \App\Http\Middleware\EnsureUserIsClient::class,
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,

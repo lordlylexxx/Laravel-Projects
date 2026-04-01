@@ -6,8 +6,12 @@ use App\Models\Booking;
 use App\Models\Message;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Messaging\TenantCentralSupportProxyUser;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
 
 class MessageController extends Controller
 {
@@ -18,11 +22,11 @@ class MessageController extends Controller
     {
         $user = $request->user();
         $currentTenant = Tenant::current();
-        
+
         $messages = Message::where(function ($query) use ($user) {
-                $query->where('receiver_id', $user->id)
-                      ->orWhere('sender_id', $user->id);
-            })
+            $query->where('receiver_id', $user->id)
+                ->orWhere('sender_id', $user->id);
+        })
             ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->with(['sender', 'receiver', 'booking.accommodation'])
             ->latest()
@@ -38,6 +42,68 @@ class MessageController extends Controller
     }
 
     /**
+     * Compose a new thread (tenant owners and tenant admins only).
+     */
+    public function create(Request $request): View
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        abort_unless($currentTenant, 404);
+        abort_unless($this->userIsTenantManager($user, $currentTenant), 403);
+
+        $clients = User::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->where('role', User::ROLE_CLIENT)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
+        $teamUserIds = User::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_OWNER])
+            ->pluck('id');
+
+        if ($currentTenant->owner_user_id) {
+            $teamUserIds = $teamUserIds->push($currentTenant->owner_user_id)->unique();
+        }
+
+        $team = User::query()
+            ->whereIn('id', $teamUserIds)
+            ->where('id', '!=', $user->id)
+            ->where('email', 'not like', '__impastay_central_support.tenant-%')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'role']);
+
+        return view('messages.create', compact('clients', 'team', 'currentTenant'));
+    }
+
+    /**
+     * Mark every unread message addressed to the current user as read (tenant-scoped when applicable).
+     */
+    public function markAllAsRead(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        $query = Message::query()
+            ->where('receiver_id', $user->id)
+            ->where('status', Message::STATUS_SENT);
+
+        if ($currentTenant) {
+            $query->where('tenant_id', $currentTenant->id);
+        }
+
+        $query->update([
+            'status' => Message::STATUS_READ,
+            'read_at' => now(),
+        ]);
+
+        return redirect('/messages')
+            ->with('success', 'All messages marked as read.');
+    }
+
+    /**
      * Display a specific message.
      */
     public function show(Message $message)
@@ -48,7 +114,7 @@ class MessageController extends Controller
         if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
             abort(404);
         }
-        
+
         // Check if user is sender or receiver
         if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
             abort(403);
@@ -61,14 +127,14 @@ class MessageController extends Controller
 
         // Get conversation thread
         $thread = Message::where(function ($query) use ($message) {
-                $query->where(function ($q) use ($message) {
-                    $q->where('sender_id', $message->sender_id)
-                        ->where('receiver_id', $message->receiver_id);
-                })->orWhere(function ($q) use ($message) {
-                    $q->where('sender_id', $message->receiver_id)
-                        ->where('receiver_id', $message->sender_id);
-                });
-            })
+            $query->where(function ($q) use ($message) {
+                $q->where('sender_id', $message->sender_id)
+                    ->where('receiver_id', $message->receiver_id);
+            })->orWhere(function ($q) use ($message) {
+                $q->where('sender_id', $message->receiver_id)
+                    ->where('receiver_id', $message->sender_id);
+            });
+        })
             ->when($currentTenant, fn ($query) => $query->where('tenant_id', $currentTenant->id))
             ->where('id', '!=', $message->id)
             ->with(['sender', 'receiver'])
@@ -83,7 +149,12 @@ class MessageController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
         $currentTenant = Tenant::current();
+
+        if ($this->userIsTenantManager($user, $currentTenant) && $request->filled('recipient_key')) {
+            return $this->storeTenantManagerOutbound($request, $user, $currentTenant);
+        }
 
         $validated = $request->validate([
             'receiver_id' => 'required|exists:users,id',
@@ -93,10 +164,14 @@ class MessageController extends Controller
             'type' => 'nullable|in:general,booking_inquiry,booking_response,complaint,feedback',
         ]);
 
-        $validated['sender_id'] = $request->user()->id;
+        $validated['sender_id'] = $user->id;
         $validated['type'] = $validated['type'] ?? Message::TYPE_GENERAL;
 
         $receiver = User::findOrFail($validated['receiver_id']);
+
+        if (TenantCentralSupportProxyUser::isProxy($receiver)) {
+            abort(403);
+        }
 
         if ($currentTenant && (int) ($receiver->tenant_id ?? 0) !== (int) $currentTenant->id) {
             return back()->withErrors([
@@ -106,12 +181,12 @@ class MessageController extends Controller
 
         $tenantId = null;
 
-        if (!empty($validated['booking_id'])) {
+        if (! empty($validated['booking_id'])) {
             $tenantId = Booking::whereKey($validated['booking_id'])->value('tenant_id');
         }
 
         if (! $tenantId) {
-            $tenantId = $request->user()->tenant_id;
+            $tenantId = $user->tenant_id;
         }
 
         if ($currentTenant) {
@@ -122,8 +197,101 @@ class MessageController extends Controller
 
         $message = Message::create($validated);
 
-        return redirect()->route('messages.show', $message)
+        return redirect('/messages/'.$message->getKey())
             ->with('success', 'Message sent successfully!');
+    }
+
+    private function storeTenantManagerOutbound(Request $request, User $user, Tenant $currentTenant): RedirectResponse
+    {
+        $validated = $request->validate([
+            'recipient_key' => ['required', 'string'],
+            'subject' => 'nullable|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $key = $validated['recipient_key'];
+
+        if ($key === 'central') {
+            $receiver = TenantCentralSupportProxyUser::ensure($currentTenant);
+        } elseif (preg_match('/^user:(\d+)$/', $key, $m)) {
+            $receiver = User::findOrFail((int) $m[1]);
+            $this->assertTenantManagerCanMessageRecipient($user, $receiver, $currentTenant);
+        } else {
+            return back()->withErrors(['recipient_key' => 'Choose a valid recipient.'])->withInput();
+        }
+
+        if (! TenantCentralSupportProxyUser::isProxy($receiver)
+            && (int) ($receiver->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            return back()->withErrors(['recipient_key' => 'Selected recipient is not in this tenant.'])->withInput();
+        }
+
+        $message = Message::create([
+            'sender_id' => $user->id,
+            'receiver_id' => $receiver->id,
+            'tenant_id' => $currentTenant->id,
+            'subject' => $validated['subject'] ?? null,
+            'content' => $validated['content'],
+            'type' => Message::TYPE_GENERAL,
+        ]);
+
+        if (TenantCentralSupportProxyUser::isProxy($receiver)) {
+            $notify = config('impastay.central_support_notify_email');
+            if (filled($notify)) {
+                try {
+                    $body = "Tenant: {$currentTenant->name} (ID {$currentTenant->id})\n"
+                        ."From: {$user->name} <{$user->email}>\n\n"
+                        .($validated['subject'] ? "Subject: {$validated['subject']}\n\n" : '')
+                        .$validated['content'];
+                    Mail::raw($body, function ($mail) use ($currentTenant, $notify): void {
+                        $mail->to($notify)
+                            ->subject('[ImpaStay] Message from tenant: '.$currentTenant->name);
+                    });
+                } catch (\Throwable) {
+                    // Avoid failing the request if mail is misconfigured.
+                }
+            }
+        }
+
+        return redirect('/messages/'.$message->getKey())
+            ->with('success', 'Message sent successfully!');
+    }
+
+    private function userIsTenantManager(?User $user, ?Tenant $currentTenant): bool
+    {
+        if (! $user || ! $currentTenant) {
+            return false;
+        }
+
+        if ($user->isOwner()) {
+            $ownsTenant = (int) ($user->tenant_id ?? 0) === (int) $currentTenant->id
+                || (int) optional($user->ownedTenant)->id === (int) $currentTenant->id;
+
+            if ($ownsTenant) {
+                return true;
+            }
+        }
+
+        if ($user->isAdmin()) {
+            return $user->tenant_id === null || (int) $user->tenant_id === (int) $currentTenant->id;
+        }
+
+        return false;
+    }
+
+    private function assertTenantManagerCanMessageRecipient(User $actor, User $receiver, Tenant $tenant): void
+    {
+        abort_if(TenantCentralSupportProxyUser::isProxy($receiver), 403);
+        abort_if((int) $receiver->id === (int) $actor->id, 403);
+        abort_unless((int) ($receiver->tenant_id ?? 0) === (int) $tenant->id, 403);
+
+        $allowed = $receiver->isClient()
+            || ($receiver->isAdmin() && ($receiver->tenant_id === null || (int) $receiver->tenant_id === (int) $tenant->id))
+            || ($receiver->isOwner() && (
+                (int) ($receiver->tenant_id ?? 0) === (int) $tenant->id
+                || (int) optional($receiver->ownedTenant)->id === (int) $tenant->id
+            ));
+
+        abort_unless($allowed, 403, 'You can only message clients or team members in your business.');
     }
 
     /**
@@ -149,7 +317,7 @@ class MessageController extends Controller
         // Create reply
         $reply = $message->reply($validated['content'], $user);
 
-        return redirect()->route('messages.show', $reply)
+        return redirect('/messages/'.$reply->getKey())
             ->with('success', 'Reply sent successfully!');
     }
 
@@ -186,7 +354,7 @@ class MessageController extends Controller
             $message->archive();
         }
 
-        return redirect()->route('messages.index')
+        return redirect('/messages')
             ->with('success', 'Message archived.');
     }
 
@@ -205,7 +373,7 @@ class MessageController extends Controller
             $message->delete();
         }
 
-        return redirect()->route('messages.index')
+        return redirect('/messages')
             ->with('success', 'Message deleted.');
     }
 
@@ -258,4 +426,3 @@ class MessageController extends Controller
         return back()->with('success', 'Message sent to user.');
     }
 }
-

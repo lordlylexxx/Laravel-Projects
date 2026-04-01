@@ -28,7 +28,7 @@
 
     <ul class="nav-links">
         <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-        <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> My Units</a></li>
+        <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> Tulogans</a></li>
         @if($isTenantContext)
             <li><a href="{{ $reportsHref }}" class="{{ $current === 'reports' ? 'active' : '' }}"><i class="fas fa-chart-column"></i> Reports</a></li>
             <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>

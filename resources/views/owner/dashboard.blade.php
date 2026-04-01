@@ -416,12 +416,12 @@
             
             <!-- Quick Actions -->
             <div class="quick-actions animate delay-2">
-                <a href="{{ route('owner.accommodations.create') }}" class="quick-action-card">
+                <a href="/owner/accommodations/create" class="quick-action-card">
                     <div class="icon"><i class="fas fa-plus-circle"></i></div>
                     <h4>Add New Unit</h4>
                     <p>List a new accommodation</p>
                 </a>
-                <a href="{{ route('owner.accommodations.index') }}" class="quick-action-card">
+                <a href="/owner/accommodations" class="quick-action-card">
                     <div class="icon"><i class="fas fa-edit"></i></div>
                     <h4>Manage Units</h4>
                     <p>Edit property details</p>
@@ -430,6 +430,11 @@
                     <div class="icon"><i class="fas fa-tasks"></i></div>
                     <h4>Booking Requests</h4>
                     <p>Review pending bookings</p>
+                </a>
+                <a href="/owner/users" class="quick-action-card">
+                    <div class="icon"><i class="fas fa-users-cog"></i></div>
+                    <h4>User Management</h4>
+                    <p>Manage tenant users and access</p>
                 </a>
                 <a href="{{ route('messages.index') }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-reply"></i></div>
@@ -532,7 +537,7 @@
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 15px;">
                                             @if($property->primary_image)
-                                                <img src="{{ asset('storage/' . $property->primary_image) }}" alt="{{ $property->name }}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover;">
+                                                <img src="{{ $property->primary_image_url }}" alt="{{ $property->name }}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover;">
                                             @else
                                                 <img src="/COMMUNAL.jpg" alt="{{ $property->name }}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover;">
                                             @endif
@@ -577,7 +582,7 @@
                     <div style="text-align: center; padding: 40px; color: var(--gray-400);">
                         <i class="fas fa-home" style="font-size: 3rem; margin-bottom: 15px; color: var(--gray-300);"></i>
                         <p>No properties yet. Add your first property!</p>
-                        <a href="{{ route('owner.accommodations.create') }}" style="display: inline-block; margin-top: 15px; padding: 12px 25px; background: var(--green-primary); color: white; border-radius: 8px; text-decoration: none;">
+                        <a href="/owner/accommodations/create" style="display: inline-block; margin-top: 15px; padding: 12px 25px; background: var(--green-primary); color: white; border-radius: 8px; text-decoration: none;">
                             <i class="fas fa-plus"></i> Add Property
                         </a>
                     </div>

@@ -37,7 +37,7 @@ class Accommodation extends Model
         'is_available',
         'is_verified',
         'is_featured',
-        'available_from'
+        'available_from',
     ];
 
     protected $casts = [
@@ -51,7 +51,7 @@ class Accommodation extends Model
         'is_available' => 'boolean',
         'is_verified' => 'boolean',
         'is_featured' => 'boolean',
-        'available_from' => 'datetime'
+        'available_from' => 'datetime',
     ];
 
     // Relationships
@@ -73,7 +73,14 @@ class Accommodation extends Model
     // Scopes
     public function scopeAvailable($query)
     {
-        return $query->where('is_available', true)->where('is_verified', true);
+        $query->where('is_available', true);
+
+        // In tenant app context, owner/admin listings should be visible immediately.
+        if (! Tenant::checkCurrent()) {
+            $query->where('is_verified', true);
+        }
+
+        return $query;
     }
 
     public function scopeOfType($query, $type)
@@ -88,7 +95,7 @@ class Accommodation extends Model
 
     public function scopeInBarangay($query, $barangay)
     {
-        return $query->where('barangay', 'like', '%' . $barangay . '%');
+        return $query->where('barangay', 'like', '%'.$barangay.'%');
     }
 
     public function scopeForTenant($query, $tenantId)
@@ -99,21 +106,21 @@ class Accommodation extends Model
     // Accessors
     public function getFormattedPriceAttribute()
     {
-        return '₱' . number_format($this->price_per_night, 0, '.', ',');
+        return '₱'.number_format($this->price_per_night, 0, '.', ',');
     }
 
     public function getPrimaryImageUrlAttribute()
     {
         if ($this->primary_image) {
-            return asset('storage/' . $this->primary_image);
+            return '/storage/'.ltrim($this->primary_image, '/');
         }
-        
+
         $images = $this->images;
         if (is_array($images) && count($images) > 0) {
-            return asset('storage/' . $images[0]);
+            return '/storage/'.ltrim((string) $images[0], '/');
         }
-        
-        return asset('/COMMUNAL.jpg');
+
+        return '/COMMUNAL.jpg';
     }
 
     public function getTypeLabelAttribute()
@@ -121,9 +128,9 @@ class Accommodation extends Model
         $labels = [
             'traveller-inn' => 'Traveller-Inn',
             'airbnb' => 'Airbnb',
-            'daily-rental' => 'Daily Rental'
+            'daily-rental' => 'Daily Rental',
         ];
-        
+
         return $labels[$this->type] ?? $this->type;
     }
 
@@ -132,11 +139,11 @@ class Accommodation extends Model
     {
         $nights = $checkIn->diffInDays($checkOut);
         $basePrice = $this->price_per_night * $nights;
-        
+
         // Add guest surcharge if超过max_guests
         $extraGuests = max(0, $guests - $this->max_guests);
         $guestSurcharge = $extraGuests * 200; // ₱200 per extra guest
-        
+
         return $basePrice + $guestSurcharge;
     }
 
@@ -146,13 +153,12 @@ class Accommodation extends Model
             ->whereIn('status', ['pending', 'confirmed', 'paid'])
             ->where(function ($query) use ($checkIn, $checkOut) {
                 $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                      ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                      ->orWhere(function ($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in_date', '<=', $checkIn)
+                    ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
+                    ->orWhere(function ($q) use ($checkIn, $checkOut) {
+                        $q->where('check_in_date', '<=', $checkIn)
                             ->where('check_out_date', '>=', $checkOut);
-                      });
+                    });
             })
             ->exists();
     }
 }
-

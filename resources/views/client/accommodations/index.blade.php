@@ -21,14 +21,8 @@
             --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.12);
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--cream);
-            color: var(--gray-800);
-            line-height: 1.6;
-        }
-        
-        /* Fixed Navigation */
+        @unless(auth()->user()?->isClient())
+        /* Legacy fixed nav (non–client users on this page) */
         .navbar {
             background: var(--white);
             padding: 0 40px;
@@ -44,67 +38,79 @@
             right: 0;
             z-index: 1000;
         }
-        
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
         .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
-        
         .nav-links { display: flex; gap: 8px; list-style: none; }
-        .nav-links a { 
-            text-decoration: none; 
-            color: var(--gray-600); 
-            font-weight: 500; 
-            padding: 10px 18px; 
-            border-radius: 10px; 
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray-600);
+            font-weight: 500;
+            padding: 10px 18px;
+            border-radius: 10px;
             transition: all 0.2s ease;
             font-size: 0.95rem;
         }
         .nav-links a:hover { background: var(--green-soft); color: var(--green-dark); }
         .nav-links a.active { background: var(--green-primary); color: var(--white); }
-        
         .nav-actions { display: flex; gap: 12px; align-items: center; }
-        .nav-btn { 
-            padding: 10px 20px; 
-            border-radius: 10px; 
-            font-weight: 600; 
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
             font-size: 0.95rem;
-            text-decoration: none; 
-            transition: all 0.2s ease; 
-            cursor: pointer; 
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
             border: none;
         }
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.primary:hover { background: var(--green-dark); transform: translateY(-1px); }
         .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
         .nav-btn.secondary:hover { background: var(--green-pale); }
-        
-        .user-avatar { 
-            width: 42px; 
-            height: 42px; 
-            border-radius: 50%; 
-            background: var(--green-primary); 
-            color: white; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 600;
-            font-size: 0.95rem;
-            border: 2px solid var(--white);
-            box-shadow: var(--shadow);
+        @endunless
+
+        @if(auth()->user()?->isClient())
+            @include('client.partials.top-navbar-styles')
+        @endif
+
+        body {
+            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            background: var(--cream);
+            color: var(--gray-800);
+            line-height: 1.6;
         }
         
-        /* Main Content */
-        .main-content { 
-            padding-top: 90px; 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            padding: 90px 40px 60px;
+        /* Main Content — offset matches fixed nav height */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: var(--client-nav-offset, 90px);
+            padding-left: 40px;
+            padding-right: 40px;
+            padding-bottom: 60px;
         }
         
         /* Page Header */
         .page-header { 
             margin-bottom: 40px; 
             text-align: center;
+        }
+        .page-header-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .page-header-logos img {
+            width: 66px;
+            height: 66px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #fff;
+            padding: 6px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
         }
         .page-header h1 { 
             font-size: 2.2rem; 
@@ -117,20 +123,31 @@
             font-size: 1.05rem;
         }
         
-        /* Filter Bar */
+        /* Filter Bar — single horizontal row (scroll on very narrow widths) */
         .filter-bar {
             background: var(--white);
-            padding: 20px 30px;
+            padding: 16px 20px;
             border-radius: 16px;
             box-shadow: var(--shadow);
             margin-bottom: 35px;
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            gap: 10px 12px;
             align-items: center;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
-        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .filter-group--search {
+            flex: 1 1 160px;
+            min-width: 140px;
+            flex-shrink: 1;
+        }
+        .filter-group--search .filter-input {
+            width: 100%;
+            min-width: 0;
+        }
         .filter-group label { 
             font-size: 0.85rem; 
             font-weight: 600; 
@@ -139,53 +156,66 @@
         }
         
         .filter-input {
-            padding: 12px 16px;
+            padding: 10px 12px;
             border: 2px solid var(--gray-200);
             border-radius: 10px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
             transition: all 0.2s;
-            min-width: 150px;
+            min-width: 0;
+        }
+        .filter-input[type="number"] {
+            width: 6.5rem;
+            min-width: 5.5rem;
+            max-width: 7rem;
         }
         .filter-input:focus { border-color: var(--green-primary); }
         
         .filter-select {
-            padding: 12px 16px;
+            padding: 10px 12px;
             border: 2px solid var(--gray-200);
             border-radius: 10px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
             background: var(--white);
             cursor: pointer;
             transition: all 0.2s;
+            min-width: 0;
+        }
+        .filter-group .filter-select[name="type"] {
+            width: 8.5rem;
+        }
+        .filter-group .filter-select[name="guests"] {
+            width: 6.5rem;
         }
         .filter-select:focus { border-color: var(--green-primary); }
         
         .filter-btn {
-            padding: 12px 28px;
+            padding: 10px 22px;
             background: var(--green-primary);
             color: var(--white);
             border: none;
             border-radius: 10px;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s;
-            margin-left: auto;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .filter-btn:hover { background: var(--green-dark); }
         
         /* Properties Grid */
         .properties-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 20px;
         }
         
         /* Property Card */
         .property-card {
             background: var(--white);
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
@@ -197,7 +227,7 @@
         
         .property-image-wrapper {
             position: relative;
-            height: 220px;
+            height: 170px;
             overflow: hidden;
         }
         
@@ -211,13 +241,13 @@
         
         .property-type-badge {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            top: 12px;
+            left: 12px;
             background: var(--green-primary);
             color: var(--white);
-            padding: 6px 16px;
+            padding: 5px 12px;
             border-radius: 50px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -225,10 +255,10 @@
         
         .property-favorite {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 42px;
-            height: 42px;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
             background: var(--white);
             border-radius: 50%;
             display: flex;
@@ -237,7 +267,7 @@
             cursor: pointer;
             transition: all 0.3s;
             border: none;
-            font-size: 1.2rem;
+            font-size: 1rem;
             box-shadow: var(--shadow);
         }
         .property-favorite:hover {
@@ -245,10 +275,10 @@
             transform: scale(1.1);
         }
         
-        .property-content { padding: 25px; }
+        .property-content { padding: 16px; }
         
         .property-price {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: var(--green-primary);
             margin-bottom: 8px;
@@ -260,7 +290,7 @@
         }
         
         .property-title {
-            font-size: 1.2rem;
+            font-size: 1.05rem;
             color: var(--gray-800);
             margin-bottom: 10px;
             font-weight: 600;
@@ -284,9 +314,9 @@
         
         .property-description {
             color: var(--gray-600);
-            font-size: 0.9rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            margin-bottom: 14px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -295,18 +325,18 @@
         
         .property-features {
             display: flex;
-            gap: 20px;
-            padding-top: 18px;
+            gap: 14px;
+            padding-top: 12px;
             border-top: 1px solid var(--gray-200);
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
         
         .feature {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: var(--gray-600);
-            font-size: 0.9rem;
+            font-size: 0.82rem;
         }
         
         .feature svg {
@@ -320,13 +350,13 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         
         .stars {
             color: #F59E0B;
-            font-size: 1rem;
-            letter-spacing: 2px;
+            font-size: 0.88rem;
+            letter-spacing: 1px;
         }
         
         .rating-count {
@@ -336,12 +366,12 @@
         
         .view-btn {
             width: 100%;
-            padding: 14px;
+            padding: 10px;
             background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
             color: var(--white);
             border: none;
-            border-radius: 12px;
-            font-size: 1rem;
+            border-radius: 10px;
+            font-size: 0.92rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -391,24 +421,47 @@
         
         /* Responsive */
         @media (max-width: 1024px) {
-            .properties-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+            .properties-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         }
         
         @media (max-width: 768px) {
+            @unless(auth()->user()?->isClient())
             .navbar { padding: 0 20px; height: 60px; }
             .nav-logo img { width: 38px; height: 38px; }
             .nav-logo span { font-size: 1.1rem; }
             .nav-links { display: none; }
-            .main-content { padding: 80px 20px 40px; }
+            @endunless
+            .main-content {
+                padding-top: calc(var(--client-nav-offset, 90px) - 10px);
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: 40px;
+            }
+            .page-header-logos img { width: 54px; height: 54px; }
             .page-header h1 { font-size: 1.8rem; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
-            .filter-btn { margin-left: 0; }
+            .filter-bar {
+                flex-wrap: wrap;
+                flex-direction: column;
+                align-items: stretch;
+                overflow-x: visible;
+            }
+            .filter-group,
+            .filter-group--search {
+                flex-shrink: 1;
+                width: 100%;
+            }
+            .filter-group .filter-select[name="type"],
+            .filter-group .filter-select[name="guests"] {
+                width: 100%;
+            }
+            .filter-input[type="number"] {
+                width: 100%;
+                max-width: none;
+            }
+            .filter-btn { width: 100%; }
             .properties-grid { grid-template-columns: 1fr; }
         }
 
-        @if(auth()->user()?->isClient())
-            @include('client.partials.top-navbar-styles')
-        @endif
     </style>
 </head>
 <body>
@@ -449,6 +502,10 @@
     <main class="main-content">
         <!-- Page Header -->
         <div class="page-header">
+            <div class="page-header-logos">
+                <img src="/Love%20Impasugong.png" alt="Love Impasugong Logo">
+                <img src="/SYSTEMLOGO.png" alt="System Logo">
+            </div>
             <h1>Find Your Perfect Stay</h1>
             <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
         </div>
@@ -487,8 +544,8 @@
                 </select>
             </div>
             
-            <div class="filter-group" style="flex: 1;">
-                <input type="text" name="search" class="filter-input" placeholder="Search properties..." value="{{ request('search') }}">
+            <div class="filter-group filter-group--search">
+                <input type="text" name="search" class="filter-input" placeholder="Search properties..." value="{{ request('search') }}" aria-label="Search properties">
             </div>
             
             <button type="submit" class="filter-btn">🔍 Search</button>
@@ -501,7 +558,7 @@
                     <div class="property-card">
                         <div class="property-image-wrapper">
                             @if($accommodation->primary_image)
-                                <img src="{{ asset('storage/' . $accommodation->primary_image) }}" alt="{{ $accommodation->name }}" class="property-image">
+                                <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-image">
                             @else
                                 <img src="/COMMUNAL.jpg" alt="{{ $accommodation->name }}" class="property-image">
                             @endif

@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
 use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
+use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
 
 class RegisteredUserController extends Controller
 {
@@ -46,6 +46,7 @@ class RegisteredUserController extends Controller
     {
         $tenant = Tenant::current();
         $isTenantSignup = ! is_null($tenant);
+        $provisionedTenant = null;
 
         // Validate basic fields
         $rules = [
@@ -135,13 +136,20 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
-
         // For tenant registrations, redirect to landing page; otherwise to dashboard
         if ($isTenantSignup) {
+            Auth::login($user);
+
             return redirect()->to('/')
-                ->with('success', 'Welcome to ' . $tenant->name . '! Your account has been created. Browse our accommodations below.');
+                ->with('success', 'Welcome to '.$tenant->name.'! Your account has been created. Browse our accommodations below.');
         }
+
+        if ($user->isOwner() && $provisionedTenant) {
+            return redirect()->away($provisionedTenant->publicUrl().'/login?portal=admin')
+                ->with('success', 'Tenant created successfully. Use the admin credentials sent to your email to sign in to your tenant portal.');
+        }
+
+        Auth::login($user);
 
         return redirect($user->getDashboardRoute())
             ->with('success', 'Welcome to Impasugong Accommodations! Your account has been created.');
@@ -161,7 +169,7 @@ class RegisteredUserController extends Controller
 
             try {
                 $tenantAdmin = User::create([
-                    'name' => $tenant->name . ' Admin',
+                    'name' => $tenant->name.' Admin',
                     'email' => $adminEmail,
                     'password' => Hash::make($plainPassword),
                     'role' => User::ROLE_ADMIN,
@@ -217,23 +225,22 @@ class RegisteredUserController extends Controller
      */
     private function buildUniqueTenantAdminEmail(Tenant $tenant): string
     {
-        $base = 'admin@' . ($tenant->domain ?: ($tenant->slug . '.localhost'));
+        $base = 'admin@'.($tenant->domain ?: ($tenant->slug.'.localhost'));
 
         // Check in landlord database to avoid duplicate emails globally
         if (! DB::connection('landlord')->table('users')->where('email', $base)->exists()) {
             return $base;
         }
 
-        $prefix = 'admin+' . ($tenant->slug ?: 'tenant');
+        $prefix = 'admin+'.($tenant->slug ?: 'tenant');
         $domain = 'impastay.local';
         $counter = 1;
 
         do {
-            $candidate = $prefix . $counter . '@' . $domain;
+            $candidate = $prefix.$counter.'@'.$domain;
             $counter++;
         } while (DB::connection('landlord')->table('users')->where('email', $candidate)->exists());
 
         return $candidate;
     }
-
 }

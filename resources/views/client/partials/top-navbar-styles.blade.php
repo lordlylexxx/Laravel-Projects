@@ -1,7 +1,19 @@
+/* Shared tenant client top nav — include only on client-facing pages */
+:root {
+    --client-nav-font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --client-nav-offset: 108px;
+}
+
 .navbar {
+    font-family: var(--client-nav-font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background: var(--white);
     padding: 0 18px;
-    height: 76px;
+    min-height: 76px;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
@@ -15,9 +27,35 @@
     z-index: 1000;
 }
 
-.nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
-.nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
-.nav-logo span { font-size: 1.1rem; font-weight: 700; color: var(--green-dark); line-height: 1.05; }
+.navbar a,
+.navbar button {
+    font-family: inherit;
+}
+
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; min-width: 0; }
+.nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; flex-shrink: 0; }
+.nav-logo-text { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-width: 0; max-width: min(260px, 36vw); }
+.nav-logo-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--green-dark);
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+.nav-logo-subtitle {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--green-medium);
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
 
 .nav-links { display: flex; gap: 4px; list-style: none; flex: 1; min-width: 0; justify-content: center; }
 .nav-links a {
@@ -105,7 +143,7 @@
 }
 
 @media (max-width: 768px) {
-    .navbar { padding: 0 12px; height: 64px; }
+    .navbar { padding: 8px 12px; min-height: 64px; height: auto; }
     .nav-links { display: none; }
     .user-display { max-width: 170px; }
 }
