@@ -15,7 +15,7 @@ class AccommodationSeeder extends Seeder
     {
         // Get or create owner users
         $owners = User::whereIn('role', ['owner', 'admin'])->get();
-        
+
         if ($owners->isEmpty()) {
             // Create sample owners if none exist
             $owner1 = User::create([
@@ -27,7 +27,7 @@ class AccommodationSeeder extends Seeder
                 'address' => 'Brgy. Poblacion, Impasugong',
                 'bio' => 'Local hotelier with 10 years experience in hospitality.',
             ]);
-            
+
             $owner2 = User::create([
                 'name' => 'Juan dela Cruz',
                 'email' => 'juan@impasugong.com',
@@ -37,15 +37,9 @@ class AccommodationSeeder extends Seeder
                 'address' => 'Brgy. Centro, Impasugong',
                 'bio' => 'Property owner specializing in vacation rentals.',
             ]);
-            
+
             $owners = collect([$owner1, $owner2]);
         }
-
-        $owners->each(function ($owner) {
-            if ($owner->isOwner()) {
-                $owner->ensureTenant();
-            }
-        });
 
         $accommodations = [
             // Traveller-Inns
@@ -121,7 +115,7 @@ class AccommodationSeeder extends Seeder
                 'images' => ['inn1.jpg', 'inn2.jpg', 'inn3.jpg', 'inn4.jpg'],
                 'owner_id' => $owners[0]->id ?? 1,
             ],
-            
+
             // Airbnb-style
             [
                 'name' => 'Cozy Garden House',
@@ -219,7 +213,7 @@ class AccommodationSeeder extends Seeder
                 'images' => ['airbnb1.jpg', 'airbnb4.jpg'],
                 'owner_id' => $owners[0]->id ?? 1,
             ],
-            
+
             // Daily Rentals
             [
                 'name' => 'Riverside Apartment',
@@ -369,12 +363,11 @@ class AccommodationSeeder extends Seeder
                 'longitude' => $data['longitude'],
                 'images' => $data['images'],
             ]);
-            
+
             echo "Created: {$accommodation->name}\n";
         }
-        
+
         $this->command->info('Accommodation seeder completed successfully!');
-        $this->command->info('Total accommodations created: ' . count($accommodations));
+        $this->command->info('Total accommodations created: '.count($accommodations));
     }
 }
-

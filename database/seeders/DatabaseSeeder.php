@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Accommodation;
 use App\Models\Booking;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -16,8 +15,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $centralPort = (int) env('CENTRAL_PORT', 8000);
-
         $this->call(RolesAndPermissionsSeeder::class);
 
         // Create Admin User (only if doesn't exist)
@@ -40,7 +37,6 @@ class DatabaseSeeder extends Seeder
             'john.davis@email.com',
         ];
 
-        $ownerUsers = [];
         foreach ($ownerEmails as $email) {
             if (! User::where('email', $email)->exists()) {
                 $ownerData = [
@@ -59,57 +55,13 @@ class DatabaseSeeder extends Seeder
                     },
                     'address' => 'Impasugong, Bukidnon',
                 ];
-                $ownerUsers[] = User::create($ownerData);
+                User::create($ownerData);
                 $this->command->info("Owner user created: {$email}");
-            } else {
-                $ownerUsers[] = User::where('email', $email)->first();
             }
         }
 
-        foreach ($ownerUsers as $ownerUser) {
-            if ($ownerUser && $ownerUser->isOwner()) {
-                $ownerUser->ensureTenant();
-            }
-        }
-
-        // Seed tenant-scoped admin and user accounts for each tenant
-        $tenantAccounts = [];
-        $tenants = Tenant::query()->orderBy('id')->get(['id', 'name', 'owner_user_id']);
-
-        foreach ($tenants as $tenant) {
-            $tenantAdminEmail = "tenant{$tenant->id}.admin@impastay.local";
-            $tenantUserEmail = "tenant{$tenant->id}.user@impastay.local";
-
-            $tenantAdmin = User::updateOrCreate(
-                ['email' => $tenantAdminEmail],
-                [
-                    'name' => "{$tenant->name} Admin",
-                    'password' => Hash::make('password'),
-                    'role' => 'admin',
-                    'tenant_id' => $tenant->id,
-                    'phone' => '+63 900 100 '.str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
-                    'is_active' => true,
-                ]
-            );
-
-            $tenantUser = User::updateOrCreate(
-                ['email' => $tenantUserEmail],
-                [
-                    'name' => "{$tenant->name} User",
-                    'password' => Hash::make('password'),
-                    'role' => 'client',
-                    'tenant_id' => $tenant->id,
-                    'phone' => '+63 900 200 '.str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT),
-                    'is_active' => true,
-                ]
-            );
-
-            $tenantAccounts[] = [
-                'tenant_name' => $tenant->name,
-                'port' => $centralPort,
-                'admin_email' => $tenantAdmin->email,
-                'user_email' => $tenantUser->email,
-            ];
+        if (filter_var(env('SEED_EXISTING_TENANT_DATABASES', true), FILTER_VALIDATE_BOOL)) {
+            $this->call(ExistingTenantDatabasesSeeder::class);
         }
 
         // Create Clients (only if doesn't exist)
@@ -232,20 +184,12 @@ class DatabaseSeeder extends Seeder
         $this->command->info('  - Owner: sarah.chen@email.com / password');
         $this->command->info('  - Client: juan.miguel@email.com / password');
 
-        if (! empty($tenantAccounts)) {
-            $this->command->info('Tenant seeded accounts (password: password):');
-            foreach ($tenantAccounts as $account) {
-                $portLabel = $account['port'] ? " (tenant port {$account['port']})" : '';
-                $this->command->info("  - {$account['tenant_name']}{$portLabel}");
-                $this->command->info("      admin: {$account['admin_email']}");
-                $this->command->info("      user:  {$account['user_email']}");
-            }
-        }
-
         // Ensure newly created users remain synchronized with RBAC roles.
         User::query()->select(['id', 'role'])->chunkById(200, function ($users): void {
             foreach ($users as $user) {
-                $user->syncRbacFromLegacyRole();
+                if (method_exists($user, 'syncRbacFromLegacyRole')) {
+                    $user->syncRbacFromLegacyRole();
+                }
             }
         });
     }

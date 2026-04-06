@@ -9,22 +9,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
-    use HasRoles {
-        hasRole as private hasSpatieRole;
-        hasPermissionTo as private hasSpatiePermission;
-        hasAnyPermission as private hasAnySpatiePermission;
-    }
     use UsesTenantConnectionWithLandlordFallback;
 
     /**
@@ -80,6 +73,7 @@ class User extends Authenticatable
 
     const ROLE_ADMIN = 'admin';
 
+    /** Spatie permission names (must match RolesAndPermissionsSeeder). */
     public const PERM_USERS_VIEW = 'users.view';
 
     public const PERM_USERS_CREATE = 'users.create';
@@ -104,7 +98,24 @@ class User extends Authenticatable
 
     public const PERM_REPORTS_VIEW = 'reports.view';
 
-    protected string $guard_name = 'web';
+    /**
+     * Align Spatie roles with the legacy string `users.role` column (owner / admin / client).
+     */
+    public function syncRbacFromLegacyRole(): void
+    {
+        $roleName = match ($this->role) {
+            self::ROLE_OWNER => self::ROLE_OWNER,
+            self::ROLE_ADMIN => self::ROLE_ADMIN,
+            self::ROLE_CLIENT => self::ROLE_CLIENT,
+            default => self::ROLE_CLIENT,
+        };
+
+        try {
+            $this->syncRoles([Role::findByName($roleName, 'web')]);
+        } catch (\Throwable) {
+            // Roles not seeded yet (e.g. partial migrate) — avoid breaking callers.
+        }
+    }
 
     // Relationships
     public function accommodations()
@@ -218,97 +229,9 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMIN;
     }
 
-    public function hasRole($role): bool
+    public function hasRole($role)
     {
-        if (is_array($role)) {
-            return in_array($this->role, $role, true) || ($this->withPermissionsTeamContext(
-                fn (): bool => $this->hasSpatieRole($role, $this->guard_name)
-            ) ?? false);
-        }
-
-        if (is_string($role) && $this->role === $role) {
-            return true;
-        }
-
-        return $this->withPermissionsTeamContext(
-            fn (): bool => $this->hasSpatieRole($role, $this->guard_name)
-        ) ?? false;
-    }
-
-    public function hasPermission($permission): bool
-    {
-        if (! is_array($permission) && ! is_string($permission)) {
-            return false;
-        }
-
-        if (is_array($permission)) {
-            return $this->withPermissionsTeamContext(
-                fn (): bool => $this->hasAnySpatiePermission($permission)
-            ) ?? false;
-        }
-
-        return $this->withPermissionsTeamContext(
-            fn (): bool => $this->hasSpatiePermission($permission, $this->guard_name)
-        ) ?? false;
-    }
-
-    public function syncRbacFromLegacyRole(): void
-    {
-        if (! in_array($this->role, [self::ROLE_ADMIN, self::ROLE_OWNER, self::ROLE_CLIENT], true)) {
-            return;
-        }
-
-        $this->withPermissionsTeamContext(function (): void {
-            $this->syncRoles([$this->role]);
-        });
-    }
-
-    public function syncTenantPermissions(array $permissions): void
-    {
-        $this->withPermissionsTeamContext(function () use ($permissions): void {
-            $this->syncPermissions($permissions);
-        });
-    }
-
-    private function withPermissionsTeamContext(callable $callback): mixed
-    {
-        if (! config('permission.teams')) {
-            return $callback();
-        }
-
-        $registrar = app(PermissionRegistrar::class);
-        $previousTeamId = $registrar->getPermissionsTeamId();
-
-        $teamId = $this->resolvePermissionsTeamId();
-        if ($teamId === null) {
-            return null;
-        }
-
-        $registrar->setPermissionsTeamId($teamId);
-
-        try {
-            return $callback();
-        } finally {
-            $registrar->setPermissionsTeamId($previousTeamId);
-        }
-    }
-
-    private function resolvePermissionsTeamId(): ?int
-    {
-        if ($this->tenant_id !== null) {
-            return (int) $this->tenant_id;
-        }
-
-        $currentTenant = Tenant::current();
-        if ($currentTenant) {
-            return (int) $currentTenant->id;
-        }
-
-        if ($this->isOwner() && $this->ownedTenant) {
-            return (int) $this->ownedTenant->id;
-        }
-
-        return null;
+        return $this->role === $role;
     }
 
     public function updateLastLogin()
@@ -347,6 +270,9 @@ class User extends Authenticatable
             'trial_ends_at' => now()->addDays(14),
             'current_period_starts_at' => now(),
             'current_period_ends_at' => now()->addMonth(),
+            'onboarding_status' => Tenant::ONBOARDING_AWAITING_PAYMENT,
+            'domain_enabled' => false,
+            'domain_disabled_at' => now(),
             ...$this->defaultTenantConnectionAttributes(),
         ];
 
@@ -402,9 +328,6 @@ class User extends Authenticatable
         }
 
         $tenant = Tenant::create($tenantData);
-
-        // Automatically create and migrate the tenant database right after owner registration.
-        $this->provisionTenantDatabase($tenant);
 
         $this->update(['tenant_id' => $tenant->id]);
 
@@ -483,34 +406,6 @@ class User extends Authenticatable
         return $database;
     }
 
-    private function provisionTenantDatabase(Tenant $tenant): void
-    {
-        if (! $tenant->database) {
-            return;
-        }
-
-        try {
-            $exitCode = Artisan::call('tenants:provision-db', [
-                'tenantId' => $tenant->id,
-            ]);
-
-            if ($exitCode !== 0) {
-                Log::warning('Tenant DB provisioning returned non-zero status.', [
-                    'tenant_id' => $tenant->id,
-                    'database' => $tenant->database,
-                    'exit_code' => $exitCode,
-                    'output' => Artisan::output(),
-                ]);
-            }
-        } catch (\Throwable $exception) {
-            Log::error('Tenant DB provisioning failed during owner registration.', [
-                'tenant_id' => $tenant->id,
-                'database' => $tenant->database,
-                'error' => $exception->getMessage(),
-            ]);
-        }
-    }
-
     public function getDashboardRoute(): string
     {
         if (Tenant::checkCurrent()) {
@@ -519,8 +414,39 @@ class User extends Authenticatable
 
         return match ($this->role) {
             self::ROLE_ADMIN => '/admin/dashboard',
-            self::ROLE_OWNER => '/owner/dashboard',
+            self::ROLE_OWNER => $this->ownerCentralDashboardPath(),
             default => '/dashboard',
+        };
+    }
+
+    private function ownerCentralDashboardPath(): string
+    {
+        $landlordConnection = (string) config('multitenancy.landlord_database_connection_name', 'landlord');
+
+        try {
+            if (! Schema::connection($landlordConnection)->hasTable('tenants')) {
+                return '/owner/dashboard';
+            }
+        } catch (\Throwable) {
+            return '/owner/dashboard';
+        }
+
+        $tenant = $this->relationLoaded('ownedTenant')
+            ? $this->ownedTenant
+            : $this->ownedTenant()->first();
+
+        if (! $tenant instanceof Tenant) {
+            return '/owner/dashboard';
+        }
+
+        if ((string) $tenant->onboarding_status === Tenant::ONBOARDING_APPROVED) {
+            return '/owner/dashboard';
+        }
+
+        return match ($tenant->onboarding_status) {
+            Tenant::ONBOARDING_AWAITING_PAYMENT => '/owner/onboarding/payment',
+            Tenant::ONBOARDING_PENDING_APPROVAL, Tenant::ONBOARDING_REJECTED => '/owner/onboarding/status',
+            default => '/owner/onboarding/status',
         };
     }
 

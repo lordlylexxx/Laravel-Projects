@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
+use App\Services\TenantOnboardingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,26 +38,26 @@ class DashboardController extends Controller
         $lastYearEnd = $now->copy()->subYear()->endOfYear();
 
         // ============ REVENUE METRICS ============
-        $totalRevenue = $this->revenueBaseQuery()->sum('total_price');
+        $totalRevenue = Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->sum('total_price');
 
-        $weeklyRevenue = $this->revenueBaseQuery()
-            ->whereBetween('check_in_date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+        $weeklyRevenue = Booking::whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
 
-        $monthlyRevenue = $this->revenueBaseQuery()
-            ->whereBetween('check_in_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+        $monthlyRevenue = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
 
-        $yearlyRevenue = $this->revenueBaseQuery()
-            ->whereBetween('check_in_date', [$startOfYear->toDateString(), $endOfYear->toDateString()])
+        $yearlyRevenue = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
 
         // Growth rate calculation
-        $lastMonthRevenue = $this->revenueBaseQuery()
-            ->whereBetween('check_in_date', [
-                $now->copy()->subMonth()->startOfMonth()->toDateString(),
-                $now->copy()->subMonth()->endOfMonth()->toDateString(),
-            ])
+        $lastMonthRevenue = Booking::whereBetween('created_at', [
+            $now->copy()->subMonth()->startOfMonth(),
+            $now->copy()->subMonth()->endOfMonth(),
+        ])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->sum('total_price');
 
         $growthRate = $lastMonthRevenue > 0
@@ -71,41 +72,39 @@ class DashboardController extends Controller
         $totalAccommodations = Accommodation::count();
         $occupancyRate = $this->calculateOccupancyRate($startOfMonth, $endOfMonth);
 
-        // ============ TOP TENANT BY BOOKINGS ============
-        $topTenantByBookings = Booking::query()
-            ->join('tenants', 'bookings.tenant_id', '=', 'tenants.id')
-            ->whereBetween('bookings.check_in_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-            ->whereIn('bookings.status', ['confirmed', 'completed', 'paid'])
-            ->select('tenants.id', 'tenants.name', DB::raw('COUNT(bookings.id) as booking_count'))
-            ->groupBy('tenants.id', 'tenants.name')
-            ->orderByDesc('booking_count')
+        // ============ TOP PERFORMING UNIT ============
+        $topProperty = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
+            ->select('accommodation_id', DB::raw('sum(total_price) as revenue'))
+            ->groupBy('accommodation_id')
+            ->orderByDesc('revenue')
+            ->with('accommodation')
             ->first();
 
         // ============ MONTHLY CHART DATA ============
         $monthlyRevenueData = [];
-        $monthlyGuestsData = [];
+        $monthlyBookingsData = [];
 
         for ($i = 1; $i <= 12; $i++) {
             $monthStart = $now->copy()->month($i)->startOfMonth();
             $monthEnd = $now->copy()->month($i)->endOfMonth();
 
             $monthKey = strtolower($monthStart->format('M'));
-            $monthlyRevenueData[$monthKey] = $this->revenueBaseQuery()
-                ->whereBetween('check_in_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            $monthlyRevenueData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
+                ->whereIn('status', ['confirmed', 'completed', 'paid'])
                 ->sum('total_price');
 
-            $monthlyGuestsData[$monthKey] = (int) Booking::query()
-                ->whereBetween('created_at', [$monthStart, $monthEnd])
-                ->sum('number_of_guests');
+            $monthlyBookingsData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])->count();
         }
 
         // ============ REVENUE BY PROPERTY TYPE ============
         $revenueByType = [];
         foreach (['traveller-inn', 'airbnb', 'daily-rental'] as $type) {
-            $revenueByType[$type] = $this->revenueBaseQuery()->whereHas('accommodation', function ($query) use ($type) {
+            $revenueByType[$type] = Booking::whereHas('accommodation', function ($query) use ($type) {
                 $query->where('type', $type);
             })
-                ->whereBetween('check_in_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                ->whereIn('status', ['confirmed', 'completed', 'paid'])
                 ->sum('total_price');
         }
 
@@ -118,7 +117,7 @@ class DashboardController extends Controller
             'pending_bookings' => Booking::where('status', 'pending')->count(),
             'active_clients' => $activeClients,
             'verified_properties' => Accommodation::where('is_verified', true)->count(),
-            'average_booking_value' => $this->revenueBaseQuery()->avg('total_price') ?? 0,
+            'average_booking_value' => Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->avg('total_price') ?? 0,
         ];
 
         // ============ RECENT ACTIVITY ============
@@ -132,8 +131,8 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact(
             'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue', 'totalRevenue',
-            'totalBookings', 'activeClients', 'occupancyRate', 'topTenantByBookings', 'growthRate',
-            'monthlyRevenueData', 'monthlyGuestsData', 'revenueByType',
+            'totalBookings', 'activeClients', 'occupancyRate', 'topProperty', 'growthRate',
+            'monthlyRevenueData', 'monthlyBookingsData', 'revenueByType',
             'kpis', 'recentBookings', 'tenantBookingsToday'
         ));
 
@@ -152,32 +151,18 @@ class DashboardController extends Controller
         $days = $startDate->diffInDays($endDate) + 1;
         $totalCapacity = $totalAccommodations * $days;
 
-        $bookedNights = Booking::whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('check_in_date', [$startDate->toDateString(), $endDate->toDateString()])
-                    ->orWhereBetween('check_out_date', [$startDate->toDateString(), $endDate->toDateString()])
-                    ->orWhere(function ($overlap) use ($startDate, $endDate) {
-                        $overlap->whereDate('check_in_date', '<=', $startDate->toDateString())
-                            ->whereDate('check_out_date', '>=', $endDate->toDateString());
-                    });
-            })
+        $bookedNights = Booking::whereBetween('check_in_date', [$startDate, $endDate])
+            ->orWhereBetween('check_out_date', [$startDate, $endDate])
+            ->whereIn('status', ['confirmed', 'completed', 'paid'])
             ->get()
             ->sum(function ($booking) use ($startDate, $endDate) {
-                $checkIn = $booking->check_in_date->lt($startDate) ? $startDate : $booking->check_in_date;
-                $checkOut = $booking->check_out_date->gt($endDate) ? $endDate : $booking->check_out_date;
+                $checkIn = max($booking->check_in_date, $startDate);
+                $checkOut = min($booking->check_out_date, $endDate);
 
-                return max(0, $checkIn->diffInDays($checkOut) + 1);
+                return $checkIn->diffInDays($checkOut) + 1;
             });
 
         return $totalCapacity > 0 ? round(($bookedNights / $totalCapacity) * 100, 1) : 0;
-    }
-
-    /**
-     * Shared revenue query used by dashboard cards and charts.
-     */
-    private function revenueBaseQuery()
-    {
-        return Booking::query()->whereIn('status', ['confirmed', 'completed', 'paid']);
     }
 
     /**
@@ -199,7 +184,6 @@ class DashboardController extends Controller
             ->keyBy('tenant_id');
 
         $databaseUsageMbByDatabase = collect();
-        $bandwidthUsageMbByDatabase = collect();
         $tenantDatabases = $tenants->getCollection()
             ->pluck('database')
             ->filter()
@@ -217,21 +201,9 @@ class DashboardController extends Controller
             } catch (\Throwable $exception) {
                 $databaseUsageMbByDatabase = collect();
             }
-
-            try {
-                $bandwidthUsageMbByDatabase = DB::connection('landlord')
-                    ->table('information_schema.tables')
-                    ->selectRaw('table_schema as database_name, ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb')
-                    ->whereIn('table_schema', $tenantDatabases)
-                    ->whereIn('table_name', ['bookings', 'messages'])
-                    ->groupBy('table_schema')
-                    ->pluck('size_mb', 'database_name');
-            } catch (\Throwable $exception) {
-                $bandwidthUsageMbByDatabase = collect();
-            }
         }
 
-        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'bandwidthUsageMbByDatabase', 'latestLifecycleByTenant'));
+        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant'));
     }
 
     public function users(): RedirectResponse
@@ -247,19 +219,9 @@ class DashboardController extends Controller
 
         if ($request->filled('tenant')) {
             $tenantSearch = trim((string) $request->input('tenant'));
-            $pattern = '%'.$tenantSearch.'%';
-            $query->where(function ($q) use ($pattern) {
-                $q->whereHas('tenant', function ($tenantQuery) use ($pattern) {
-                    $tenantQuery->where('name', 'like', $pattern)
-                        ->orWhere('slug', 'like', $pattern);
-                })->orWhere(function ($q2) use ($pattern) {
-                    $q2->whereNull('tenant_id')
-                        ->where('action', 'tenant.deleted')
-                        ->where(function ($q3) use ($pattern) {
-                            $q3->where('before_state->name', 'like', $pattern)
-                                ->orWhere('before_state->slug', 'like', $pattern);
-                        });
-                });
+            $query->whereHas('tenant', function ($tenantQuery) use ($tenantSearch) {
+                $tenantQuery->where('name', 'like', "%{$tenantSearch}%")
+                    ->orWhere('slug', 'like', "%{$tenantSearch}%");
             });
         }
 
@@ -287,33 +249,16 @@ class DashboardController extends Controller
     public function updateTenantPlan(Request $request, Tenant $tenant): RedirectResponse
     {
         $validated = $request->validate([
-            'plan' => ['required', 'in:'.implode(',', [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO, 'custom'])],
-            'custom_plan' => ['nullable', 'string', 'min:2', 'max:50'],
+            'plan' => ['required', 'in:'.implode(',', [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO])],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
         ]);
 
-        $resolvedPlan = $validated['plan'];
-        if ($resolvedPlan === 'custom') {
-            $customPlan = trim((string) ($validated['custom_plan'] ?? ''));
-            if ($customPlan === '') {
-                return back()->withErrors(['custom_plan' => 'Custom plan name is required when selecting Custom.']);
-            }
-
-            $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $customPlan) ?? '');
-            $slug = trim($slug, '-');
-            if ($slug === '') {
-                return back()->withErrors(['custom_plan' => 'Custom plan name must contain letters or numbers.']);
-            }
-
-            $resolvedPlan = 'custom:'.$slug;
-        }
-
         $oldPlan = (string) $tenant->plan;
         $oldSubscriptionStatus = (string) ($tenant->subscription_status ?? 'trialing');
-        $planChanged = $tenant->plan !== $resolvedPlan;
+        $planChanged = $tenant->plan !== $validated['plan'];
 
         $updates = [
-            'plan' => $resolvedPlan,
+            'plan' => $validated['plan'],
         ];
 
         if ($planChanged) {
@@ -523,6 +468,37 @@ class DashboardController extends Controller
         return back()->with('success', "Tenant profile updated for {$tenant->name}.");
     }
 
+    public function updateTenantBandwidthQuota(Request $request, Tenant $tenant): RedirectResponse
+    {
+        if ($request->input('bandwidth_quota_mb') === '') {
+            $request->merge(['bandwidth_quota_mb' => null]);
+        }
+
+        $validated = $request->validate([
+            'bandwidth_quota_mb' => ['nullable', 'numeric', 'min:0', 'max:1048576'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        $quotaBytes = null;
+        if (isset($validated['bandwidth_quota_mb']) && (float) $validated['bandwidth_quota_mb'] > 0) {
+            $quotaBytes = (int) round((float) $validated['bandwidth_quota_mb'] * 1024 * 1024);
+        }
+
+        $before = (int) ($tenant->bandwidth_quota_bytes ?? 0);
+        $tenant->update(['bandwidth_quota_bytes' => $quotaBytes]);
+
+        $this->logLifecycleAction(
+            request: $request,
+            tenant: $tenant,
+            action: 'tenant.bandwidth_quota.updated',
+            reason: $validated['reason'],
+            before: ['bandwidth_quota_bytes' => $before],
+            after: ['bandwidth_quota_bytes' => (int) ($tenant->bandwidth_quota_bytes ?? 0)],
+        );
+
+        return back()->with('success', "Bandwidth quota updated for {$tenant->name}.");
+    }
+
     public function resendTenantOnboardingEmail(Request $request, Tenant $tenant): RedirectResponse
     {
         $validated = $request->validate([
@@ -577,127 +553,125 @@ class DashboardController extends Controller
         return back()->with('success', "Onboarding email resent for {$tenant->name}.");
     }
 
-    public function destroyTenant(Request $request, Tenant $tenant): RedirectResponse
+    public function approveTenantOnboarding(Request $request, Tenant $tenant): RedirectResponse
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:500'],
-            'confirm_slug' => ['required', 'string'],
         ]);
 
-        if (! hash_equals((string) $tenant->slug, trim($validated['confirm_slug']))) {
+        if ($tenant->onboarding_status !== Tenant::ONBOARDING_PENDING_APPROVAL) {
+            return back()->with('success', "This tenant is not waiting for approval (current: {$tenant->onboarding_status}).");
+        }
+
+        $ok = app(TenantOnboardingService::class)->approveRegistration($tenant, $request->user(), false);
+
+        if (! $ok) {
             return back()->withErrors([
-                'confirm_slug' => 'The confirmation does not match the tenant slug.',
+                'onboarding' => 'Provisioning failed. Check tenant database configuration and application logs.',
+            ]);
+        }
+
+        $tenant->refresh();
+
+        $this->logLifecycleAction(
+            request: $request,
+            tenant: $tenant,
+            action: 'tenant.onboarding.approved',
+            reason: $validated['reason'],
+            before: [
+                'onboarding_status' => Tenant::ONBOARDING_PENDING_APPROVAL,
+            ],
+            after: [
+                'onboarding_status' => Tenant::ONBOARDING_APPROVED,
+                'domain_enabled' => (bool) $tenant->domain_enabled,
+                'database_provisioned' => (bool) $tenant->database_provisioned,
+            ]
+        );
+
+        return back()->with('success', "{$tenant->name} approved, provisioned, and tenant admin credentials emailed to the owner.");
+    }
+
+    public function rejectTenantOnboarding(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        if ($tenant->onboarding_status !== Tenant::ONBOARDING_PENDING_APPROVAL) {
+            return back()->with('success', "This tenant is not waiting for approval (current: {$tenant->onboarding_status}).");
+        }
+
+        app(TenantOnboardingService::class)->rejectRegistration($tenant, $request->user(), $validated['reason']);
+
+        return back()->with('success', "Registration rejected for {$tenant->name}.");
+    }
+
+    public function destroyTenant(Request $request, Tenant $tenant): RedirectResponse
+    {
+        if ($request->user()?->tenant_id !== null && (int) $request->user()->tenant_id === (int) $tenant->id) {
+            return back()->withErrors([
+                'delete' => 'You cannot delete the tenant this account is assigned to.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+            'confirm_slug' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validated['confirm_slug'] !== $tenant->slug) {
+            return back()->withErrors([
+                'confirm_slug' => 'The confirmation slug does not match this tenant.',
             ])->withInput();
         }
 
-        $before = $tenant->only([
-            'id',
-            'name',
-            'slug',
-            'domain',
-            'database',
-            'db_username',
-            'db_host',
-            'db_port',
-            'plan',
-            'owner_user_id',
-            'app_title',
-            'subscription_status',
+        $beforeState = [
+            'id' => $tenant->id,
+            'name' => $tenant->name,
+            'slug' => $tenant->slug,
+            'database' => $tenant->database,
+            'database_provisioned' => (bool) $tenant->database_provisioned,
+        ];
+
+        $dbSanitized = $tenant->database ? preg_replace('/[^A-Za-z0-9_]/', '', $tenant->database) : '';
+        $dbUserSanitized = $tenant->db_username ? preg_replace('/[^A-Za-z0-9_]/', '', $tenant->db_username) : '';
+        $tenantName = $tenant->name;
+
+        TenantLifecycleLog::create([
+            'tenant_id' => $tenant->id,
+            'actor_user_id' => $request->user()?->id,
+            'action' => 'tenant.deleted',
+            'reason' => $validated['reason'],
+            'before_state' => $beforeState,
+            'after_state' => [],
         ]);
 
-        $tenantName = $tenant->name;
-        $tenantId = $tenant->id;
+        $tenant->delete();
 
-        $tableNames = config('permission.table_names');
-        if (empty($tableNames)) {
-            return back()->withErrors(['delete' => 'Permission tables are not configured.']);
-        }
-
-        $landlordConnection = (string) config('multitenancy.landlord_database_connection_name', 'landlord');
-        $landlordDriver = config("database.connections.{$landlordConnection}.driver");
-
-        try {
-            // Do not run MySQL DDL inside DB::transaction(): DROP DATABASE / DROP USER / FLUSH PRIVILEGES
-            // implicitly commit and end the transaction, which makes Laravel's commit() throw
-            // "There is no active transaction" even though subsequent deletes already ran.
-            DB::connection($landlordConnection)->transaction(function () use ($request, $tenant, $validated, $before, $tableNames, $landlordConnection): void {
-                $this->logLifecycleAction(
-                    request: $request,
-                    tenant: $tenant,
-                    action: 'tenant.deleted',
-                    reason: $validated['reason'],
-                    before: $before,
-                    after: ['status' => 'pending_deletion']
-                );
-
-                $tid = (int) $tenant->id;
-
-                DB::connection($landlordConnection)
-                    ->table($tableNames['model_has_permissions'])
-                    ->where('tenant_id', $tid)
-                    ->delete();
-
-                DB::connection($landlordConnection)
-                    ->table($tableNames['roles'])
-                    ->where('tenant_id', $tid)
-                    ->delete();
-
-                $tenant->delete();
-            });
-
-            if ($landlordDriver === 'mysql' && filled($before['database'] ?? null)) {
-                try {
-                    $landlordConfig = config("database.connections.{$landlordConnection}", []);
-                    $landlordDbSanitized = preg_replace('/[^A-Za-z0-9_]/', '', (string) ($landlordConfig['database'] ?? ''));
-                    $landlordUserSanitized = preg_replace('/[^A-Za-z0-9_]/', '', (string) ($landlordConfig['username'] ?? ''));
-
-                    $database = preg_replace('/[^A-Za-z0-9_]/', '', (string) $before['database']);
-                    if ($database !== '' && strcasecmp($database, $landlordDbSanitized) === 0) {
-                        Log::warning('Skipped DROP DATABASE during tenant delete: tenant database name matches landlord connection database.', [
-                            'tenant_id' => $tenantId,
-                            'database' => $database,
-                        ]);
-                    } elseif ($database !== '') {
-                        DB::connection($landlordConnection)->statement("DROP DATABASE IF EXISTS `{$database}`");
-                    }
-
-                    if (! empty($before['db_username'])) {
-                        $username = preg_replace('/[^A-Za-z0-9_]/', '', (string) $before['db_username']);
-                        if ($username !== '' && $landlordUserSanitized !== '' && strcasecmp($username, $landlordUserSanitized) === 0) {
-                            Log::warning('Skipped DROP USER during tenant delete: matches landlord DB username.', [
-                                'tenant_id' => $tenantId,
-                                'username' => $username,
-                            ]);
-                        } elseif ($username !== '') {
-                            DB::connection($landlordConnection)->statement("DROP USER IF EXISTS '{$username}'@'%'");
-                            DB::connection($landlordConnection)->statement('FLUSH PRIVILEGES');
-                        }
-                    }
-                } catch (\Throwable $ddlException) {
-                    Log::warning('MySQL tenant database or user teardown failed after landlord row was removed.', [
-                        'tenant_id' => $tenantId,
-                        'database' => $before['database'] ?? null,
-                        'error' => $ddlException->getMessage(),
-                    ]);
-
-                    return back()->with(
-                        'success',
-                        "Tenant {$tenantName} was removed from the central app. MySQL cleanup did not complete; you may need to drop the tenant database or user manually."
-                    );
-                }
+        if ($dbSanitized !== '') {
+            try {
+                DB::connection('landlord')->statement('DROP DATABASE IF EXISTS `'.$dbSanitized.'`');
+            } catch (\Throwable $exception) {
+                Log::warning('Failed to drop tenant database after tenant delete.', [
+                    'database' => $dbSanitized,
+                    'error' => $exception->getMessage(),
+                ]);
             }
-        } catch (\Throwable $exception) {
-            Log::error('Tenant deletion failed.', [
-                'tenant_id' => $tenantId,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return back()->withErrors([
-                'delete' => 'Could not delete tenant: '.$exception->getMessage(),
-            ]);
         }
 
-        return back()->with('success', "Tenant {$tenantName} was permanently removed.");
+        if ($dbUserSanitized !== '') {
+            try {
+                DB::connection('landlord')->statement("DROP USER IF EXISTS '{$dbUserSanitized}'@'%'");
+                DB::connection('landlord')->statement('FLUSH PRIVILEGES');
+            } catch (\Throwable $exception) {
+                Log::warning('Failed to drop tenant database user after tenant delete.', [
+                    'db_username' => $dbUserSanitized,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return redirect()->route('admin.tenants')->with('success', "Tenant \"{$tenantName}\" has been permanently deleted.");
     }
 
     private function logLifecycleAction(

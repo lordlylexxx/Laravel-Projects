@@ -13,7 +13,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Central\UpdateController as CentralUpdateController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
-use App\Http\Controllers\Owner\TenantUserController;
+use App\Http\Controllers\Owner\OnboardingPaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SystemUpdatePageController;
 use App\Http\Controllers\TenantLandingController;
@@ -26,20 +26,22 @@ $registerCentralRoutes = function () {
     Route::middleware('central.port')->group(function () {
         // Landing page route (accessible to everyone)
         Route::get('/', function () {
-            $featuredTenants = Tenant::query()
-                ->with('owner')
-                ->where('domain_enabled', true)
-                ->whereIn('subscription_status', ['trialing', 'active'])
-                ->latest('id')
-                ->take(8)
-                ->get();
+            try {
+                $featuredTenants = Tenant::query()
+                    ->with('owner')
+                    ->where('domain_enabled', true)
+                    ->whereIn('subscription_status', ['trialing', 'active'])
+                    ->latest('id')
+                    ->take(8)
+                    ->get();
+            } catch (\Throwable) {
+                $featuredTenants = collect();
+            }
 
             return view('landingpage', compact('featuredTenants'));
         })->name('landing');
 
-        Route::get('/about', function () {
-            return view('about');
-        })->name('about');
+        Route::view('/about', 'about')->name('about');
 
         Route::prefix('system-updates')->name('updates.')->group(function () {
             Route::get('/check', [CentralUpdateController::class, 'check'])->name('check');
@@ -104,7 +106,6 @@ $registerCentralRoutes = function () {
             // Messages - accessible to all authenticated users
             Route::prefix('messages')->name('messages.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\MessageController::class, 'index'])->name('index');
-                Route::post('/mark-all-read', [\App\Http\Controllers\MessageController::class, 'markAllAsRead'])->name('mark-all-read');
                 Route::get('/{message}', [\App\Http\Controllers\MessageController::class, 'show'])->name('show');
                 Route::post('/', [\App\Http\Controllers\MessageController::class, 'store'])->name('store');
                 Route::post('/{message}/reply', [\App\Http\Controllers\MessageController::class, 'reply'])->name('reply');
@@ -139,8 +140,13 @@ $registerCentralRoutes = function () {
         });
 
         // ============ OWNER ROUTES ============
-        // Only owners can access these routes
-        Route::middleware(['auth', 'tenant.context', 'owner'])->prefix('owner')->name('owner.')->group(function () {
+        Route::middleware(['auth', 'tenant.context', 'owner'])->prefix('owner')->group(function () {
+            Route::get('/onboarding/payment', [OnboardingPaymentController::class, 'showPayment'])->name('owner.onboarding.payment');
+            Route::post('/onboarding/payment', [OnboardingPaymentController::class, 'submitPayment'])->name('owner.onboarding.payment.submit');
+            Route::get('/onboarding/status', [OnboardingPaymentController::class, 'status'])->name('owner.onboarding.status');
+        });
+
+        Route::middleware(['auth', 'tenant.context', 'owner', 'owner.onboarded'])->prefix('owner')->name('owner.')->group(function () {
             // Owner Dashboard
             Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
             Route::get('/reports/monthly', [OwnerDashboardController::class, 'monthlyReport'])->name('reports.monthly');
@@ -168,14 +174,6 @@ $registerCentralRoutes = function () {
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
             });
-
-            Route::prefix('users')->name('users.')->group(function () {
-                Route::get('/', [TenantUserController::class, 'index'])->name('index');
-                Route::post('/', [TenantUserController::class, 'store'])->name('store');
-                Route::put('/{user}', [TenantUserController::class, 'update'])->name('update');
-                Route::put('/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('permissions');
-                Route::put('/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('activate');
-            });
         });
 
         // ============ ADMIN ROUTES ============
@@ -195,8 +193,11 @@ $registerCentralRoutes = function () {
             Route::put('/tenants/{tenant}/plan', [AdminDashboardController::class, 'updateTenantPlan'])->name('tenants.update-plan');
             Route::put('/tenants/{tenant}/subscription', [AdminDashboardController::class, 'updateTenantSubscription'])->name('tenants.update-subscription');
             Route::put('/tenants/{tenant}/profile', [AdminDashboardController::class, 'updateTenantProfile'])->name('tenants.update-profile');
+            Route::put('/tenants/{tenant}/bandwidth-quota', [AdminDashboardController::class, 'updateTenantBandwidthQuota'])->name('tenants.update-bandwidth-quota');
             Route::put('/tenants/{tenant}/domain-status', [AdminDashboardController::class, 'toggleTenantDomain'])->name('tenants.toggle-domain');
             Route::post('/tenants/{tenant}/resend-onboarding-email', [AdminDashboardController::class, 'resendTenantOnboardingEmail'])->name('tenants.resend-onboarding-email');
+            Route::post('/tenants/{tenant}/approve-onboarding', [AdminDashboardController::class, 'approveTenantOnboarding'])->name('tenants.approve-onboarding');
+            Route::post('/tenants/{tenant}/reject-onboarding', [AdminDashboardController::class, 'rejectTenantOnboarding'])->name('tenants.reject-onboarding');
             Route::delete('/tenants/{tenant}', [AdminDashboardController::class, 'destroyTenant'])->name('tenants.destroy');
 
             // Booking Reports
@@ -224,7 +225,7 @@ foreach ($centralHosts as $host) {
     Route::domain($host)->group($registerCentralRoutes);
 }
 
-Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.session'])
+Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.session', 'tenant.bandwidth'])
     ->group(function () {
         Route::get('/', [TenantLandingController::class, 'showPublic'])
             ->name('landing');
@@ -287,27 +288,11 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
             });
-
-            Route::prefix('users')->name('users.')->group(function () {
-                Route::get('/', [TenantUserController::class, 'index'])->name('index');
-                Route::post('/', [TenantUserController::class, 'store'])->name('store');
-                Route::put('/{user}', [TenantUserController::class, 'update'])->name('update');
-                Route::put('/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('permissions');
-                Route::put('/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('activate');
-            });
         });
 
         Route::middleware('auth')->group(function () {
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
                 ->name('messages.index');
-
-            Route::post('/messages/mark-all-read', [\App\Http\Controllers\MessageController::class, 'markAllAsRead'])
-                ->name('messages.mark-all-read');
-
-            Route::middleware('tenant.manager')->group(function () {
-                Route::get('/messages/create', [\App\Http\Controllers\MessageController::class, 'create'])
-                    ->name('messages.create');
-            });
 
             Route::get('/messages/{message}', [\App\Http\Controllers\MessageController::class, 'show'])
                 ->name('messages.show');

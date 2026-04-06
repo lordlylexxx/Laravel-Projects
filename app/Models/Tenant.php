@@ -17,6 +17,14 @@ class Tenant extends BaseTenant
 
     public const PLAN_PRO = 'pro';
 
+    public const ONBOARDING_AWAITING_PAYMENT = 'awaiting_payment';
+
+    public const ONBOARDING_PENDING_APPROVAL = 'pending_approval';
+
+    public const ONBOARDING_APPROVED = 'approved';
+
+    public const ONBOARDING_REJECTED = 'rejected';
+
     protected $fillable = [
         'name',
         'slug',
@@ -48,6 +56,14 @@ class Tenant extends BaseTenant
         'database_provisioned',
         'database_provisioned_at',
         'provisioning_error',
+        'onboarding_status',
+        'payment_reference',
+        'payment_submitted_at',
+        'onboarding_approved_at',
+        'onboarding_approved_by',
+        'bandwidth_usage_bytes',
+        'bandwidth_quota_bytes',
+        'bandwidth_last_recorded_at',
     ];
 
     protected function casts(): array
@@ -63,12 +79,32 @@ class Tenant extends BaseTenant
             'db_password' => 'encrypted',
             'database_provisioned' => 'boolean',
             'database_provisioned_at' => 'datetime',
+            'payment_submitted_at' => 'datetime',
+            'onboarding_approved_at' => 'datetime',
             'metadata' => 'array',
             'feature_bookings' => 'boolean',
             'feature_messaging' => 'boolean',
             'feature_reviews' => 'boolean',
             'feature_payments' => 'boolean',
+            'bandwidth_usage_bytes' => 'integer',
+            'bandwidth_quota_bytes' => 'integer',
+            'bandwidth_last_recorded_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Share of quota used (0–100), or null when no quota is set.
+     */
+    public function bandwidthUsagePercent(): ?float
+    {
+        $quota = (int) ($this->bandwidth_quota_bytes ?? 0);
+        if ($quota < 1) {
+            return null;
+        }
+
+        $used = (int) ($this->bandwidth_usage_bytes ?? 0);
+
+        return round(min(100, ($used / $quota) * 100), 1);
     }
 
     public function publicUrl(): string
@@ -86,6 +122,25 @@ class Tenant extends BaseTenant
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    public function onboardingApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'onboarding_approved_by');
+    }
+
+    public function isRegistrationFullyApproved(): bool
+    {
+        return (string) ($this->onboarding_status ?? self::ONBOARDING_APPROVED) === self::ONBOARDING_APPROVED
+            && (bool) $this->database_provisioned;
+    }
+
+    public function mockSubscriptionAmount(): float
+    {
+        $details = self::getPlanDetails();
+        $plan = (string) ($this->plan ?? self::PLAN_BASIC);
+
+        return (float) ($details[$plan]['price'] ?? $details[self::PLAN_BASIC]['price'] ?? 0);
     }
 
     public function users(): HasMany

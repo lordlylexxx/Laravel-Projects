@@ -48,20 +48,43 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
         $this->info("Database user provisioned: {$username}");
     }
 
+    $migrateExit = 1;
+
     $tenant->makeCurrent();
 
     try {
-        Artisan::call('migrate', [
+        $migrateExit = Artisan::call('migrate', [
             '--database' => config('multitenancy.tenant_database_connection_name', 'tenant'),
             '--path' => 'database/migrations/tenant',
             '--force' => true,
         ]);
 
         $this->line(Artisan::output());
-        $this->info('Tenant schema migrated successfully.');
+        if ($migrateExit === 0) {
+            $this->info('Tenant schema migrated successfully.');
+        } else {
+            $this->error('Tenant migrations failed.');
+        }
     } finally {
         Tenant::forgetCurrent();
     }
+
+    $tenant->refresh();
+
+    if ($migrateExit !== 0) {
+        $tenant->update([
+            'database_provisioned' => false,
+            'provisioning_error' => 'Tenant migrate exit code: '.$migrateExit,
+        ]);
+
+        return 1;
+    }
+
+    $tenant->update([
+        'database_provisioned' => true,
+        'database_provisioned_at' => now(),
+        'provisioning_error' => null,
+    ]);
 
     $this->info('Tenant database provisioning completed.');
 
@@ -73,7 +96,7 @@ Artisan::command('tenants:rename-domains {--dry-run}', function () {
     $dryRun = (bool) $this->option('dry-run');
 
     $this->info('Backfilling tenant slugs/domains using Business/App Name...');
-    $this->line('Base domain: ' . $baseDomain);
+    $this->line('Base domain: '.$baseDomain);
     $this->line($dryRun ? 'Mode: DRY RUN (no changes will be saved)' : 'Mode: APPLY');
 
     $updated = 0;
@@ -81,22 +104,22 @@ Artisan::command('tenants:rename-domains {--dry-run}', function () {
 
     Tenant::query()->orderBy('id')->chunkById(100, function ($tenants) use ($baseDomain, $dryRun, &$updated, &$skipped) {
         foreach ($tenants as $tenant) {
-            $sourceName = trim((string) ($tenant->app_title ?: $tenant->name ?: ('tenant-' . $tenant->id)));
+            $sourceName = trim((string) ($tenant->app_title ?: $tenant->name ?: ('tenant-'.$tenant->id)));
             $baseSlug = Str::slug($sourceName);
 
             if ($baseSlug === '') {
-                $baseSlug = 'tenant-' . $tenant->id;
+                $baseSlug = 'tenant-'.$tenant->id;
             }
 
             $baseSlug = substr($baseSlug, 0, 48);
 
             $newSlug = $baseSlug;
-            $newDomain = $newSlug . '.' . $baseDomain;
+            $newDomain = $newSlug.'.'.$baseDomain;
 
             if (Tenant::query()->where('id', '!=', $tenant->id)->where('slug', $newSlug)->exists()) {
-                $suffix = '-' . $tenant->id;
-                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))) . $suffix;
-                $newDomain = $newSlug . '.' . $baseDomain;
+                $suffix = '-'.$tenant->id;
+                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))).$suffix;
+                $newDomain = $newSlug.'.'.$baseDomain;
             }
 
             $counter = 2;
@@ -104,15 +127,16 @@ Artisan::command('tenants:rename-domains {--dry-run}', function () {
                 ->where(function ($query) use ($newSlug, $newDomain) {
                     $query->where('slug', $newSlug)->orWhere('domain', $newDomain);
                 })->exists()) {
-                $suffix = '-' . $tenant->id . '-' . $counter;
-                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))) . $suffix;
-                $newDomain = $newSlug . '.' . $baseDomain;
+                $suffix = '-'.$tenant->id.'-'.$counter;
+                $newSlug = substr($baseSlug, 0, max(1, 63 - strlen($suffix))).$suffix;
+                $newDomain = $newSlug.'.'.$baseDomain;
                 $counter++;
             }
 
             if ($tenant->slug === $newSlug && $tenant->domain === $newDomain) {
                 $skipped++;
                 $this->line("= Tenant {$tenant->id} unchanged ({$tenant->domain})");
+
                 continue;
             }
 

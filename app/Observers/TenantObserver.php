@@ -13,7 +13,10 @@ class TenantObserver
      */
     public function created(Tenant $tenant): void
     {
-        // Automatically provision the database for the new tenant
+        if ((string) ($tenant->onboarding_status ?? Tenant::ONBOARDING_APPROVED) !== Tenant::ONBOARDING_APPROVED) {
+            return;
+        }
+
         $this->provisionTenantDatabase($tenant);
     }
 
@@ -22,11 +25,12 @@ class TenantObserver
      */
     private function provisionTenantDatabase(Tenant $tenant): void
     {
-        if (!$tenant->database) {
+        if (! $tenant->database) {
             Log::warning('Tenant has no database name assigned.', [
                 'tenant_id' => $tenant->id,
                 'tenant_name' => $tenant->name,
             ]);
+
             return;
         }
 
@@ -63,7 +67,7 @@ class TenantObserver
 
                 $tenant->update([
                     'database_provisioned' => false,
-                    'provisioning_error' => 'Command returned exit code: ' . $exitCode,
+                    'provisioning_error' => 'Command returned exit code: '.$exitCode,
                 ]);
             }
         } catch (\Throwable $exception) {

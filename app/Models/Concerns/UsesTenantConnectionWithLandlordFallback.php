@@ -37,7 +37,8 @@ trait UsesTenantConnectionWithLandlordFallback
             return true;
         }
 
-        if ($appInstance === 'central') {
+        // Keep CLI / non-request contexts central when explicitly configured.
+        if ($appInstance === 'central' && ! app()->bound('request')) {
             return false;
         }
 
@@ -45,9 +46,12 @@ trait UsesTenantConnectionWithLandlordFallback
             return false;
         }
 
-        $serverPort = (int) request()->server('SERVER_PORT', 0);
-        $centralPort = (int) env('CENTRAL_PORT', 8000);
+        $requestHost = request()->getHost();
+        $centralDomain = (string) env(
+            'CENTRAL_DOMAIN',
+            parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'
+        );
 
-        return $serverPort > 0 && $serverPort !== $centralPort;
+        return ! in_array($requestHost, [$centralDomain, 'localhost', '127.0.0.1', '::1'], true);
     }
 }

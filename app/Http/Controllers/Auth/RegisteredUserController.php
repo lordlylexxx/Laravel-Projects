@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Mail\TenantAdminProvisionedMail;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
@@ -11,15 +10,9 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
-use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
 
 class RegisteredUserController extends Controller
 {
@@ -105,7 +98,6 @@ class RegisteredUserController extends Controller
                     'logo_path' => null,
                 ];
 
-                // Handle logo upload
                 if ($request->hasFile('logo_path')) {
                     $logoPath = $request->file('logo_path')->store('tenant-logos', 'public');
                     $customizationData['logo_path'] = $logoPath;
@@ -115,20 +107,18 @@ class RegisteredUserController extends Controller
             $provisionedTenant = $user->ensureTenant($customizationData);
 
             if ($provisionedTenant) {
-                $this->provisionTenantAdminAndSendEmail($user, $provisionedTenant);
-
                 TenantLifecycleLog::create([
                     'tenant_id' => $provisionedTenant->id,
                     'actor_user_id' => $user->id,
-                    'action' => 'tenant.onboarding.completed',
-                    'reason' => 'Owner signup provisioning completed.',
+                    'action' => 'tenant.onboarding.started',
+                    'reason' => 'Owner registered; awaiting mock payment and admin approval.',
                     'before_state' => [
                         'owner_email' => $user->email,
                     ],
                     'after_state' => [
                         'tenant_name' => $provisionedTenant->name,
                         'tenant_slug' => $provisionedTenant->slug,
-                        'tenant_url' => $provisionedTenant->publicUrl(),
+                        'onboarding_status' => $provisionedTenant->onboarding_status,
                     ],
                 ]);
             }
@@ -136,7 +126,6 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        // For tenant registrations, redirect to landing page; otherwise to dashboard
         if ($isTenantSignup) {
             Auth::login($user);
 
@@ -145,102 +134,16 @@ class RegisteredUserController extends Controller
         }
 
         if ($user->isOwner() && $provisionedTenant) {
-            return redirect()->away($provisionedTenant->publicUrl().'/login?portal=admin')
-                ->with('success', 'Tenant created successfully. Use the admin credentials sent to your email to sign in to your tenant portal.');
+            Auth::login($user);
+
+            return redirect()
+                ->route('owner.onboarding.payment')
+                ->with('success', 'Account created. Complete mock payment to submit your space for approval.');
         }
 
         Auth::login($user);
 
         return redirect($user->getDashboardRoute())
             ->with('success', 'Welcome to Impasugong Accommodations! Your account has been created.');
-    }
-
-    /**
-     * Create a tenant-scoped admin account and send credentials to the owner email.
-     */
-    private function provisionTenantAdminAndSendEmail(User $owner, Tenant $tenant): void
-    {
-        try {
-            $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
-            $plainPassword = Str::random(12);
-
-            // Make tenant current to ensure admin user is created in tenant database
-            app(MakeTenantCurrentAction::class)->execute($tenant);
-
-            try {
-                $tenantAdmin = User::create([
-                    'name' => $tenant->name.' Admin',
-                    'email' => $adminEmail,
-                    'password' => Hash::make($plainPassword),
-                    'role' => User::ROLE_ADMIN,
-                    'tenant_id' => $tenant->id,
-                    'phone' => null,
-                ]);
-
-                Log::info('Tenant admin account created successfully.', [
-                    'tenant_id' => $tenant->id,
-                    'admin_user_id' => $tenantAdmin->id,
-                    'admin_email' => $adminEmail,
-                ]);
-            } finally {
-                // Restore no tenant context
-                app(ForgetCurrentTenantAction::class)->execute($tenant);
-            }
-
-            // Send email to owner with admin credentials
-            try {
-                Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
-                    ownerName: $owner->name,
-                    businessName: $tenant->name,
-                    businessUrl: $tenant->publicUrl(),
-                    adminEmail: $tenantAdmin->email,
-                    adminPassword: $plainPassword
-                ));
-
-                Log::info('Tenant admin provisioning email sent.', [
-                    'owner_email' => $owner->email,
-                    'tenant_id' => $tenant->id,
-                    'admin_email' => $tenantAdmin->email,
-                ]);
-            } catch (\Throwable $exception) {
-                Log::warning('Failed to send tenant admin provisioning email.', [
-                    'owner_user_id' => $owner->id,
-                    'tenant_id' => $tenant->id,
-                    'admin_email' => $adminEmail,
-                    'error' => $exception->getMessage(),
-                ]);
-            }
-        } catch (\Throwable $exception) {
-            Log::error('Failed to provision tenant admin account.', [
-                'owner_user_id' => $owner->id,
-                'tenant_id' => $tenant->id,
-                'error' => $exception->getMessage(),
-                'trace' => $exception->getTraceAsString(),
-            ]);
-        }
-    }
-
-    /**
-     * Build a unique tenant admin email for login credentials.
-     */
-    private function buildUniqueTenantAdminEmail(Tenant $tenant): string
-    {
-        $base = 'admin@'.($tenant->domain ?: ($tenant->slug.'.localhost'));
-
-        // Check in landlord database to avoid duplicate emails globally
-        if (! DB::connection('landlord')->table('users')->where('email', $base)->exists()) {
-            return $base;
-        }
-
-        $prefix = 'admin+'.($tenant->slug ?: 'tenant');
-        $domain = 'impastay.local';
-        $counter = 1;
-
-        do {
-            $candidate = $prefix.$counter.'@'.$domain;
-            $counter++;
-        } while (DB::connection('landlord')->table('users')->where('email', $candidate)->exists());
-
-        return $candidate;
     }
 }

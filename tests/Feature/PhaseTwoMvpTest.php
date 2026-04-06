@@ -60,8 +60,8 @@ it('filters owner bookings by selected status', function () {
         ->get('/owner/bookings?status=pending');
 
     $response->assertOk();
-    $response->assertSee((string) $pendingBooking->id);
-    $response->assertDontSee((string) $confirmedBooking->id);
+    $response->assertSee('Booking #'.$pendingBooking->id);
+    $response->assertDontSee('Booking #'.$confirmedBooking->id);
 });
 
 it('saves profile notification preferences', function () {
