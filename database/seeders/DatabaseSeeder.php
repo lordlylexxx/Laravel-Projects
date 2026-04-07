@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Accommodation;
-use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -56,13 +54,11 @@ class DatabaseSeeder extends Seeder
                     'address' => 'Impasugong, Bukidnon',
                 ];
                 User::create($ownerData);
-                $this->command->info("Owner user created: {$email}");
             }
         }
 
-        if (filter_var(env('SEED_EXISTING_TENANT_DATABASES', true), FILTER_VALIDATE_BOOL)) {
-            $this->call(ExistingTenantDatabasesSeeder::class);
-        }
+        // Link landlord Tenant rows to existing MySQL tenant DBs only when needed:
+        // php artisan db:seed --class=ExistingTenantDatabasesSeeder
 
         // Create Clients (only if doesn't exist)
         $clientEmails = [
@@ -71,7 +67,6 @@ class DatabaseSeeder extends Seeder
             'emily.santos@email.com',
         ];
 
-        $clientUsers = [];
         foreach ($clientEmails as $email) {
             if (! User::where('email', $email)->exists()) {
                 $clientData = [
@@ -89,100 +84,17 @@ class DatabaseSeeder extends Seeder
                         'emily.santos@email.com' => '+63 967 890 1234',
                     },
                 ];
-                $clientUsers[] = User::create($clientData);
-                $this->command->info("Client user created: {$email}");
-            } else {
-                $clientUsers[] = User::where('email', $email)->first();
+                User::create($clientData);
             }
         }
 
-        // Check if accommodations already exist
-        if (Accommodation::count() === 0) {
-            $this->call(AccommodationSeeder::class);
-        }
+        // Accommodations and bookings live in tenant databases only — not seeded on the central (landlord) DB.
+        // Per-tenant demo data: make tenant current, then e.g. php artisan db:seed --class=AccommodationSeeder
 
-        // Get all accommodations
-        $allAccommodations = Accommodation::all();
-
-        if ($allAccommodations->isEmpty()) {
-            // Create Accommodations if Seeder didn't run
-            $this->command->warn('No accommodations found. Please run: php artisan db:seed --class=AccommodationSeeder');
-        }
-
-        // Create Sample Bookings
-        $bookings = [
-            [
-                'client_id' => $clientUsers[0]->id ?? 1,
-                'accommodation_id' => $allAccommodations[0]->id ?? 1,
-                'check_in_date' => now()->addDays(5)->format('Y-m-d'),
-                'check_out_date' => now()->addDays(8)->format('Y-m-d'),
-                'number_of_guests' => 2,
-                'total_price' => 4500,
-                'status' => 'pending',
-                'client_message' => 'Hi, I would like to book this property for 3 nights.',
-            ],
-            [
-                'client_id' => $clientUsers[1]->id ?? 2,
-                'accommodation_id' => $allAccommodations[1]->id ?? 2,
-                'check_in_date' => now()->addDays(10)->format('Y-m-d'),
-                'check_out_date' => now()->addDays(15)->format('Y-m-d'),
-                'number_of_guests' => 4,
-                'total_price' => 16800,
-                'status' => 'confirmed',
-                'client_message' => 'Planning a family vacation.',
-            ],
-            [
-                'client_id' => $clientUsers[2]->id ?? 3,
-                'accommodation_id' => $allAccommodations[2]->id ?? 3,
-                'check_in_date' => now()->subDays(3)->format('Y-m-d'),
-                'check_out_date' => now()->subDays(1)->format('Y-m-d'),
-                'number_of_guests' => 1,
-                'total_price' => 2400,
-                'status' => 'completed',
-                'client_message' => 'Business trip.',
-            ],
-            [
-                'client_id' => $clientUsers[0]->id ?? 1,
-                'accommodation_id' => $allAccommodations[3]->id ?? 4,
-                'check_in_date' => now()->addDays(20)->format('Y-m-d'),
-                'check_out_date' => now()->addDays(25)->format('Y-m-d'),
-                'number_of_guests' => 6,
-                'total_price' => 17500,
-                'status' => 'pending',
-                'client_message' => 'Group adventure trip!',
-            ],
-            [
-                'client_id' => $clientUsers[1]->id ?? 2,
-                'accommodation_id' => $allAccommodations[4]->id ?? 5,
-                'check_in_date' => now()->subDays(10)->format('Y-m-d'),
-                'check_out_date' => now()->subDays(8)->format('Y-m-d'),
-                'number_of_guests' => 2,
-                'total_price' => 3200,
-                'status' => 'completed',
-                'client_message' => 'Weekend getaway.',
-            ],
-        ];
-
-        foreach ($bookings as &$booking) {
-            $booking['tenant_id'] = Accommodation::whereKey($booking['accommodation_id'])->value('tenant_id');
-        }
-        unset($booking);
-
-        foreach ($bookings as $booking) {
-            if (! Booking::where('client_id', $booking['client_id'])
-                ->where('accommodation_id', $booking['accommodation_id'])
-                ->exists()) {
-                Booking::create($booking);
-            }
-        }
-
-        $this->command->info('Sample bookings created.');
         $this->command->info('========================================');
         $this->command->info('Database seeding completed!');
         $this->command->info('Test accounts:');
         $this->command->info('  - Admin: admin@impasugong.gov.ph / password');
-        $this->command->info('  - Owner: sarah.chen@email.com / password');
-        $this->command->info('  - Client: juan.miguel@email.com / password');
 
         // Ensure newly created users remain synchronized with RBAC roles.
         User::query()->select(['id', 'role'])->chunkById(200, function ($users): void {

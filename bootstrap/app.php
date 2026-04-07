@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.manager' => \App\Http\Middleware\EnsureUserIsOwnerOrTenantAdmin::class,
             'tenant.context' => \App\Http\Middleware\SetCurrentTenant::class,
             'tenant.required' => \Spatie\Multitenancy\Http\Middleware\NeedsTenant::class,
+            'tenant.permissions_team' => \App\Http\Middleware\SetSpatiePermissionsTeamForTenant::class,
             'tenant.session' => \App\Http\Middleware\EnsureTenantSessionIsSynchronized::class,
             'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
             'tenant.bandwidth' => \App\Http\Middleware\RecordTenantBandwidthUsage::class,

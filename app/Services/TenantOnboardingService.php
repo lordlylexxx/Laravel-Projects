@@ -49,11 +49,12 @@ class TenantOnboardingService
     }
 
     /**
-     * Approve tenant registration: provision DB (if needed), activate domain, create tenant admin + email.
+     * Approve tenant registration: provision DB (if needed), activate domain, create tenant admin + email credentials to owner.
      *
      * @param  bool  $allowFromPendingPayment  When true, allows approving from awaiting_payment (e.g. seed / admin override).
+     * @return array{success: bool, credentials_emailed: bool|null} credentials_emailed null when skipped (e.g. no owner email)
      */
-    public function approveRegistration(Tenant $tenant, ?User $actor, bool $allowFromPendingPayment = false): bool
+    public function approveRegistration(Tenant $tenant, ?User $actor, bool $allowFromPendingPayment = false): array
     {
         $allowed = [Tenant::ONBOARDING_PENDING_APPROVAL];
         if ($allowFromPendingPayment) {
@@ -61,15 +62,15 @@ class TenantOnboardingService
         }
 
         if ($tenant->onboarding_status === Tenant::ONBOARDING_APPROVED && $tenant->database_provisioned) {
-            return true;
+            return ['success' => true, 'credentials_emailed' => null];
         }
 
         if (! in_array($tenant->onboarding_status, $allowed, true)) {
-            return false;
+            return ['success' => false, 'credentials_emailed' => null];
         }
 
         if (! $this->provisionDatabaseIfNeeded($tenant)) {
-            return false;
+            return ['success' => false, 'credentials_emailed' => null];
         }
 
         $tenant->refresh();
@@ -83,11 +84,12 @@ class TenantOnboardingService
         ]);
 
         $owner = $tenant->owner;
+        $credentialsEmailed = null;
         if ($owner) {
-            $this->provisionTenantAdminAndNotify($owner, $tenant);
+            $credentialsEmailed = $this->provisionTenantAdminAndNotify($owner, $tenant);
         }
 
-        return true;
+        return ['success' => true, 'credentials_emailed' => $credentialsEmailed];
     }
 
     public function rejectRegistration(Tenant $tenant, User $actor, string $reason): void
@@ -114,14 +116,25 @@ class TenantOnboardingService
         ]);
     }
 
-    public function provisionTenantAdminAndNotify(User $owner, Tenant $tenant): void
+    /**
+     * Create or update the dedicated tenant-database admin user, assign RBAC, and email login details to the owner.
+     * If an admin already exists, the password is rotated and the new random password is emailed (approval / resend flows).
+     */
+    public function provisionTenantAdminAndNotify(User $owner, Tenant $tenant): bool
     {
+        if ($owner->email === null || $owner->email === '') {
+            Log::warning('Tenant admin notify skipped: owner has no email.', ['tenant_id' => $tenant->id]);
+
+            return false;
+        }
+
         $tenantAdmin = null;
-        $adminEmail = '';
         $plainPassword = '';
 
         try {
             app(MakeTenantCurrentAction::class)->execute($tenant);
+            $previousTeam = getPermissionsTeamId();
+            setPermissionsTeamId($tenant->id);
 
             try {
                 $existing = User::query()
@@ -130,64 +143,72 @@ class TenantOnboardingService
                     ->oldest('id')
                     ->first();
 
+                $plainPassword = Str::random(16);
+
                 if ($existing) {
-                    return;
+                    $existing->update([
+                        'password' => Hash::make($plainPassword),
+                    ]);
+                    $tenantAdmin = $existing->fresh();
+
+                    Log::info('Tenant admin password rotated for credential email.', [
+                        'tenant_id' => $tenant->id,
+                        'admin_user_id' => $tenantAdmin->id,
+                        'admin_email' => $tenantAdmin->email,
+                    ]);
+                } else {
+                    $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
+
+                    $tenantAdmin = User::create([
+                        'name' => $tenant->name.' Admin',
+                        'email' => $adminEmail,
+                        'password' => Hash::make($plainPassword),
+                        'role' => User::ROLE_ADMIN,
+                        'tenant_id' => $tenant->id,
+                        'phone' => null,
+                    ]);
+
+                    Log::info('Tenant admin account created successfully.', [
+                        'tenant_id' => $tenant->id,
+                        'admin_user_id' => $tenantAdmin->id,
+                        'admin_email' => $adminEmail,
+                    ]);
                 }
 
-                $adminEmail = $this->buildUniqueTenantAdminEmail($tenant);
-                $plainPassword = Str::random(12);
-
-                $tenantAdmin = User::create([
-                    'name' => $tenant->name.' Admin',
-                    'email' => $adminEmail,
-                    'password' => Hash::make($plainPassword),
-                    'role' => User::ROLE_ADMIN,
-                    'tenant_id' => $tenant->id,
-                    'phone' => null,
-                ]);
-
-                Log::info('Tenant admin account created successfully.', [
-                    'tenant_id' => $tenant->id,
-                    'admin_user_id' => $tenantAdmin->id,
-                    'admin_email' => $adminEmail,
-                ]);
+                $tenantAdmin->syncRbacFromLegacyRole();
             } finally {
+                setPermissionsTeamId($previousTeam);
                 app(ForgetCurrentTenantAction::class)->execute($tenant);
             }
 
             if ($tenantAdmin === null) {
-                return;
+                return false;
             }
 
-            try {
-                Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
-                    ownerName: $owner->name,
-                    businessName: $tenant->name,
-                    businessUrl: $tenant->publicUrl(),
-                    adminEmail: $tenantAdmin->email,
-                    adminPassword: $plainPassword
-                ));
+            Mail::to($owner->email)->send(new TenantAdminProvisionedMail(
+                ownerName: $owner->name,
+                businessName: $tenant->name,
+                businessUrl: $tenant->publicUrl(),
+                adminEmail: $tenantAdmin->email,
+                adminPassword: $plainPassword
+            ));
 
-                Log::info('Tenant admin provisioning email sent.', [
-                    'owner_email' => $owner->email,
-                    'tenant_id' => $tenant->id,
-                    'admin_email' => $tenantAdmin->email,
-                ]);
-            } catch (\Throwable $exception) {
-                Log::warning('Failed to send tenant admin provisioning email.', [
-                    'owner_user_id' => $owner->id,
-                    'tenant_id' => $tenant->id,
-                    'admin_email' => $adminEmail,
-                    'error' => $exception->getMessage(),
-                ]);
-            }
+            Log::info('Tenant admin provisioning email sent.', [
+                'owner_email' => $owner->email,
+                'tenant_id' => $tenant->id,
+                'admin_email' => $tenantAdmin->email,
+            ]);
+
+            return true;
         } catch (\Throwable $exception) {
-            Log::error('Failed to provision tenant admin account.', [
+            Log::error('Failed to provision tenant admin or send credentials email.', [
                 'owner_user_id' => $owner->id,
                 'tenant_id' => $tenant->id,
                 'error' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),
             ]);
+
+            return false;
         }
     }
 

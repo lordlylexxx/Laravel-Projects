@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Accommodation;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -13,6 +14,14 @@ class AccommodationSeeder extends Seeder
      */
     public function run(): void
     {
+        if (! app()->environment('testing') && ! Tenant::checkCurrent()) {
+            if ($this->command) {
+                $this->command->warn('AccommodationSeeder skipped: no current tenant (listings are not written to the central database).');
+            }
+
+            return;
+        }
+
         // Get or create owner users
         $owners = User::whereIn('role', ['owner', 'admin'])->get();
 
@@ -363,11 +372,6 @@ class AccommodationSeeder extends Seeder
                 'longitude' => $data['longitude'],
                 'images' => $data['images'],
             ]);
-
-            echo "Created: {$accommodation->name}\n";
         }
-
-        $this->command->info('Accommodation seeder completed successfully!');
-        $this->command->info('Total accommodations created: '.count($accommodations));
     }
 }

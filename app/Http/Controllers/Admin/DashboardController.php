@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\TenantDomainStatusChangedMail;
-use App\Mail\TenantOnboardingSummaryMail;
 use App\Mail\TenantSubscriptionChangedMail;
 use App\Models\Accommodation;
 use App\Models\Booking;
@@ -505,33 +504,24 @@ class DashboardController extends Controller
             'reason' => ['required', 'string', 'min:5', 'max:500'],
         ]);
 
-        $tenantAdmin = User::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('role', User::ROLE_ADMIN)
-            ->oldest('id')
-            ->first();
+        $owner = $tenant->owner;
 
-        if (! $tenant->owner?->email || ! $tenantAdmin?->email) {
-            return back()->with('success', "Unable to resend onboarding email: tenant owner/admin email is missing for {$tenant->name}.");
+        if (! $owner?->email) {
+            return back()->with('success', "Unable to resend credentials: tenant owner email is missing for {$tenant->name}.");
         }
 
-        try {
-            Mail::to($tenant->owner->email)->send(new TenantOnboardingSummaryMail(
-                ownerName: $tenant->owner->name,
-                tenantName: $tenant->name,
-                businessUrl: $tenant->publicUrl(),
-                tenantAdminEmail: $tenantAdmin->email,
-                resetPasswordUrl: rtrim($tenant->publicUrl(), '/').'/forgot-password',
-                reason: $validated['reason'],
-                changedBy: (string) ($request->user()?->name ?? 'System')
-            ));
-        } catch (\Throwable $exception) {
-            Log::warning('Failed to resend tenant onboarding email.', [
+        if (! $tenant->database_provisioned) {
+            return back()->with('success', "Unable to resend credentials: tenant database is not provisioned for {$tenant->name}.");
+        }
+
+        $sent = app(TenantOnboardingService::class)->provisionTenantAdminAndNotify($owner, $tenant);
+
+        if (! $sent) {
+            Log::warning('Failed to resend tenant admin credentials email.', [
                 'tenant_id' => $tenant->id,
-                'error' => $exception->getMessage(),
             ]);
 
-            return back()->with('success', "Failed to resend onboarding email for {$tenant->name}. Check logs for details.");
+            return back()->with('success', "Failed to resend tenant admin credentials for {$tenant->name}. Check logs for details.");
         }
 
         $this->logLifecycleAction(
@@ -540,17 +530,16 @@ class DashboardController extends Controller
             action: 'tenant.onboarding_email.resent',
             reason: $validated['reason'],
             before: [
-                'owner_email' => $tenant->owner->email,
-                'tenant_admin_email' => $tenantAdmin->email,
+                'owner_email' => $owner->email,
             ],
             after: [
-                'owner_email' => $tenant->owner->email,
-                'tenant_admin_email' => $tenantAdmin->email,
+                'owner_email' => $owner->email,
                 'resent_at' => now()->toDateTimeString(),
+                'includes_tenant_admin_password' => true,
             ]
         );
 
-        return back()->with('success', "Onboarding email resent for {$tenant->name}.");
+        return back()->with('success', "Tenant admin login and a new random password were emailed to {$owner->email}.");
     }
 
     public function approveTenantOnboarding(Request $request, Tenant $tenant): RedirectResponse
@@ -563,9 +552,9 @@ class DashboardController extends Controller
             return back()->with('success', "This tenant is not waiting for approval (current: {$tenant->onboarding_status}).");
         }
 
-        $ok = app(TenantOnboardingService::class)->approveRegistration($tenant, $request->user(), false);
+        $result = app(TenantOnboardingService::class)->approveRegistration($tenant, $request->user(), false);
 
-        if (! $ok) {
+        if (! $result['success']) {
             return back()->withErrors([
                 'onboarding' => 'Provisioning failed. Check tenant database configuration and application logs.',
             ]);
@@ -585,10 +574,17 @@ class DashboardController extends Controller
                 'onboarding_status' => Tenant::ONBOARDING_APPROVED,
                 'domain_enabled' => (bool) $tenant->domain_enabled,
                 'database_provisioned' => (bool) $tenant->database_provisioned,
+                'tenant_admin_credentials_emailed' => $result['credentials_emailed'],
             ]
         );
 
-        return back()->with('success', "{$tenant->name} approved, provisioned, and tenant admin credentials emailed to the owner.");
+        $successMessage = match ($result['credentials_emailed']) {
+            true => "{$tenant->name} approved and provisioned. Tenant admin login and a random password were emailed to the owner.",
+            false => "{$tenant->name} approved and provisioned, but sending tenant admin credentials by email failed. Check logs or use “Resend” from the tenant list.",
+            default => "{$tenant->name} approved and provisioned. No owner email on file, so tenant admin credentials were not emailed.",
+        };
+
+        return back()->with('success', $successMessage);
     }
 
     public function rejectTenantOnboarding(Request $request, Tenant $tenant): RedirectResponse

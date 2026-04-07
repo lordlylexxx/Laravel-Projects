@@ -24,8 +24,9 @@
         .flash { margin-bottom: 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.92rem; }
         .flash.success { background: #d1fae5; color: #065f46; }
         .flash.error { background: #fee2e2; color: #991b1b; }
+        .flash.warning { background: #fef3c7; color: #92400e; }
         .section-body { padding: 16px 20px; }
-        .form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+        .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
         .field input, .field select { width: 100%; padding: 10px 11px; border: 1px solid #d1d5db; border-radius: 8px; }
         .btn { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
         .btn.primary { background: #2e7d32; color: #fff; }
@@ -58,6 +59,9 @@
         @if($errors->any())
             <div class="flash error">{{ $errors->first() }}</div>
         @endif
+        @if(session('warning'))
+            <div class="flash warning">{{ session('warning') }}</div>
+        @endif
 
         <section class="panel">
             <div class="panel-header">
@@ -65,25 +69,30 @@
                 <p>Tenant: {{ $currentTenant->name }} | Manage users and role-based access within this tenant only.</p>
             </div>
             <div class="section-body">
+                @php
+                    $viewer = auth()->user();
+                    $tenantLeader = $viewer->isOwner()
+                        || ($viewer->isAdmin() && \App\Models\Tenant::checkCurrent());
+                @endphp
                 <div class="rbac-summary">
-                    <span class="rbac-chip">Your role: {{ ucfirst(auth()->user()->role) }}</span>
-                    @if(auth()->user()->isOwner())
+                    <span class="rbac-chip">Your role: {{ ucfirst($viewer->role) }}</span>
+                    @if($tenantLeader)
                         <span class="rbac-chip">Full tenant RBAC access</span>
                     @elseif($canAssignPermissions)
                         <span class="rbac-chip">Can assign permissions</span>
                     @else
-                        <span class="rbac-chip">Limited RBAC scope</span>
+                        <span class="rbac-chip">View-only RBAC in this table</span>
                     @endif
                 </div>
                 <p class="rbac-note">RBAC controls appear per-user in the table below. If a row is your own account, actions are read-only for safety.</p>
             </div>
             @if($canCreateUsers)
                 <div class="section-body">
+                    <p class="rbac-note" style="margin-bottom: 12px;">A secure random password is generated automatically and emailed to the new user. They should sign in and change it.</p>
                     <form action="/owner/users" method="POST" class="form-grid">
                         @csrf
                         <div class="field"><input type="text" name="name" placeholder="Full name" required></div>
                         <div class="field"><input type="email" name="email" placeholder="Email address" required></div>
-                        <div class="field"><input type="password" name="password" placeholder="Temporary password" required minlength="8"></div>
                         <div class="inline-form">
                             <select name="role" required>
                                 @foreach($assignableRoles as $role)
@@ -156,14 +165,23 @@
                                 </td>
                                 <td>
                                     @if($canAssignPermissions && auth()->id() !== $managedUser->id)
+                                        @php
+                                            $rowAssignablePermissions = $managedUser->isClient()
+                                                ? $assignableClientPermissions
+                                                : $assignableStaffPermissions;
+                                        @endphp
+                                        @if($managedUser->isClient())
+                                            <p style="color:#6b7280;font-size:0.82rem;margin-bottom:8px;max-width:320px;">Guest capabilities for this tenant (bookings, messages, profile). Staff permissions are not applied to clients.</p>
+                                        @endif
                                         <form action="/owner/users/{{ $managedUser->id }}/permissions" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="perm-grid">
-                                                @foreach($assignablePermissions as $permission)
+                                                @foreach($rowAssignablePermissions as $permission)
                                                     <label>
                                                         <input type="checkbox" name="permissions[]" value="{{ $permission }}" {{ $managedUser->hasPermission($permission) ? 'checked' : '' }}>
-                                                        {{ $permission }}
+                                                        <span>{{ \App\Models\User::permissionLabelForUsersTable($permission) }}</span>
+                                                        <span style="color:#9ca3af;font-size:0.75rem;display:block;">{{ $permission }}</span>
                                                     </label>
                                                 @endforeach
                                             </div>
@@ -171,11 +189,14 @@
                                         </form>
                                     @else
                                         @php
-                                            $effectivePermissions = $managedUser->getAllPermissions()->pluck('name')->values();
+                                            [$permissionLabels, $fromLegacyFallback] = $managedUser->permissionNamesForOwnerUsersTable();
                                         @endphp
-                                        @if($effectivePermissions->isNotEmpty())
+                                        @if($permissionLabels->isNotEmpty())
+                                            @if($fromLegacyFallback)
+                                                <span style="color:#6b7280;font-size:0.82rem;display:block;margin-bottom:6px;">Effective access (from role; Spatie not synced yet)</span>
+                                            @endif
                                             <div class="rbac-summary">
-                                                @foreach($effectivePermissions as $permissionName)
+                                                @foreach($permissionLabels as $permissionName)
                                                     <span class="rbac-chip">{{ $permissionName }}</span>
                                                 @endforeach
                                             </div>

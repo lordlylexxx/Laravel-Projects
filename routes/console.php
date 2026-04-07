@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Tenant;
+use Database\Seeders\TenantRbacSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
     }
 
     $migrateExit = 1;
+    $provisioningError = null;
 
     $tenant->makeCurrent();
 
@@ -62,8 +64,18 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
         $this->line(Artisan::output());
         if ($migrateExit === 0) {
             $this->info('Tenant schema migrated successfully.');
+
+            try {
+                $this->call(TenantRbacSeeder::class);
+                $this->info('Tenant RBAC seeded.');
+            } catch (\Throwable $e) {
+                $this->error('Tenant RBAC seed failed: '.$e->getMessage());
+                $migrateExit = 1;
+                $provisioningError = 'Tenant RBAC seed failed: '.$e->getMessage();
+            }
         } else {
             $this->error('Tenant migrations failed.');
+            $provisioningError = 'Tenant migrate exit code: '.$migrateExit;
         }
     } finally {
         Tenant::forgetCurrent();
@@ -74,7 +86,7 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
     if ($migrateExit !== 0) {
         $tenant->update([
             'database_provisioned' => false,
-            'provisioning_error' => 'Tenant migrate exit code: '.$migrateExit,
+            'provisioning_error' => $provisioningError ?? 'Tenant migrate exit code: '.$migrateExit,
         ]);
 
         return 1;
@@ -90,6 +102,63 @@ Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
 
     return 0;
 })->purpose('Create and grant a dedicated database for a tenant');
+
+Artisan::command('tenants:sync-rbac {tenantId?}', function (?string $tenantId = null) {
+    $id = ($tenantId !== null && $tenantId !== '') ? (int) $tenantId : null;
+
+    $query = Tenant::query()->orderBy('id');
+
+    if ($id !== null) {
+        $query->whereKey($id);
+    }
+
+    $tenants = $query->get();
+
+    if ($tenants->isEmpty()) {
+        $this->error($id !== null ? 'Tenant not found.' : 'No tenants to process.');
+
+        return 1;
+    }
+
+    foreach ($tenants as $tenant) {
+        if (! $tenant->database) {
+            $this->warn("Skipping tenant {$tenant->id}: no database configured.");
+
+            continue;
+        }
+
+        $this->line("Syncing RBAC for tenant {$tenant->id} ({$tenant->name})...");
+
+        $tenant->makeCurrent();
+
+        try {
+            $migrateExit = Artisan::call('migrate', [
+                '--database' => config('multitenancy.tenant_database_connection_name', 'tenant'),
+                '--path' => 'database/migrations/tenant',
+                '--force' => true,
+            ]);
+            $this->line(Artisan::output());
+
+            if ($migrateExit !== 0) {
+                $this->error("Tenant migrations failed for tenant {$tenant->id} (exit {$migrateExit}).");
+
+                return 1;
+            }
+
+            $this->call(TenantRbacSeeder::class);
+        } catch (\Throwable $e) {
+            $this->error("Failed for tenant {$tenant->id}: ".$e->getMessage());
+
+            return 1;
+        } finally {
+            Tenant::forgetCurrent();
+        }
+    }
+
+    $this->info('Done.');
+
+    return 0;
+})->purpose('Migrate tenant schema (including Spatie tables), seed roles/permissions, and sync legacy user roles');
 
 Artisan::command('tenants:rename-domains {--dry-run}', function () {
     $baseDomain = env('TENANT_BASE_DOMAIN', env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'));

@@ -2,16 +2,23 @@
 
 namespace Database\Seeders;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\PermissionRegistrar;
 
-class RolesAndPermissionsSeeder extends Seeder
+class TenantRbacSeeder extends Seeder
 {
     public function run(): void
     {
+        $tenant = Tenant::current();
+
+        if (! $tenant) {
+            throw new \RuntimeException('TenantRbacSeeder requires Tenant::makeCurrent() before running.');
+        }
+
         $previousTeam = getPermissionsTeamId();
-        setPermissionsTeamId(null);
+        setPermissionsTeamId($tenant->id);
 
         try {
             app(PermissionRegistrar::class)->forgetCachedPermissions();

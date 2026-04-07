@@ -158,6 +158,21 @@
             font-weight: 600;
             cursor: pointer;
         }
+        .delete-conversation-form { margin: 0; }
+        .btn-delete {
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid #B91C1C;
+            background: var(--white);
+            color: #991B1B;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-delete:hover { background: #FEE2E2; }
 
         @media (max-width: 768px) {
             @if($useLegacyMessagesNav)
@@ -210,7 +225,15 @@
 
     <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : '' }}">
         <div class="top-actions">
-            <a href="/messages" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
+            <a href="{{ route('messages.index', [], false) }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
+            @if(!empty($canDeleteConversation))
+                <form method="POST" action="{{ route('messages.destroy', $message, false) }}" class="delete-conversation-form"
+                      onsubmit="return confirm('Delete this entire conversation? This cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn-delete"><i class="fas fa-trash-alt"></i> Delete conversation</button>
+                </form>
+            @endif
         </div>
 
         <section class="chat-panel">
@@ -238,7 +261,7 @@
             </div>
 
             <div class="chat-composer">
-                <form method="POST" action="/messages/{{ $message->id }}/reply">
+                <form method="POST" action="{{ route('messages.reply', $message, false) }}">
                     @csrf
                     <textarea name="content" class="reply-textarea" placeholder="Type your message..." required></textarea>
                     <button type="submit" class="btn">Send</button>

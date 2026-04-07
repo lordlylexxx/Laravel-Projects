@@ -11,6 +11,7 @@
             $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
             $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
             $useLegacyMessagesNav = ! $useOwnerNavbar && ! $authUser?->isClient() && ! $authUser?->isAdmin();
+            $showComposeButton = $useOwnerNavbar || ($authUser?->isClient() && \App\Models\Tenant::checkCurrent());
         @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -152,6 +153,23 @@
         .btn-primary { background: linear-gradient(135deg, var(--green-primary), var(--green-medium)); color: var(--white); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3); }
         .btn-secondary { background: var(--green-soft); color: var(--green-dark); }
+        .chat-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+        .chat-header-row .chat-header-text { flex: 1; min-width: 0; }
+        .delete-conversation-form { margin: 0; }
+        .btn-delete {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid #B91C1C;
+            background: var(--white);
+            color: #991B1B;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-delete:hover { background: #FEE2E2; }
         
         .empty-state { text-align: center; padding: 100px 20px; background: var(--white); border-radius: 16px; }
         .empty-state .icon { font-size: 4rem; margin-bottom: 20px; }
@@ -196,7 +214,7 @@
             @endauth
             <li><a href="{{ route('accommodations.index') }}" class="{{ request()->routeIs('accommodations.*') ? 'active' : '' }}">Browse</a></li>
             <li><a href="{{ route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') ? 'active' : '' }}">My Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
+            <li><a href="{{ route('messages.index', [], false) }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
         
@@ -215,8 +233,8 @@
                 <h1>Messages</h1>
                 <p>Your conversations and inquiries</p>
             </div>
-            @if($useOwnerNavbar)
-                <a href="{{ route('messages.create') }}" class="btn-compose"><i class="fas fa-plus"></i> New conversation</a>
+            @if($showComposeButton)
+                <a href="{{ route('messages.create', [], false) }}" class="btn-compose"><i class="fas fa-plus"></i> New conversation</a>
             @endif
         </div>
 
@@ -231,7 +249,7 @@
                     <div class="message-list-header">
                         <h3>Inbox</h3>
                         @if(($unreadCount ?? 0) > 0)
-                            <form method="POST" action="/messages/mark-all-read" class="mark-all-read-form">
+                            <form method="POST" action="{{ route('messages.mark-all-read', [], false) }}" class="mark-all-read-form">
                                 @csrf
                                 <button type="submit" class="mark-all-read-btn">Mark all as read</button>
                             </form>
@@ -242,8 +260,17 @@
                             $otherParty = (int) $message->sender_id === (int) Auth::id()
                                 ? $message->receiver
                                 : $message->sender;
+                            $otherId = (int) ($otherParty->id ?? 0);
+                            $selectedOtherId = $selectedMessage
+                                ? ((int) $selectedMessage->sender_id === (int) Auth::id()
+                                    ? (int) $selectedMessage->receiver_id
+                                    : (int) $selectedMessage->sender_id)
+                                : null;
+                            $isActiveThread = $selectedOtherId !== null && $otherId === $selectedOtherId;
+                            $hasUnreadFromPartner = $otherId > 0 && ($unreadByPartner[$otherId] ?? false);
                         @endphp
-                        <div class="message-item {{ $message->is_unread ? 'unread' : '' }}" onclick="window.location='/messages/{{ $message->id }}'">
+                        <div class="message-item {{ $hasUnreadFromPartner ? 'unread' : '' }} {{ $isActiveThread ? 'active' : '' }}"
+                             onclick="window.location='{{ url('/messages') }}?partner={{ $otherId }}{{ request()->get('page') ? '&page='.(int) request()->get('page') : '' }}'">
                             <div class="message-avatar">{{ strtoupper(substr($otherParty->name ?? 'U', 0, 2)) }}</div>
                             <div class="message-content">
                                 <div class="message-header">
@@ -259,36 +286,26 @@
                 
                 <!-- Message Detail -->
                 @php
-                    $selectedMessage = $messages->first();
                     $currentUserId = Auth::id();
-                    $counterpartId = null;
-
-                    if ($selectedMessage) {
-                        $counterpartId = (int) $selectedMessage->sender_id === (int) $currentUserId
-                            ? $selectedMessage->receiver_id
-                            : $selectedMessage->sender_id;
-                    }
-
-                    $conversationMessages = collect();
-                    if ($selectedMessage && $counterpartId) {
-                        $conversationMessages = $messages->getCollection()
-                            ->filter(function ($m) use ($currentUserId, $counterpartId) {
-                                return ((int) $m->sender_id === (int) $currentUserId && (int) $m->receiver_id === (int) $counterpartId)
-                                    || ((int) $m->receiver_id === (int) $currentUserId && (int) $m->sender_id === (int) $counterpartId);
-                            })
-                            ->sortBy('created_at')
-                            ->values();
-                    }
-
                     $chatPartner = $selectedMessage
                         ? ((int) $selectedMessage->sender_id === (int) $currentUserId ? $selectedMessage->receiver : $selectedMessage->sender)
                         : null;
                 @endphp
 
                 <div class="message-detail">
-                    <div class="chat-header">
-                        <h2>{{ $chatPartner->name ?? 'Conversation' }}</h2>
-                        <p>{{ $chatPartner->email ?? 'Select a conversation to start chatting.' }}</p>
+                    <div class="chat-header chat-header-row">
+                        <div class="chat-header-text">
+                            <h2>{{ $chatPartner->name ?? 'Conversation' }}</h2>
+                            <p>{{ $chatPartner->email ?? 'Select a conversation to start chatting.' }}</p>
+                        </div>
+                        @if($canDeleteSelectedConversation)
+                            <form method="POST" action="{{ route('messages.destroy', $selectedMessage, false) }}" class="delete-conversation-form"
+                                  onsubmit="return confirm('Delete this entire conversation? This cannot be undone.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-delete"><i class="fas fa-trash-alt"></i> Delete</button>
+                            </form>
+                        @endif
                     </div>
 
                     <div class="chat-body">
@@ -314,9 +331,9 @@
                         @endforelse
                     </div>
 
-                    @if($selectedMessage)
+                    @if($selectedMessage && $replyAnchorMessage)
                         <div class="reply-section">
-                            <form method="POST" action="/messages/{{ $selectedMessage->id }}/reply">
+                            <form method="POST" action="{{ route('messages.reply', $replyAnchorMessage, false) }}">
                                 @csrf
                                 <textarea name="content" class="reply-textarea" placeholder="Type your message..." required></textarea>
                                 <button type="submit" class="btn btn-primary">Send</button>
@@ -329,10 +346,12 @@
             <div class="empty-state">
                 <div class="icon">💬</div>
                 <h3>No Messages Yet</h3>
-                <p>You don't have any conversations yet.@if($useOwnerNavbar) Start one with a guest, a team member, or ImpaStay central support.@endif</p>
-                @if($useOwnerNavbar)
+                <p>You don't have any conversations yet.@if($showComposeButton)
+                    Start one with @if($authUser?->isClient()) the owner or an administrator.@else a guest, a team member, or ImpaStay central support.@endif
+                @endif</p>
+                @if($showComposeButton)
                     <p style="margin-top: 20px;">
-                        <a href="{{ route('messages.create') }}" class="btn-compose" style="display: inline-flex;"><i class="fas fa-plus"></i> New conversation</a>
+                        <a href="{{ route('messages.create', [], false) }}" class="btn-compose" style="display: inline-flex;"><i class="fas fa-plus"></i> New conversation</a>
                     </p>
                 @endif
             </div>

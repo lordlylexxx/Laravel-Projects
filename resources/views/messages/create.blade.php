@@ -7,9 +7,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @php
+            $isClientComposer = $isClientComposer ?? false;
             $authUser = auth()->user();
             $isTenantAdmin = $authUser?->isAdmin() && \App\Models\Tenant::checkCurrent();
-            $useOwnerNavbar = $authUser?->isOwner() || $isTenantAdmin;
+            $useOwnerNavbar = ! $isClientComposer && ($authUser?->isOwner() || $isTenantAdmin);
         @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -19,8 +20,12 @@
             --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151;
             --gray-800: #1F2937;
         }
-        @include('owner.partials.top-navbar-styles')
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%); min-height: 100vh; }
+        @if($useOwnerNavbar)
+            @include('owner.partials.top-navbar-styles')
+        @else
+            @include('client.partials.top-navbar-styles')
+        @endif
+        body { font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%); min-height: 100vh; }
         .main-content {
             max-width: 640px;
             margin: 0 auto;
@@ -28,6 +33,7 @@
             padding-right: 40px;
             padding-bottom: 40px;
         }
+        .compose-client-main { padding-top: calc(var(--client-nav-offset, 108px) + 24px); }
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -78,39 +84,53 @@
         }
         .btn-primary { background: linear-gradient(135deg, var(--green-primary), var(--green-medium)); color: var(--white); }
         .btn-secondary { background: var(--green-soft); color: var(--green-dark); }
+        .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
         @media (max-width: 768px) {
             .main-content { padding-left: 20px; padding-right: 20px; }
         }
     </style>
 </head>
-<body class="owner-nav-page">
-    @include('owner.partials.top-navbar', ['active' => 'messages'])
+<body class="{{ $useOwnerNavbar ? 'owner-nav-page' : '' }}">
+    @if($useOwnerNavbar)
+        @include('owner.partials.top-navbar', ['active' => 'messages'])
+    @else
+        @include('client.partials.top-navbar', ['active' => 'messages'])
+    @endif
 
-    <main class="main-content with-owner-nav">
-        <a href="{{ route('messages.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
+    <main class="main-content {{ $useOwnerNavbar ? 'with-owner-nav' : 'compose-client-main' }}">
+        <a href="{{ route('messages.index', [], false) }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Messages</a>
 
         <div class="compose-card">
             <h1><i class="fas fa-pen" style="margin-right: 8px;"></i>New conversation</h1>
-            <p class="hint">Choose a <strong>guest</strong>, a <strong>team</strong> member, or <strong>ImpaStay (Central Admin)</strong>. Optional email alert for central support: set <code>IMPASTAY_CENTRAL_SUPPORT_NOTIFY_EMAIL</code> in your environment.</p>
+            @if($isClientComposer)
+                <p class="hint">Send a message to your <strong>property owner</strong> or a <strong>business administrator</strong> for {{ $currentTenant->name ?? 'this business' }}. They will see it in their Messages inbox.</p>
+            @else
+                <p class="hint"><strong>Owner</strong> and <strong>tenant administrator</strong> use this screen the same way: message a <strong>client</strong>, a <strong>team</strong> member, or <strong>ImpaStay (central admin)</strong>. Prefer your <strong>business (tenant) site</strong> so everything stays scoped to that business. Optional email to staff: <code>IMPASTAY_CENTRAL_SUPPORT_NOTIFY_EMAIL</code>.</p>
+            @endif
 
-            <form method="POST" action="{{ route('messages.store') }}">
+            @if($isClientComposer && $team->isEmpty())
+                <p class="hint" style="color:#B91C1C;">No owner or administrator is available to message yet. Please try again later or contact support.</p>
+            @else
+            <form method="POST" action="{{ route('messages.store', [], false) }}">
                 @csrf
                 <div class="form-group">
                     <label for="recipient_key">Recipient</label>
                     <select id="recipient_key" name="recipient_key" required>
                         <option value="" disabled {{ old('recipient_key') ? '' : 'selected' }}>Choose a recipient…</option>
-                        <option value="central" {{ old('recipient_key') === 'central' ? 'selected' : '' }}>ImpaStay (Central Admin)</option>
-                        @if($clients->isNotEmpty())
-                            <optgroup label="Clients">
-                                @foreach($clients as $client)
-                                    <option value="user:{{ $client->id }}" {{ old('recipient_key') === 'user:'.$client->id ? 'selected' : '' }}>
-                                        {{ $client->name }} — {{ $client->email }}
-                                    </option>
-                                @endforeach
-                            </optgroup>
+                        @if(! $isClientComposer)
+                            <option value="central" {{ old('recipient_key') === 'central' ? 'selected' : '' }}>ImpaStay (Central Admin)</option>
+                            @if($clients->isNotEmpty())
+                                <optgroup label="Clients">
+                                    @foreach($clients as $client)
+                                        <option value="user:{{ $client->id }}" {{ old('recipient_key') === 'user:'.$client->id ? 'selected' : '' }}>
+                                            {{ $client->name }} — {{ $client->email }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
                         @endif
                         @if($team->isNotEmpty())
-                            <optgroup label="Team">
+                            <optgroup label="{{ $isClientComposer ? 'Owner & administrators' : 'Team' }}">
                                 @foreach($team as $member)
                                     <option value="user:{{ $member->id }}" {{ old('recipient_key') === 'user:'.$member->id ? 'selected' : '' }}>
                                         {{ $member->name }} — {{ $member->role === 'admin' ? 'Admin' : 'Owner' }}
@@ -126,7 +146,7 @@
 
                 <div class="form-group">
                     <label for="subject">Subject <span style="font-weight:400;color:var(--gray-500);">(optional)</span></label>
-                    <input type="text" id="subject" name="subject" value="{{ old('subject') }}" maxlength="255" placeholder="e.g. Question about my listing">
+                    <input type="text" id="subject" name="subject" value="{{ old('subject') }}" maxlength="255" placeholder="e.g. Question about my booking">
                     @error('subject')
                         <div class="error">{{ $message }}</div>
                     @enderror
@@ -142,9 +162,10 @@
 
                 <div class="btn-row">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send</button>
-                    <a href="{{ route('messages.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('messages.index', [], false) }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
+            @endif
         </div>
     </main>
 </body>

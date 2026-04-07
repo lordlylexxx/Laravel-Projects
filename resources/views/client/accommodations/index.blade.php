@@ -479,7 +479,7 @@
             <li><a href="{{ route('dashboard') }}">Browse</a></li>
             <li><a href="{{ route('accommodations.index') }}" class="active">Accommodations</a></li>
             <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('messages.index', [], false) }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}">Settings</a></li>
         </ul>
         

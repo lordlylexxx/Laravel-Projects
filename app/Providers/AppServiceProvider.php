@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Policies\AccommodationPolicy;
 use App\Policies\BookingPolicy;
 use App\Services\CentralUpdateService;
+use App\Services\Messaging\CentralSupportInboxService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -32,12 +33,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Accommodation::class, AccommodationPolicy::class);
         Gate::policy(Booking::class, BookingPolicy::class);
 
-        View::composer([
-            'owner.partials.top-navbar',
-            'admin.partials.top-navbar',
-        ], function ($view): void {
+        View::composer('owner.partials.top-navbar', function ($view): void {
             if (! Tenant::checkCurrent() || ! Auth::check()) {
                 $view->with('tenantUpdate', null);
+                $view->with('unreadMessagesCount', 0);
 
                 return;
             }
@@ -46,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
 
             if (! $user || (! $user->isOwner() && ! $user->isAdmin())) {
                 $view->with('tenantUpdate', null);
+                $view->with('unreadMessagesCount', 0);
 
                 return;
             }
@@ -65,6 +65,42 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('tenantUpdate', $tenantUpdate)
                 ->with('unreadMessagesCount', $unreadMessagesCount);
+        });
+
+        View::composer('admin.partials.top-navbar', function ($view): void {
+            if (! Auth::check()) {
+                $view->with('tenantUpdate', null);
+                $view->with('unreadMessagesCount', 0);
+
+                return;
+            }
+
+            $user = Auth::user();
+
+            if (Tenant::checkCurrent() && $user && ($user->isOwner() || $user->isAdmin())) {
+                $service = app(CentralUpdateService::class);
+                $tenantUpdate = $service->checkForUpdates((string) config('updates.current_version', '1.0.0'));
+
+                $tenant = Tenant::current();
+                $unreadMessagesCount = Message::query()
+                    ->where('receiver_id', $user->id)
+                    ->when($tenant, fn ($query) => $query->where('tenant_id', $tenant->id))
+                    ->unread()
+                    ->count();
+
+                $view->with('tenantUpdate', $tenantUpdate)
+                    ->with('unreadMessagesCount', $unreadMessagesCount);
+
+                return;
+            }
+
+            $view->with('tenantUpdate', null);
+
+            if ($user->isAdmin() && $user->tenant_id === null && ! Tenant::checkCurrent()) {
+                $view->with('unreadMessagesCount', app(CentralSupportInboxService::class)->unreadTotal());
+            } else {
+                $view->with('unreadMessagesCount', 0);
+            }
         });
 
         View::composer('client.partials.top-navbar', function ($view): void {

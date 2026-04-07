@@ -179,7 +179,7 @@
             @endauth
             <li><a href="{{ route(Auth::check() && $isTenantManager && \Illuminate\Support\Facades\Route::has('owner.accommodations.index') ? 'owner.accommodations.index' : (\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ request()->routeIs('accommodations.*') || request()->routeIs('owner.accommodations.*') ? 'active' : '' }}">Browse</a></li>
             <li><a href="{{ Auth::check() && $isTenantManager ? route('owner.bookings.index') : route('bookings.index') }}" class="{{ request()->routeIs('bookings.*') || request()->routeIs('owner.bookings.*') ? 'active' : '' }}">My Bookings</a></li>
-            <li><a href="{{ route('messages.index') }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
+            <li><a href="{{ route('messages.index', [], false) }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
         
@@ -337,7 +337,7 @@
                                     Cancel Booking
                                 </button>
                             </form>
-                            <a href="{{ route('messages.index') }}" class="btn btn-outline">
+                            <a href="{{ route('messages.index', [], false) }}" class="btn btn-outline">
                                 Contact Host
                             </a>
                         </div>

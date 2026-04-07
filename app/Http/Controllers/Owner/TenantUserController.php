@@ -3,12 +3,19 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TenantUserWelcomeMail;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Messaging\TenantCentralSupportProxyUser;
+use Database\Seeders\RbacCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Spatie\Permission\PermissionRegistrar;
+use Throwable;
 
 class TenantUserController extends Controller
 {
@@ -19,11 +26,15 @@ class TenantUserController extends Controller
 
         abort_unless($this->canManageUsers($actor), 403);
 
+        $this->bootstrapTenantSpatieRbac();
+
         $users = User::query()
             ->where('tenant_id', $currentTenant->id)
             ->where('email', 'not like', '__impastay_central_support.tenant-%')
             ->orderByDesc('id')
             ->paginate(15);
+
+        $this->ensureClientUsersHaveBaselinePermissions($users->getCollection(), $currentTenant);
 
         return view('owner.users.index', [
             'users' => $users,
@@ -34,7 +45,8 @@ class TenantUserController extends Controller
             'canAssignPermissions' => $this->canAssignPermissions($actor),
             'canToggleUsers' => $this->canToggleUsers($actor),
             'assignableRoles' => $this->assignableRoles($actor),
-            'assignablePermissions' => $this->assignablePermissions($actor),
+            'assignableStaffPermissions' => $this->assignableStaffPermissions($actor),
+            'assignableClientPermissions' => $this->assignableClientPermissions($actor),
         ]);
     }
 
@@ -48,14 +60,15 @@ class TenantUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'max:255'],
             'role' => ['required', 'in:admin,client'],
         ]);
+
+        $plainPassword = Str::password(16, true, true, true, false);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => strtolower($validated['email']),
-            'password' => $validated['password'],
+            'password' => $plainPassword,
             'role' => $validated['role'],
             'tenant_id' => $currentTenant->id,
             'is_active' => true,
@@ -63,7 +76,38 @@ class TenantUserController extends Controller
 
         $user->syncRbacFromLegacyRole();
 
-        return redirect('/owner/users')->with('success', 'Tenant user created.');
+        if ($user->isClient()) {
+            $this->bootstrapTenantSpatieRbac();
+            $previousTeam = getPermissionsTeamId();
+            setPermissionsTeamId($currentTenant->id);
+            try {
+                $user->syncPermissions(User::defaultClientSpatiePermissions());
+            } finally {
+                setPermissionsTeamId($previousTeam);
+            }
+        }
+
+        $loginUrl = url('/login');
+
+        try {
+            Mail::to($user->email)->send(new TenantUserWelcomeMail(
+                userName: $user->name,
+                tenantName: $currentTenant->name,
+                roleLabel: ucfirst((string) $user->role),
+                emailAddress: $user->email,
+                temporaryPassword: $plainPassword,
+                loginUrl: $loginUrl,
+            ));
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect('/owner/users')
+                ->with('success', 'Tenant user created.')
+                ->with('warning', 'We could not email their temporary password. Check your mail configuration or set a password for them manually.');
+        }
+
+        return redirect('/owner/users')
+            ->with('success', 'Tenant user created. A temporary password was sent to '.$user->email.'.');
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -103,14 +147,33 @@ class TenantUserController extends Controller
         abort_unless($this->canAssignPermissions($actor), 403);
         $this->assertManageableUser($actor, $user, $currentTenant);
 
-        $allowed = $this->assignablePermissions($actor);
+        $allowed = $this->assignablePermissionsForManagedUser($actor, $user);
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'in:'.implode(',', $allowed)],
         ]);
 
         $selected = array_values(array_intersect($validated['permissions'] ?? [], $allowed));
-        $user->syncTenantPermissions($selected);
+
+        $this->bootstrapTenantSpatieRbac();
+
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId($currentTenant->id);
+        try {
+            if ($user->isClient()) {
+                foreach (User::staffSpatiePermissionNames() as $staffPerm) {
+                    if ($user->getDirectPermissions()->contains(fn ($p) => $p->name === $staffPerm)) {
+                        $user->revokePermissionTo($staffPerm);
+                    }
+                }
+            }
+
+            $user->syncPermissions($selected);
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect('/owner/users')->with('success', 'User permissions updated.');
     }
@@ -142,9 +205,32 @@ class TenantUserController extends Controller
         return $tenant;
     }
 
-    private function canManageUsers(User $actor): bool
+    /**
+     * Ensure permission rows and role grants exist on the current tenant database (idempotent).
+     * Avoids PermissionDoesNotExist when syncing client defaults or displaying RBAC before a manual seed.
+     */
+    private function bootstrapTenantSpatieRbac(): void
+    {
+        RbacCatalog::ensurePermissionsExist();
+        RbacCatalog::ensureRolesAndGrantPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * On the tenant app, `admin` is treated as the business owner for access control.
+     */
+    private function tenantManagerEquivalentToOwner(User $actor): bool
     {
         if ($actor->isOwner()) {
+            return true;
+        }
+
+        return $actor->isAdmin() && $this->isTenantScopedActor($actor);
+    }
+
+    private function canManageUsers(User $actor): bool
+    {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -153,7 +239,7 @@ class TenantUserController extends Controller
 
     private function canCreateUsers(User $actor): bool
     {
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -162,7 +248,7 @@ class TenantUserController extends Controller
 
     private function canEditUsers(User $actor): bool
     {
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -171,7 +257,7 @@ class TenantUserController extends Controller
 
     private function canToggleUsers(User $actor): bool
     {
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -180,7 +266,7 @@ class TenantUserController extends Controller
 
     private function canAssignRoles(User $actor): bool
     {
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -189,7 +275,7 @@ class TenantUserController extends Controller
 
     private function canAssignPermissions(User $actor): bool
     {
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return true;
         }
 
@@ -209,7 +295,12 @@ class TenantUserController extends Controller
         // Self-heal legacy role -> RBAC mapping for older tenant users.
         $actor->syncRbacFromLegacyRole();
 
-        return $actor->hasPermission($permission);
+        if ($actor->hasPermission($permission)) {
+            return true;
+        }
+
+        // Tenant DB may lack Spatie migrations/seed; mirror RolesAndPermissionsSeeder for role=admin.
+        return in_array($permission, User::defaultTenantAdminSpatiePermissions(), true);
     }
 
     private function isTenantScopedActor(User $actor): bool
@@ -230,8 +321,8 @@ class TenantUserController extends Controller
 
         abort_if(TenantCentralSupportProxyUser::isProxy($managedUser), 403);
 
-        // Tenant admins cannot modify owner accounts.
-        if ($actor->isAdmin() && ! $actor->isOwner() && $managedUser->isOwner()) {
+        // Non–tenant-scoped admins cannot modify owner accounts; tenant `admin` is owner-equivalent.
+        if ($actor->isAdmin() && ! $actor->isOwner() && $managedUser->isOwner() && ! $this->isTenantScopedActor($actor)) {
             abort(403);
         }
     }
@@ -245,42 +336,87 @@ class TenantUserController extends Controller
         return [User::ROLE_ADMIN, User::ROLE_CLIENT];
     }
 
-    private function assignablePermissions(User $actor): array
+    /**
+     * Staff (tenant admin) rows: owner/manager style permissions — not shown on client rows.
+     *
+     * @return list<string>
+     */
+    private function assignableStaffPermissions(User $actor): array
     {
-        $all = [
-            User::PERM_USERS_VIEW,
-            User::PERM_USERS_CREATE,
-            User::PERM_USERS_UPDATE,
-            User::PERM_USERS_ACTIVATE,
-            User::PERM_USERS_ASSIGN_ROLES,
-            User::PERM_USERS_ASSIGN_PERMISSIONS,
-            User::PERM_ACCOMMODATIONS_CREATE,
-            User::PERM_ACCOMMODATIONS_UPDATE,
-            User::PERM_ACCOMMODATIONS_DELETE,
-            User::PERM_BOOKINGS_MANAGE,
-            User::PERM_MESSAGES_MANAGE,
-            User::PERM_REPORTS_VIEW,
-        ];
+        $all = User::staffSpatiePermissionNames();
 
-        if ($actor->isOwner()) {
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
             return $all;
         }
 
         if ($this->canAssignPermissions($actor)) {
-            return [
-                User::PERM_USERS_VIEW,
-                User::PERM_USERS_CREATE,
-                User::PERM_USERS_UPDATE,
-                User::PERM_USERS_ACTIVATE,
-                User::PERM_ACCOMMODATIONS_CREATE,
-                User::PERM_ACCOMMODATIONS_UPDATE,
-                User::PERM_ACCOMMODATIONS_DELETE,
-                User::PERM_BOOKINGS_MANAGE,
-                User::PERM_MESSAGES_MANAGE,
-                User::PERM_REPORTS_VIEW,
-            ];
+            return array_values(array_diff($all, [
+                User::PERM_USERS_ASSIGN_ROLES,
+                User::PERM_USERS_ASSIGN_PERMISSIONS,
+            ]));
         }
 
         return [];
+    }
+
+    /**
+     * Client rows only: guest capabilities on this tenant app.
+     *
+     * @return list<string>
+     */
+    private function assignableClientPermissions(User $actor): array
+    {
+        if (! $this->canAssignPermissions($actor)) {
+            return [];
+        }
+
+        return User::defaultClientSpatiePermissions();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function assignablePermissionsForManagedUser(User $actor, User $managedUser): array
+    {
+        return $managedUser->isClient()
+            ? $this->assignableClientPermissions($actor)
+            : $this->assignableStaffPermissions($actor);
+    }
+
+    /**
+     * Clients should only carry guest-capability permissions. Strip mistaken staff direct grants,
+     * then ensure at least the default client capability set (direct; client Spatie role has none).
+     *
+     * @param  Collection<int, User>  $users
+     */
+    private function ensureClientUsersHaveBaselinePermissions(Collection $users, Tenant $currentTenant): void
+    {
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId($currentTenant->id);
+        $mutated = false;
+        try {
+            foreach ($users as $managedUser) {
+                if (! $managedUser->isClient()) {
+                    continue;
+                }
+                foreach (User::staffSpatiePermissionNames() as $staffPerm) {
+                    if ($managedUser->getDirectPermissions()->contains(fn ($p) => $p->name === $staffPerm)) {
+                        $managedUser->revokePermissionTo($staffPerm);
+                        $mutated = true;
+                    }
+                }
+                $managedUser->refresh();
+                if ($managedUser->getAllPermissions()->isEmpty()) {
+                    $managedUser->syncPermissions(User::defaultClientSpatiePermissions());
+                    $mutated = true;
+                }
+            }
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
+
+        if ($mutated) {
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
     }
 }

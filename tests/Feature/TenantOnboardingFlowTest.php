@@ -84,7 +84,7 @@ it('delegates admin approval to tenant onboarding service', function () {
                     && $actor instanceof User
                     && $allowFromPendingPayment === false;
             })
-            ->andReturn(true);
+            ->andReturn(['success' => true, 'credentials_emailed' => true]);
     });
 
     $admin = User::factory()->create([

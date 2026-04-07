@@ -14,6 +14,7 @@ use App\Http\Controllers\Central\UpdateController as CentralUpdateController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\OnboardingPaymentController;
+use App\Http\Controllers\Owner\TenantUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SystemUpdatePageController;
 use App\Http\Controllers\TenantLandingController;
@@ -106,6 +107,7 @@ $registerCentralRoutes = function () {
             // Messages - accessible to all authenticated users
             Route::prefix('messages')->name('messages.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\MessageController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\MessageController::class, 'create'])->name('create');
                 Route::get('/{message}', [\App\Http\Controllers\MessageController::class, 'show'])->name('show');
                 Route::post('/', [\App\Http\Controllers\MessageController::class, 'store'])->name('store');
                 Route::post('/{message}/reply', [\App\Http\Controllers\MessageController::class, 'reply'])->name('reply');
@@ -174,6 +176,12 @@ $registerCentralRoutes = function () {
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
             });
+
+            Route::get('/users', [TenantUserController::class, 'index'])->name('users.index');
+            Route::post('/users', [TenantUserController::class, 'store'])->name('users.store');
+            Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
+            Route::put('/users/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('users.permissions');
+            Route::put('/users/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('users.activate');
         });
 
         // ============ ADMIN ROUTES ============
@@ -205,8 +213,18 @@ $registerCentralRoutes = function () {
             Route::get('/reports/monthly-booking-pdf', [AdminDashboardController::class, 'generateMonthlyBookingReport'])->name('monthly-booking-report');
 
             // Booking Management
-            // Message Management
+            // Message Management (landlord central admin ↔ tenant “ImpaStay” proxy threads)
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'adminIndex'])->name('messages');
+            Route::post('/messages/contact', [\App\Http\Controllers\MessageController::class, 'adminContactUser'])->name('messages.contact');
+            Route::get('/messages/{tenant}/{message}', [\App\Http\Controllers\MessageController::class, 'adminShow'])
+                ->whereNumber('message')
+                ->name('messages.thread');
+            Route::delete('/messages/{tenant}/{message}', [\App\Http\Controllers\MessageController::class, 'adminDestroy'])
+                ->whereNumber('message')
+                ->name('messages.destroy');
+            Route::post('/messages/{tenant}/{message}/reply', [\App\Http\Controllers\MessageController::class, 'adminReply'])
+                ->whereNumber('message')
+                ->name('messages.support-reply');
 
             // Property Management (Admin can view all properties)
             Route::prefix('../owner/accommodations')->name('owner.accommodations.')->group(function () {
@@ -225,7 +243,7 @@ foreach ($centralHosts as $host) {
     Route::domain($host)->group($registerCentralRoutes);
 }
 
-Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.session', 'tenant.bandwidth'])
+Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 'tenant.active', 'tenant.session', 'tenant.bandwidth'])
     ->group(function () {
         Route::get('/', [TenantLandingController::class, 'showPublic'])
             ->name('landing');
@@ -288,11 +306,23 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.active', 'tenant.se
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
             });
+
+            Route::get('/users', [TenantUserController::class, 'index'])->name('users.index');
+            Route::post('/users', [TenantUserController::class, 'store'])->name('users.store');
+            Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
+            Route::put('/users/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('users.permissions');
+            Route::put('/users/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('users.activate');
         });
 
         Route::middleware('auth')->group(function () {
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
                 ->name('messages.index');
+
+            Route::get('/messages/create', [\App\Http\Controllers\MessageController::class, 'create'])
+                ->name('messages.create');
+
+            Route::post('/messages/mark-all-read', [\App\Http\Controllers\MessageController::class, 'markAllAsRead'])
+                ->name('messages.mark-all-read');
 
             Route::get('/messages/{message}', [\App\Http\Controllers\MessageController::class, 'show'])
                 ->name('messages.show');

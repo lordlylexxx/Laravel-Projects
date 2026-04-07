@@ -15,7 +15,7 @@
     $bookingsHref = '/owner/bookings';
     $reportsHref = '/owner/reports/monthly';
     $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
-    $messagesHref = '/messages';
+    $messagesHref = $isTenantContext ? '/messages' : '/admin/messages';
     $settingsHref = '/profile';
     $landingHref = '/';
 @endphp

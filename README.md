@@ -299,6 +299,8 @@ php artisan migrate --seed
 php artisan storage:link
 ~~~
 
+On the **central (landlord)** database, `db:seed` only creates RBAC, a central admin, and sample owner/client users. It does **not** create tenant registry rows (unless you run `ExistingTenantDatabasesSeeder` separately), **accommodations**, or **bookings**—those live in **tenant** databases. With a tenant made current, run `php artisan db:seed --class=AccommodationSeeder` if you want demo listings in that tenant DB.
+
 ### 4) Run in development
 
 Option A (single command, recommended):
@@ -330,11 +332,6 @@ After seeding, you can log in with:
 - Admin: admin@impasugong.gov.ph / password
 - Owner: sarah.chen@email.com / password
 - Client: juan.miguel@email.com / password
-
-Tenant-scoped seeded accounts are also created per tenant:
-
-- `tenant{n}.admin@impastay.local` / password
-- `tenant{n}.user@impastay.local` / password
 
 ## Useful Commands
 

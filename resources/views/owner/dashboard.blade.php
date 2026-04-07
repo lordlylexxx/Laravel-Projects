@@ -436,7 +436,7 @@
                     <h4>User Management</h4>
                     <p>Manage tenant users and access</p>
                 </a>
-                <a href="{{ route('messages.index') }}" class="quick-action-card">
+                <a href="{{ route('messages.index', [], false) }}" class="quick-action-card">
                     <div class="icon"><i class="fas fa-reply"></i></div>
                     <h4>Messages</h4>
                     <p>Respond to inquiries</p>

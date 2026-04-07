@@ -308,7 +308,7 @@
             @else
                 <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
             @endif
-            <li><a href="{{ route('messages.index') }}">Messages</a></li>
+            <li><a href="{{ route('messages.index', [], false) }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="active">Settings</a></li>
         </ul>
         

@@ -31,9 +31,10 @@ class CheckTenantProvisioning extends Command
 
         if ($tenantId) {
             $tenants = Tenant::where('id', $tenantId)->get();
-            
+
             if ($tenants->isEmpty()) {
                 $this->error("Tenant not found with ID: {$tenantId}");
+
                 return self::FAILURE;
             }
         } else {
@@ -42,6 +43,7 @@ class CheckTenantProvisioning extends Command
 
         if ($tenants->isEmpty()) {
             $this->info('No tenants found.');
+
             return self::SUCCESS;
         }
 
@@ -66,10 +68,11 @@ class CheckTenantProvisioning extends Command
 
         $this->line("ID: {$tenant->id} | Name: {$tenant->name}");
         $this->line("Slug: {$tenant->slug}");
-        $this->line("Domain: {$tenant->domain ?? 'Not set'}");
+        $domain = $tenant->domain ?? 'Not set';
+        $this->line("Domain: {$domain}");
         $this->line("Database: {$tenant->database}");
         $this->line("Host: {$tenant->db_host}:{$tenant->db_port}");
-        
+
         $this->line("<{$statusColor}>{$status}</>");
 
         if ($tenant->database_provisioned_at) {
@@ -96,13 +99,14 @@ class CheckTenantProvisioning extends Command
         try {
             $database = $tenant->database;
             $result = DB::connection('landlord')->select(
-                "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?",
+                'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?',
                 [$database]
             );
 
-            return !empty($result);
+            return ! empty($result);
         } catch (\Throwable $exception) {
             $this->error("Error checking database: {$exception->getMessage()}");
+
             return false;
         }
     }

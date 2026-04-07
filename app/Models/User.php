@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -98,6 +99,147 @@ class User extends Authenticatable
 
     public const PERM_REPORTS_VIEW = 'reports.view';
 
+    /** Guest / client capabilities on the tenant app (not staff permissions). */
+    public const PERM_BOOKINGS_SELF = 'bookings.self';
+
+    public const PERM_MESSAGES_USE = 'messages.use';
+
+    public const PERM_PROFILE_SELF = 'profile.self';
+
+    /**
+     * All staff-oriented permissions (owner / tenant admin); not for client rows in the users UI.
+     *
+     * @return list<string>
+     */
+    public static function staffSpatiePermissionNames(): array
+    {
+        return [
+            self::PERM_USERS_VIEW,
+            self::PERM_USERS_CREATE,
+            self::PERM_USERS_UPDATE,
+            self::PERM_USERS_ACTIVATE,
+            self::PERM_USERS_ASSIGN_ROLES,
+            self::PERM_USERS_ASSIGN_PERMISSIONS,
+            self::PERM_ACCOMMODATIONS_CREATE,
+            self::PERM_ACCOMMODATIONS_UPDATE,
+            self::PERM_ACCOMMODATIONS_DELETE,
+            self::PERM_BOOKINGS_MANAGE,
+            self::PERM_MESSAGES_MANAGE,
+            self::PERM_REPORTS_VIEW,
+        ];
+    }
+
+    /**
+     * Default direct permissions for tenant clients (browse/book as guest, messaging, profile).
+     *
+     * @return list<string>
+     */
+    public static function defaultClientSpatiePermissions(): array
+    {
+        return [
+            self::PERM_BOOKINGS_SELF,
+            self::PERM_MESSAGES_USE,
+            self::PERM_PROFILE_SELF,
+        ];
+    }
+
+    /**
+     * Short label for the tenant users table permission checkboxes.
+     */
+    public static function permissionLabelForUsersTable(string $permission): string
+    {
+        return match ($permission) {
+            self::PERM_BOOKINGS_SELF => 'Book and manage own stays',
+            self::PERM_MESSAGES_USE => 'Message the business',
+            self::PERM_PROFILE_SELF => 'Edit own profile',
+            self::PERM_USERS_VIEW => 'View users',
+            self::PERM_USERS_CREATE => 'Create users',
+            self::PERM_USERS_UPDATE => 'Update users',
+            self::PERM_USERS_ACTIVATE => 'Activate / deactivate users',
+            self::PERM_USERS_ASSIGN_ROLES => 'Assign user roles',
+            self::PERM_USERS_ASSIGN_PERMISSIONS => 'Assign user permissions',
+            self::PERM_ACCOMMODATIONS_CREATE => 'Create accommodations',
+            self::PERM_ACCOMMODATIONS_UPDATE => 'Update accommodations',
+            self::PERM_ACCOMMODATIONS_DELETE => 'Delete accommodations',
+            self::PERM_BOOKINGS_MANAGE => 'Manage all bookings',
+            self::PERM_MESSAGES_MANAGE => 'Manage messaging (staff)',
+            self::PERM_REPORTS_VIEW => 'View reports',
+            default => $permission,
+        };
+    }
+
+    /**
+     * Tenant `admin` is the business operator on the tenant app — same capability set as `owner`.
+     *
+     * @return list<string>
+     */
+    public static function defaultTenantAdminSpatiePermissions(): array
+    {
+        return self::defaultOwnerSpatiePermissions();
+    }
+
+    /**
+     * Permission names for the tenant `owner` role (matches RbacCatalog / RolesAndPermissionsSeeder).
+     *
+     * @return list<string>
+     */
+    public static function defaultOwnerSpatiePermissions(): array
+    {
+        return [
+            self::PERM_USERS_VIEW,
+            self::PERM_USERS_CREATE,
+            self::PERM_USERS_UPDATE,
+            self::PERM_USERS_ACTIVATE,
+            self::PERM_USERS_ASSIGN_ROLES,
+            self::PERM_USERS_ASSIGN_PERMISSIONS,
+            self::PERM_ACCOMMODATIONS_CREATE,
+            self::PERM_ACCOMMODATIONS_UPDATE,
+            self::PERM_ACCOMMODATIONS_DELETE,
+            self::PERM_BOOKINGS_MANAGE,
+            self::PERM_MESSAGES_MANAGE,
+            self::PERM_REPORTS_VIEW,
+        ];
+    }
+
+    /**
+     * For the owner users UI: Spatie-backed names when present, otherwise implied by legacy `role`.
+     *
+     * @return array{0: \Illuminate\Support\Collection<int, string>, 1: bool} Names, then whether the list is a legacy fallback (Spatie had none).
+     */
+    public function permissionNamesForOwnerUsersTable(): array
+    {
+        $fromSpatie = $this->getAllPermissions()->pluck('name')->values();
+
+        if ($fromSpatie->isNotEmpty()) {
+            return [$fromSpatie, false];
+        }
+
+        $fallback = collect(match ($this->role) {
+            self::ROLE_OWNER => self::defaultOwnerSpatiePermissions(),
+            self::ROLE_ADMIN => self::defaultTenantAdminSpatiePermissions(),
+            self::ROLE_CLIENT => self::defaultClientSpatiePermissions(),
+            default => [],
+        })->values();
+
+        return [$fallback, true];
+    }
+
+    /**
+     * Persist direct Spatie permissions for this user on the current tenant team.
+     */
+    public function syncTenantPermissions(array $permissions): void
+    {
+        $tenant = Tenant::current();
+
+        if ($tenant) {
+            setPermissionsTeamId($tenant->id);
+        }
+
+        $this->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
     /**
      * Align Spatie roles with the legacy string `users.role` column (owner / admin / client).
      */
@@ -115,6 +257,14 @@ class User extends Authenticatable
         } catch (\Throwable) {
             // Roles not seeded yet (e.g. partial migrate) — avoid breaking callers.
         }
+    }
+
+    /**
+     * App alias for Spatie: use checkPermissionTo so missing permission rows do not throw.
+     */
+    public function hasPermission(string|\BackedEnum $permission, ?string $guardName = null): bool
+    {
+        return $this->checkPermissionTo($permission, $guardName);
     }
 
     // Relationships

@@ -79,10 +79,6 @@ class ExistingTenantDatabasesSeeder extends Seeder
             if ($owner) {
                 $owner->update(['tenant_id' => $tenant->id]);
             }
-
-            if ($this->command) {
-                $this->command->info("Tenant linked to existing DB `{$databaseName}` (id {$tenant->id}, domain {$tenant->domain}).");
-            }
         }
     }
 }

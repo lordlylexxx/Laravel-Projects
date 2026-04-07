@@ -87,12 +87,164 @@
         .breadcrumb a:hover { text-decoration: underline; }
         .breadcrumb span { color: var(--gray-500); }
         
-        /* Image Gallery */
+        /* Image Gallery — carousel + lightbox */
         .gallery-container { margin-bottom: 30px; }
-        .main-image { width: 100%; height: 450px; border-radius: 20px; object-fit: cover; cursor: pointer; }
-        .thumbnail-row { display: flex; gap: 15px; margin-top: 15px; overflow-x: auto; padding-bottom: 10px; }
-        .thumbnail { width: 120px; height: 80px; border-radius: 10px; object-fit: cover; cursor: pointer; opacity: 0.6; transition: all 0.3s; border: 3px solid transparent; flex-shrink: 0; }
+        .gallery-carousel {
+            position: relative;
+        }
+        .carousel-main-wrap {
+            position: relative;
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(27, 94, 32, 0.12);
+        }
+        .main-image {
+            width: 100%;
+            height: 450px;
+            border-radius: 20px;
+            object-fit: cover;
+            cursor: zoom-in;
+            display: block;
+        }
+        .main-image:focus {
+            outline: 3px solid var(--green-primary);
+            outline-offset: 2px;
+        }
+        .carousel-hint {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(27, 94, 32, 0.88);
+            color: var(--white);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            pointer-events: none;
+            opacity: 0.95;
+        }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: var(--white);
+            color: var(--green-dark);
+            box-shadow: 0 2px 12px rgba(27, 94, 32, 0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: background 0.2s, transform 0.2s, opacity 0.2s;
+        }
+        .carousel-btn.prev { left: 12px; }
+        .carousel-btn.next { right: 12px; }
+        .carousel-btn:hover:not(:disabled) {
+            background: var(--green-soft);
+            transform: translateY(-50%) scale(1.05);
+        }
+        .carousel-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: translateY(-50%);
+        }
+        .carousel-counter {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--green-dark);
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            pointer-events: none;
+        }
+        .thumbnail-row { display: flex; gap: 15px; margin-top: 15px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; }
+        .thumbnail { width: 120px; height: 80px; border-radius: 10px; object-fit: cover; cursor: pointer; opacity: 0.6; transition: all 0.3s; border: 3px solid transparent; flex-shrink: 0; scroll-snap-align: start; }
         .thumbnail:hover, .thumbnail.active { opacity: 1; border-color: var(--green-primary); }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(15, 23, 42, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 56px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+        .lightbox.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .lightbox-img {
+            max-width: 100%;
+            max-height: calc(100vh - 96px);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .lightbox-nav:hover { background: rgba(255, 255, 255, 0.3); }
+        .lightbox-nav.prev { left: 16px; }
+        .lightbox-nav.next { right: 16px; }
+        .lightbox-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 90%;
+        }
         
         /* Content Grid */
         .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
@@ -208,6 +360,12 @@
             @endunless
             .main-container { padding-top: calc(var(--client-nav-offset, 90px) - 10px); }
             .main-image { height: 300px; }
+            .carousel-btn { width: 40px; height: 40px; font-size: 1rem; }
+            .carousel-btn.prev { left: 8px; }
+            .carousel-btn.next { right: 8px; }
+            .lightbox { padding: 56px 12px 72px; }
+            .lightbox-nav.prev { left: 6px; }
+            .lightbox-nav.next { right: 6px; }
             .form-row { grid-template-columns: 1fr; }
             .property-header { flex-direction: column; gap: 15px; }
         }
@@ -245,7 +403,7 @@
                     <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
                 @endif
                 <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
-                <li><a href="{{ route('messages.index') }}">Messages</a></li>
+                <li><a href="{{ route('messages.index', [], false) }}">Messages</a></li>
                 <li><a href="{{ route('profile.edit') }}">Settings</a></li>
             @endauth
         </ul>
@@ -277,7 +435,7 @@
             <span>{{ $accommodation->name }}</span>
         </div>
         
-        <!-- Image Gallery -->
+        <!-- Image Gallery (carousel + lightbox) -->
         <div class="gallery-container animate delay-1">
             @php
                 $images = is_array($accommodation->images) ? $accommodation->images : [];
@@ -296,18 +454,59 @@
                     ->values()
                     ->all();
 
-                $primaryImageUrl = $galleryImages[0] ?? '/COMMUNAL.jpg';
+                $galleryCount = count($galleryImages);
+                if ($galleryCount === 0) {
+                    $galleryImages = ['/COMMUNAL.jpg'];
+                    $galleryCount = 1;
+                }
+                $primaryImageUrl = $galleryImages[0];
             @endphp
-            <img src="{{ $primaryImageUrl }}" alt="{{ $accommodation->name }}" class="main-image" id="mainImage">
-            @if(count($galleryImages) > 1)
-                <div class="thumbnail-row">
+            <script type="application/json" id="accommodation-gallery-data">@json($galleryImages)</script>
+            <div class="gallery-carousel" id="accommodationGallery">
+                @if($galleryCount > 1)
+                    <button type="button" class="carousel-btn prev" id="carouselPrev" aria-label="Previous photo">‹</button>
+                    <button type="button" class="carousel-btn next" id="carouselNext" aria-label="Next photo">›</button>
+                @endif
+                <div class="carousel-main-wrap">
+                    @if($galleryCount > 1)
+                        <span class="carousel-counter" id="carouselCounter" aria-live="polite">1 / {{ $galleryCount }}</span>
+                    @endif
+                    <img src="{{ $galleryImages[0] }}"
+                         alt="{{ $accommodation->name }}"
+                         class="main-image"
+                         id="carouselMain"
+                         data-accommodation-name="{{ e($accommodation->name) }}"
+                         tabindex="0"
+                         role="button"
+                         aria-label="View full size photo. Use arrow keys to change slide when focused.">
+                    <span class="carousel-hint">Click for full size</span>
+                </div>
+            </div>
+            @if($galleryCount > 1)
+                <div class="thumbnail-row" id="carouselThumbnails" role="tablist" aria-label="Photo thumbnails">
                     @foreach($galleryImages as $index => $imageUrl)
-                        <img src="{{ $imageUrl }}" 
-                             alt="{{ $accommodation->name }}" 
+                        <img src="{{ $imageUrl }}"
+                             alt=""
                              class="thumbnail {{ $index === 0 ? 'active' : '' }}"
-                             onclick="changeImage(this, '{{ $imageUrl }}')">
+                             data-index="{{ $index }}"
+                             role="tab"
+                             tabindex="0"
+                             aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+                             aria-label="Show photo {{ $index + 1 }} of {{ $galleryCount }}">
                     @endforeach
                 </div>
+            @endif
+        </div>
+
+        <div class="lightbox" id="photoLightbox" role="dialog" aria-modal="true" aria-label="Full size photos">
+            <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close full screen photo">×</button>
+            @if($galleryCount > 1)
+                <button type="button" class="lightbox-nav prev" id="lightboxPrev" aria-label="Previous photo">‹</button>
+                <button type="button" class="lightbox-nav next" id="lightboxNext" aria-label="Next photo">›</button>
+            @endif
+            <img src="" alt="" class="lightbox-img" id="lightboxImg">
+            @if($galleryCount > 1)
+                <p class="lightbox-caption" id="lightboxCaption"></p>
             @endif
         </div>
         
@@ -483,11 +682,216 @@
     </div>
     
     <script>
-        function changeImage(thumbnail, imageUrl) {
-            document.getElementById('mainImage').src = imageUrl;
-            document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
-            thumbnail.classList.add('active');
-        }
+        (function () {
+            var dataEl = document.getElementById('accommodation-gallery-data');
+            if (!dataEl) return;
+
+            var urls = [];
+            try {
+                urls = JSON.parse(dataEl.textContent || '[]');
+            } catch (e) {
+                return;
+            }
+            if (!urls.length) return;
+
+            var main = document.getElementById('carouselMain');
+            var prevBtn = document.getElementById('carouselPrev');
+            var nextBtn = document.getElementById('carouselNext');
+            var counter = document.getElementById('carouselCounter');
+            var thumbs = document.querySelectorAll('#carouselThumbnails .thumbnail');
+            var lightbox = document.getElementById('photoLightbox');
+            var lightboxImg = document.getElementById('lightboxImg');
+            var lightboxClose = document.getElementById('lightboxClose');
+            var lightboxPrev = document.getElementById('lightboxPrev');
+            var lightboxNext = document.getElementById('lightboxNext');
+            var lightboxCaption = document.getElementById('lightboxCaption');
+
+            var n = urls.length;
+            var i = 0;
+            var accName = main ? (main.getAttribute('data-accommodation-name') || 'Photo') : 'Photo';
+
+            var AUTOPLAY_MS = 5000;
+            var autoTimer = null;
+            var galleryHoverPause = false;
+
+            function clampIndex(x) {
+                if (n <= 0) return 0;
+                var r = x % n;
+                return r < 0 ? r + n : r;
+            }
+
+            function showSlide(index) {
+                i = clampIndex(index);
+                if (main) {
+                    main.src = urls[i];
+                    main.alt = accName + ' — photo ' + (i + 1) + ' of ' + n;
+                }
+                if (counter) counter.textContent = (i + 1) + ' / ' + n;
+                thumbs.forEach(function (t, idx) {
+                    var on = idx === i;
+                    t.classList.toggle('active', on);
+                    t.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                if (prevBtn) prevBtn.disabled = n <= 1;
+                if (nextBtn) nextBtn.disabled = n <= 1;
+            }
+
+            function stopAutoplay() {
+                if (autoTimer) {
+                    clearInterval(autoTimer);
+                    autoTimer = null;
+                }
+            }
+
+            function autoplayShouldAdvance() {
+                if (n <= 1) return false;
+                if (document.hidden) return false;
+                if (lightbox && lightbox.classList.contains('is-open')) return false;
+                if (galleryHoverPause) return false;
+                return true;
+            }
+
+            function startAutoplay() {
+                stopAutoplay();
+                if (n <= 1) return;
+                autoTimer = setInterval(function () {
+                    if (autoplayShouldAdvance()) step(1, true);
+                }, AUTOPLAY_MS);
+            }
+
+            /** @param {boolean} [fromTimer] when true, skip restarting the interval */
+            function step(delta, fromTimer) {
+                showSlide(i + delta);
+                if (lightbox && lightbox.classList.contains('is-open') && lightboxImg) {
+                    lightboxImg.src = urls[i];
+                    lightboxImg.alt = accName + ' — full size, photo ' + (i + 1) + ' of ' + n;
+                    if (lightboxCaption) lightboxCaption.textContent = n > 1 ? 'Photo ' + (i + 1) + ' of ' + n : '';
+                }
+                if (!fromTimer && n > 1 && (!lightbox || !lightbox.classList.contains('is-open'))) {
+                    startAutoplay();
+                }
+            }
+
+            function openLightbox() {
+                if (!lightbox || !lightboxImg) return;
+                stopAutoplay();
+                lightboxImg.src = urls[i];
+                lightboxImg.alt = accName + ' — full size, photo ' + (i + 1) + ' of ' + n;
+                if (lightboxCaption) lightboxCaption.textContent = n > 1 ? 'Photo ' + (i + 1) + ' of ' + n : '';
+                lightbox.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+                if (lightboxClose) lightboxClose.focus();
+            }
+
+            function closeLightbox() {
+                if (!lightbox) return;
+                lightbox.classList.remove('is-open');
+                document.body.style.overflow = '';
+                if (lightboxImg) lightboxImg.src = '';
+                startAutoplay();
+            }
+
+            if (prevBtn) prevBtn.addEventListener('click', function () { step(-1); });
+            if (nextBtn) nextBtn.addEventListener('click', function () { step(1); });
+
+            thumbs.forEach(function (thumb) {
+                thumb.addEventListener('click', function () {
+                    var idx = parseInt(thumb.getAttribute('data-index'), 10);
+                    if (!isNaN(idx)) {
+                        showSlide(idx);
+                        if (!lightbox || !lightbox.classList.contains('is-open')) startAutoplay();
+                    }
+                });
+                thumb.addEventListener('keydown', function (ev) {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        var idx = parseInt(thumb.getAttribute('data-index'), 10);
+                        if (!isNaN(idx)) {
+                            showSlide(idx);
+                            if (!lightbox || !lightbox.classList.contains('is-open')) startAutoplay();
+                        }
+                    }
+                });
+            });
+
+            if (main) {
+                main.addEventListener('click', openLightbox);
+                main.addEventListener('keydown', function (ev) {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        openLightbox();
+                    }
+                    if (n > 1 && ev.key === 'ArrowLeft') {
+                        ev.preventDefault();
+                        step(-1);
+                    }
+                    if (n > 1 && ev.key === 'ArrowRight') {
+                        ev.preventDefault();
+                        step(1);
+                    }
+                });
+            }
+
+            if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+            if (lightboxPrev) lightboxPrev.addEventListener('click', function () { step(-1); });
+            if (lightboxNext) lightboxNext.addEventListener('click', function () { step(1); });
+
+            if (lightbox) {
+                lightbox.addEventListener('click', function (ev) {
+                    if (ev.target === lightbox) closeLightbox();
+                });
+            }
+
+            document.addEventListener('keydown', function (ev) {
+                if (!lightbox || !lightbox.classList.contains('is-open')) return;
+                if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    closeLightbox();
+                }
+                if (n > 1 && ev.key === 'ArrowLeft') {
+                    ev.preventDefault();
+                    step(-1, false);
+                }
+                if (n > 1 && ev.key === 'ArrowRight') {
+                    ev.preventDefault();
+                    step(1, false);
+                }
+            });
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) stopAutoplay();
+                else if (n > 1 && (!lightbox || !lightbox.classList.contains('is-open'))) startAutoplay();
+            });
+
+            var galleryWrap = document.querySelector('.gallery-container');
+            if (galleryWrap && n > 1) {
+                galleryWrap.addEventListener('mouseenter', function () {
+                    galleryHoverPause = true;
+                });
+                galleryWrap.addEventListener('mouseleave', function () {
+                    galleryHoverPause = false;
+                });
+            }
+
+            /* Touch swipe on main image */
+            if (main && n > 1) {
+                var touchStartX = null;
+                main.addEventListener('touchstart', function (ev) {
+                    touchStartX = ev.changedTouches[0].screenX;
+                }, { passive: true });
+                main.addEventListener('touchend', function (ev) {
+                    if (touchStartX === null) return;
+                    var dx = ev.changedTouches[0].screenX - touchStartX;
+                    touchStartX = null;
+                    if (Math.abs(dx) < 50) return;
+                    if (dx < 0) step(1);
+                    else step(-1);
+                }, { passive: true });
+            }
+
+            showSlide(0);
+            startAutoplay();
+        })();
     </script>
 </body>
 </html>

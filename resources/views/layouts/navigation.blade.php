@@ -30,7 +30,7 @@
                             </x-nav-link>
                         @endif
                         
-                        <x-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
+                        <x-nav-link :href="route('messages.index', [], false)" :active="request()->routeIs('messages.*')">
                             {{ __('Messages') }}
                         </x-nav-link>
                     @endauth
@@ -124,7 +124,7 @@
                     </x-responsive-nav-link>
                 @endif
                 
-                <x-responsive-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
+                <x-responsive-nav-link :href="route('messages.index', [], false)" :active="request()->routeIs('messages.*')">
                     {{ __('Messages') }}
                 </x-responsive-nav-link>
             @endauth

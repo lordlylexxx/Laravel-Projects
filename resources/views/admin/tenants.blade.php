@@ -202,8 +202,8 @@
                                         <p class="mt-0.5 text-xs text-gray-500">{{ $tenant->owner?->email ?? 'N/A' }}</p>
                                         <form class="mt-3 flex flex-col gap-1.5" action="{{ route('admin.tenants.resend-onboarding-email', $tenant) }}" method="POST">
                                             @csrf
-                                            <input type="text" name="reason" placeholder="Reason to resend (required)" required class="{{ $twInput }}">
-                                            <button type="submit" class="{{ $twBtnSecondary }} w-fit">Resend Onboarding Email</button>
+                                            <input type="text" name="reason" placeholder="Reason (required); issues a new random password" required class="{{ $twInput }}">
+                                            <button type="submit" class="{{ $twBtnSecondary }} w-fit">Email tenant admin credentials</button>
                                         </form>
                                     </td>
                                     <td class="px-4 py-4">
