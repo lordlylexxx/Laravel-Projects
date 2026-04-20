@@ -66,6 +66,7 @@ class CentralUpdateService
 
         if ($github !== null) {
             $latestVersion = (string) ($github['latest_version'] ?? $currentVersion);
+            $githubPackageUrl = app(GithubReleaseMetadataService::class)->resolveLatestReleasePackageDownloadUrl();
 
             return [
                 'has_update' => version_compare($latestVersion, $currentVersion, '>'),
@@ -73,7 +74,7 @@ class CentralUpdateService
                 'latest_version' => $latestVersion,
                 'release_notes' => (string) ($github['release_notes'] ?? ''),
                 'published_at' => $github['published_at'] ?? null,
-                'download_url' => $baseUrl . '/system-updates/download',
+                'download_url' => $githubPackageUrl ?? ($baseUrl . '/system-updates/download'),
                 'unavailable' => false,
                 'message' => $markUnavailable ? 'Central channel unavailable. Showing latest release from GitHub metadata.' : '',
             ];

@@ -24,6 +24,12 @@ return [
     */
     'github_repo' => env('CENTRAL_GITHUB_REPO', ''),
 
+    /*
+    | Optional: pick a specific release asset by filename (substring match if not exact).
+    | If unset, the first .zip asset is used; if there are no assets, the tag source archive is used.
+    */
+    'github_release_asset' => env('CENTRAL_GITHUB_RELEASE_ASSET', ''),
+
     'github_token' => env('CENTRAL_GITHUB_TOKEN', ''),
 
     'github_cache_ttl' => (int) env('CENTRAL_GITHUB_CACHE_TTL', 300),

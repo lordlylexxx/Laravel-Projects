@@ -428,8 +428,8 @@
 
             <!-- Page Header -->
             <div class="page-header animate">
-                <h1><i class="fas fa-chart-line" style="color: var(--green-primary); margin-right: 12px;"></i>Sales Monitoring Dashboard</h1>
-                <p>Business performance metrics and analytics</p>
+                <h1><i class="fas fa-chart-line" style="color: var(--green-primary); margin-right: 12px;"></i>Admin Dashboard</h1>
+                <p>Platform activity, bookings, and guest demographics</p>
             </div>
 
             <div class="filter-card animate delay-1">
@@ -555,34 +555,6 @@
             <!-- KPI Cards -->
             <div class="kpi-grid animate delay-1">
                 <div class="kpi-card">
-                    <div class="kpi-icon green"><i class="fas fa-peso-sign"></i></div>
-                    <div class="kpi-info">
-                        <h3>₱{{ number_format($kpis['total_revenue'] ?? 0, 0, '.', ',') }}</h3>
-                        <p>Total Revenue</p>
-                    </div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon blue"><i class="fas fa-calendar-week"></i></div>
-                    <div class="kpi-info">
-                        <h3>₱{{ number_format($weeklyRevenue ?? 0, 0, '.', ',') }}</h3>
-                        <p>Weekly Revenue</p>
-                    </div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon orange"><i class="fas fa-calendar"></i></div>
-                    <div class="kpi-info">
-                        <h3>₱{{ number_format($monthlyRevenue ?? 0, 0, '.', ',') }}</h3>
-                        <p>Monthly Revenue</p>
-                    </div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon purple"><i class="fas fa-calendar-year"></i></div>
-                    <div class="kpi-info">
-                        <h3>₱{{ number_format($yearlyRevenue ?? 0, 0, '.', ',') }}</h3>
-                        <p>Yearly Revenue</p>
-                    </div>
-                </div>
-                <div class="kpi-card">
                     <div class="kpi-icon cyan"><i class="fas fa-ticket-alt"></i></div>
                     <div class="kpi-info">
                         <h3>{{ number_format($kpis['total_bookings'] ?? 0) }}</h3>
@@ -594,6 +566,34 @@
                     <div class="kpi-info">
                         <h3>{{ number_format($kpis['active_clients'] ?? 0) }}</h3>
                         <p>Active Clients</p>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon blue"><i class="fas fa-user-group"></i></div>
+                    <div class="kpi-info">
+                        <h3>{{ number_format($kpis['total_users'] ?? 0) }}</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon orange"><i class="fas fa-clock"></i></div>
+                    <div class="kpi-info">
+                        <h3>{{ number_format($kpis['pending_bookings'] ?? 0) }}</h3>
+                        <p>Pending Bookings</p>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon purple"><i class="fas fa-percent"></i></div>
+                    <div class="kpi-info">
+                        <h3>{{ number_format($kpis['occupancy_rate'] ?? 0, 1) }}%</h3>
+                        <p>Occupancy (this month)</p>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green"><i class="fas fa-check-circle"></i></div>
+                    <div class="kpi-info">
+                        <h3>{{ number_format($kpis['verified_properties'] ?? 0) }}</h3>
+                        <p>Verified Units</p>
                     </div>
                 </div>
                 <div class="kpi-card">
@@ -611,17 +611,17 @@
                 <div class="content-left">
                     <!-- Business KPI Overview -->
                     <div class="dashboard-card animate delay-2">
-                        <h3><i class="fas fa-bullseye icon"></i>Business KPI Overview</h3>
+                        <h3><i class="fas fa-bullseye icon"></i>Activity overview</h3>
                         <div class="quick-stats-grid">
                             <div class="quick-stat-card">
-                                <div class="icon"><i class="fas fa-trending-up"></i></div>
-                                <h4>{{ $growthRate ?? 0 }}%</h4>
-                                <p>Growth Rate</p>
+                                <div class="icon"><i class="fas fa-percent"></i></div>
+                                <h4>{{ number_format($kpis['occupancy_rate'] ?? 0, 1) }}%</h4>
+                                <p>Occupancy (this month)</p>
                             </div>
                             <div class="quick-stat-card">
-                                <div class="icon"><i class="fas fa-star"></i></div>
-                                <h4>₱{{ number_format($kpis['average_booking_value'] ?? 0, 0) }}</h4>
-                                <p>Avg Booking</p>
+                                <div class="icon"><i class="fas fa-clock"></i></div>
+                                <h4>{{ number_format($kpis['pending_bookings'] ?? 0) }}</h4>
+                                <p>Pending Bookings</p>
                             </div>
                             <div class="quick-stat-card">
                                 <div class="icon"><i class="fas fa-home"></i></div>
@@ -636,22 +636,20 @@
                         </div>
                     </div>
                     
-                    <!-- Revenue Distribution -->
                     <div class="dashboard-card animate delay-3">
-                        <h3><i class="fas fa-chart-pie icon"></i>Revenue Distribution</h3>
+                        <h3><i class="fas fa-chart-pie icon"></i>Bookings by unit type (this month)</h3>
                         <div class="chart-container-sm">
-                            <canvas id="revenueDistributionChart"></canvas>
+                            <canvas id="bookingsByTypeChart"></canvas>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Right Column -->
                 <div class="content-right">
-                    <!-- Monthly Revenue Trend -->
                     <div class="dashboard-card animate delay-2">
-                        <h3><i class="fas fa-chart-area icon"></i>Monthly Revenue Trend</h3>
+                        <h3><i class="fas fa-chart-area icon"></i>Bookings per month</h3>
                         <div class="chart-container">
-                            <canvas id="revenueChart"></canvas>
+                            <canvas id="bookingsTrendChart"></canvas>
                         </div>
                     </div>
                     
@@ -797,60 +795,47 @@
                 });
             }
 
-            // Monthly Revenue Line Chart
-            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(revenueCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'Revenue (₱)',
-                        data: [
-                            {{ $monthlyRevenueData['jan'] ?? 0 }},
-                            {{ $monthlyRevenueData['feb'] ?? 0 }},
-                            {{ $monthlyRevenueData['mar'] ?? 0 }},
-                            {{ $monthlyRevenueData['apr'] ?? 0 }},
-                            {{ $monthlyRevenueData['may'] ?? 0 }},
-                            {{ $monthlyRevenueData['jun'] ?? 0 }},
-                            {{ $monthlyRevenueData['jul'] ?? 0 }},
-                            {{ $monthlyRevenueData['aug'] ?? 0 }},
-                            {{ $monthlyRevenueData['sep'] ?? 0 }},
-                            {{ $monthlyRevenueData['oct'] ?? 0 }},
-                            {{ $monthlyRevenueData['nov'] ?? 0 }},
-                            {{ $monthlyRevenueData['dec'] ?? 0 }}
-                        ],
-                        borderColor: 'rgb(46, 125, 50)',
-                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: 'rgb(46, 125, 50)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+            const bookingsTrendEl = document.getElementById('bookingsTrendChart');
+            if (bookingsTrendEl) {
+                new Chart(bookingsTrendEl.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [{
+                            label: 'Bookings',
+                            data: [
+                                {{ $monthlyBookingsData['jan'] ?? 0 }},
+                                {{ $monthlyBookingsData['feb'] ?? 0 }},
+                                {{ $monthlyBookingsData['mar'] ?? 0 }},
+                                {{ $monthlyBookingsData['apr'] ?? 0 }},
+                                {{ $monthlyBookingsData['may'] ?? 0 }},
+                                {{ $monthlyBookingsData['jun'] ?? 0 }},
+                                {{ $monthlyBookingsData['jul'] ?? 0 }},
+                                {{ $monthlyBookingsData['aug'] ?? 0 }},
+                                {{ $monthlyBookingsData['sep'] ?? 0 }},
+                                {{ $monthlyBookingsData['oct'] ?? 0 }},
+                                {{ $monthlyBookingsData['nov'] ?? 0 }},
+                                {{ $monthlyBookingsData['dec'] ?? 0 }}
+                            ],
+                            borderColor: 'rgb(46, 125, 50)',
+                            backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgb(46, 125, 50)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₱' + value.toLocaleString();
-                                }
-                            }
-                        }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                     }
-                }
-            });
-            
-            // Guests Per Month (sum of number_of_guests on bookings created in each month)
+                });
+            }
+
             const guestsCtx = document.getElementById('guestsChart').getContext('2d');
             new Chart(guestsCtx, {
                 type: 'bar',
@@ -893,37 +878,35 @@
                     }
                 }
             });
-            
-            // Revenue Distribution Doughnut Chart
-            const distributionCtx = document.getElementById('revenueDistributionChart').getContext('2d');
-            new Chart(distributionCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Traveller-Inn', 'Airbnb', 'Daily Rental'],
-                    datasets: [{
-                        data: [
-                            {{ $revenueByType['traveller-inn'] ?? 0 }},
-                            {{ $revenueByType['airbnb'] ?? 0 }},
-                            {{ $revenueByType['daily-rental'] ?? 0 }}
-                        ],
-                        backgroundColor: [
-                            'rgb(46, 125, 50)',
-                            'rgb(59, 162, 246)',
-                            'rgb(249, 115, 22)'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        }
+
+            const bookingsByTypeEl = document.getElementById('bookingsByTypeChart');
+            if (bookingsByTypeEl) {
+                new Chart(bookingsByTypeEl.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Traveller-Inn', 'Airbnb', 'Daily Rental'],
+                        datasets: [{
+                            label: 'Bookings',
+                            data: [
+                                {{ $bookingsByType['traveller-inn'] ?? 0 }},
+                                {{ $bookingsByType['airbnb'] ?? 0 }},
+                                {{ $bookingsByType['daily-rental'] ?? 0 }}
+                            ],
+                            backgroundColor: [
+                                'rgb(46, 125, 50)',
+                                'rgb(59, 162, 246)',
+                                'rgb(249, 115, 22)'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
                     }
-                }
-            });
+                });
+            }
         });
     </script>
 </body>

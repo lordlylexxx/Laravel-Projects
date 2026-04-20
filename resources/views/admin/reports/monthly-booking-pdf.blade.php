@@ -149,10 +149,6 @@
             color: #2E7D32;
         }
         
-        .revenue {
-            color: #1B5E20;
-            font-weight: 700;
-        }
         
         /* Summary Row */
         .summary-row {
@@ -263,12 +259,12 @@
                 <div class="value">{{ $summary['total_guests'] }}</div>
             </div>
             <div class="summary-card">
-                <h4>Revenue</h4>
-                <div class="value" style="font-size: 18px;">₱{{ number_format($summary['total_revenue'], 0) }}</div>
+                <h4>Avg guests / booking</h4>
+                <div class="value">{{ $summary['average_guests_per_booking'] }}</div>
             </div>
             <div class="summary-card">
-                <h4>Avg/Booking</h4>
-                <div class="value">{{ $summary['average_guests_per_booking'] }}</div>
+                <h4>Tenants</h4>
+                <div class="value">{{ $summary['tenant_count'] }}</div>
             </div>
         </div>
         
@@ -284,8 +280,7 @@
                             <th>Tenant Name</th>
                             <th style="text-align: right;">Bookings</th>
                             <th style="text-align: right;">Total Guests</th>
-                            <th style="text-align: right;">Total Revenue</th>
-                            <th style="text-align: right;">Avg/Booking</th>
+                            <th style="text-align: right;">Avg guests / booking</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -294,16 +289,14 @@
                                 <td class="tenant-name">{{ $booking->name }}</td>
                                 <td class="number">{{ $booking->booking_count }}</td>
                                 <td class="number">{{ $booking->total_guests }}</td>
-                                <td class="number revenue">₱{{ number_format($booking->total_revenue, 0) }}</td>
-                                <td class="number">₱{{ number_format($booking->avg_booking_value, 0) }}</td>
+                                <td class="number">{{ number_format((float) $booking->avg_guests_per_booking, 2) }}</td>
                             </tr>
                         @endforeach
                         <tr class="summary-row">
                             <td><strong>TOTAL</strong></td>
                             <td class="number"><strong>{{ $summary['total_bookings'] }}</strong></td>
                             <td class="number"><strong>{{ $summary['total_guests'] }}</strong></td>
-                            <td class="number"><strong>₱{{ number_format($summary['total_revenue'], 0) }}</strong></td>
-                            <td class="number"><strong>₱{{ number_format($summary['total_revenue'] / max($summary['total_bookings'], 1), 0) }}</strong></td>
+                            <td class="number"><strong>{{ $summary['average_guests_per_booking'] }}</strong></td>
                         </tr>
                     </tbody>
                 </table>

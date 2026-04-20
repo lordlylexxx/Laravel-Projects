@@ -23,21 +23,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DashboardController extends Controller
 {
     /**
-     * Display the admin dashboard with sales monitoring analytics.
+     * Display the admin dashboard with platform analytics (non-financial metrics).
      */
     public function index(Request $request)
     {
-        // Current date range
         $now = now();
-        $startOfWeek = $now->copy()->startOfWeek();
-        $endOfWeek = $now->copy()->endOfWeek();
         $startOfMonth = $now->copy()->startOfMonth();
         $endOfMonth = $now->copy()->endOfMonth();
-        $startOfYear = $now->copy()->startOfYear();
-        $endOfYear = $now->copy()->endOfYear();
-        $lastYearStart = $now->copy()->subYear()->startOfYear();
-        $lastYearEnd = $now->copy()->subYear()->endOfYear();
-
         $selectedTenantId = $request->filled('tenant_id')
             ? (int) $request->integer('tenant_id')
             : null;
@@ -55,33 +47,6 @@ class DashboardController extends Controller
             [$demographicsStartDate, $demographicsEndDate] = [$demographicsEndDate->copy()->startOfDay(), $demographicsStartDate->copy()->endOfDay()];
         }
 
-        // ============ REVENUE METRICS ============
-        $totalRevenue = Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->sum('total_price');
-
-        $weeklyRevenue = Booking::whereBetween('created_at', [$startOfWeek, $endOfWeek])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
-
-        $monthlyRevenue = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
-
-        $yearlyRevenue = Booking::whereBetween('created_at', [$startOfYear, $endOfYear])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
-
-        // Growth rate calculation
-        $lastMonthRevenue = Booking::whereBetween('created_at', [
-            $now->copy()->subMonth()->startOfMonth(),
-            $now->copy()->subMonth()->endOfMonth(),
-        ])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->sum('total_price');
-
-        $growthRate = $lastMonthRevenue > 0
-            ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
-            : 0;
-
         // ============ BOOKING METRICS ============
         $totalBookings = Booking::count();
         $activeClients = User::clients()->where('is_active', true)->count();
@@ -90,17 +55,7 @@ class DashboardController extends Controller
         $totalAccommodations = Accommodation::count();
         $occupancyRate = $this->calculateOccupancyRate($startOfMonth, $endOfMonth);
 
-        // ============ TOP PERFORMING UNIT ============
-        $topProperty = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->whereIn('status', ['confirmed', 'completed', 'paid'])
-            ->select('accommodation_id', DB::raw('sum(total_price) as revenue'))
-            ->groupBy('accommodation_id')
-            ->orderByDesc('revenue')
-            ->with('accommodation')
-            ->first();
-
-        // ============ MONTHLY CHART DATA ============
-        $monthlyRevenueData = [];
+        // ============ MONTHLY CHART DATA (bookings / guests only) ============
         $monthlyBookingsData = [];
         $monthlyGuestsData = [];
 
@@ -109,23 +64,19 @@ class DashboardController extends Controller
             $monthEnd = $now->copy()->month($i)->endOfMonth();
 
             $monthKey = strtolower($monthStart->format('M'));
-            $monthlyRevenueData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
-                ->whereIn('status', ['confirmed', 'completed', 'paid'])
-                ->sum('total_price');
-
             $monthlyBookingsData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])->count();
             $monthlyGuestsData[$monthKey] = (int) Booking::whereBetween('created_at', [$monthStart, $monthEnd])->sum('number_of_guests');
         }
 
-        // ============ REVENUE BY PROPERTY TYPE ============
-        $revenueByType = [];
+        // ============ BOOKINGS BY PROPERTY TYPE (counts, current month) ============
+        $bookingsByType = [];
         foreach (['traveller-inn', 'airbnb', 'daily-rental'] as $type) {
-            $revenueByType[$type] = Booking::whereHas('accommodation', function ($query) use ($type) {
+            $bookingsByType[$type] = Booking::whereHas('accommodation', function ($query) use ($type) {
                 $query->where('type', $type);
             })
                 ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->whereIn('status', ['confirmed', 'completed', 'paid'])
-                ->sum('total_price');
+                ->count();
         }
 
         // ============ KPI SUMMARY ============
@@ -133,11 +84,10 @@ class DashboardController extends Controller
             'total_users' => User::count(),
             'total_accommodations' => $totalAccommodations,
             'total_bookings' => $totalBookings,
-            'total_revenue' => $totalRevenue,
             'pending_bookings' => Booking::where('status', 'pending')->count(),
             'active_clients' => $activeClients,
             'verified_properties' => Accommodation::where('is_verified', true)->count(),
-            'average_booking_value' => Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->avg('total_price') ?? 0,
+            'occupancy_rate' => $occupancyRate,
         ];
 
         // ============ RECENT ACTIVITY ============
@@ -170,9 +120,8 @@ class DashboardController extends Controller
         );
 
         return view('admin.dashboard', compact(
-            'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue', 'totalRevenue',
-            'totalBookings', 'activeClients', 'occupancyRate', 'topProperty', 'growthRate',
-            'monthlyRevenueData', 'monthlyBookingsData', 'monthlyGuestsData', 'revenueByType',
+            'totalBookings', 'activeClients', 'occupancyRate',
+            'monthlyBookingsData', 'monthlyGuestsData', 'bookingsByType',
             'kpis', 'recentBookings', 'tenantBookingsToday', 'topTenantByBookings',
             'tenantFilterOptions', 'selectedTenantId', 'demographicsStartDate', 'demographicsEndDate', 'demographics'
         ));
@@ -1066,7 +1015,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Generate PDF report for monthly bookings by tenant.
+     * Generate HTML report for monthly bookings by tenant (no financial columns).
      */
     public function generateMonthlyBookingReport(Request $request, $year = null, $month = null)
     {
@@ -1075,58 +1024,14 @@ class DashboardController extends Controller
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
-        $year = $year ?? $validated['year'] ?? now()->year;
-        $month = $month ?? $validated['month'] ?? now()->month;
+        $year = (int) ($year ?? $validated['year'] ?? now()->year);
+        $month = (int) ($month ?? $validated['month'] ?? now()->month);
 
-        // Create date range for the requested month
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
-
-        // Get bookings data by tenant for the month
-        $monthlyData = Booking::query()
-            ->join('accommodations', 'bookings.accommodation_id', '=', 'accommodations.id')
-            ->join('tenants', 'accommodations.tenant_id', '=', 'tenants.id')
-            ->whereBetween('bookings.check_in_date', [$startDate, $endDate])
-            ->orWhereBetween('bookings.check_out_date', [$startDate, $endDate])
-            ->whereIn('bookings.status', ['confirmed', 'completed', 'paid'])
-            ->select(
-                'tenants.id',
-                'tenants.name',
-                'tenants.slug',
-                DB::raw('COUNT(*) as booking_count'),
-                DB::raw('SUM(bookings.number_of_guests) as total_guests'),
-                DB::raw('SUM(bookings.total_price) as total_revenue'),
-                DB::raw('AVG(bookings.total_price) as avg_booking_value')
-            )
-            ->groupBy('tenants.id', 'tenants.name', 'tenants.slug')
-            ->orderByDesc('total_guests')
-            ->get();
-
-        // Summary statistics
-        $summary = [
-            'total_bookings' => $monthlyData->sum('booking_count'),
-            'total_guests' => $monthlyData->sum('total_guests'),
-            'total_revenue' => $monthlyData->sum('total_revenue'),
-            'average_guests_per_booking' => $monthlyData->count() > 0
-                ? round($monthlyData->sum('total_guests') / $monthlyData->sum('booking_count'), 2)
-                : 0,
-        ];
-
-        $data = [
-            'year' => $year,
-            'month' => $month,
-            'monthName' => $startDate->format('F Y'),
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'tenantBookings' => $monthlyData,
-            'summary' => $summary,
-        ];
-
-        return response()->view('admin.reports.monthly-booking-pdf', $data);
+        return response()->view('admin.reports.monthly-booking-pdf', $this->monthlyBookingReportPayload($year, $month));
     }
 
     /**
-     * Download PDF report for monthly bookings by tenant.
+     * Download PDF report for monthly bookings by tenant (no financial columns).
      */
     public function downloadMonthlyBookingPdf(Request $request, $year = null, $month = null)
     {
@@ -1135,14 +1040,25 @@ class DashboardController extends Controller
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
-        $year = $year ?? $validated['year'] ?? now()->year;
-        $month = $month ?? $validated['month'] ?? now()->month;
+        $year = (int) ($year ?? $validated['year'] ?? now()->year);
+        $month = (int) ($month ?? $validated['month'] ?? now()->month);
 
-        // Create date range for the requested month
+        $data = $this->monthlyBookingReportPayload($year, $month);
+
+        $pdf = \PDF::loadView('admin.reports.monthly-booking-pdf', $data);
+        $filename = "booking-report-{$year}-{$month}-".now()->timestamp.'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @return array{year: int, month: int, monthName: string, startDate: Carbon, endDate: Carbon, tenantBookings: \Illuminate\Support\Collection, summary: array}
+     */
+    private function monthlyBookingReportPayload(int $year, int $month): array
+    {
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        // Get bookings data by tenant for the month
         $monthlyData = Booking::query()
             ->join('accommodations', 'bookings.accommodation_id', '=', 'accommodations.id')
             ->join('tenants', 'accommodations.tenant_id', '=', 'tenants.id')
@@ -1155,24 +1071,25 @@ class DashboardController extends Controller
                 'tenants.slug',
                 DB::raw('COUNT(*) as booking_count'),
                 DB::raw('SUM(bookings.number_of_guests) as total_guests'),
-                DB::raw('SUM(bookings.total_price) as total_revenue'),
-                DB::raw('AVG(bookings.total_price) as avg_booking_value')
+                DB::raw('AVG(bookings.number_of_guests) as avg_guests_per_booking')
             )
             ->groupBy('tenants.id', 'tenants.name', 'tenants.slug')
             ->orderByDesc('total_guests')
             ->get();
 
-        // Summary statistics
+        $totalBookings = (int) $monthlyData->sum('booking_count');
+        $totalGuests = (int) $monthlyData->sum('total_guests');
+
         $summary = [
-            'total_bookings' => $monthlyData->sum('booking_count'),
-            'total_guests' => $monthlyData->sum('total_guests'),
-            'total_revenue' => $monthlyData->sum('total_revenue'),
-            'average_guests_per_booking' => $monthlyData->count() > 0
-                ? round($monthlyData->sum('total_guests') / $monthlyData->sum('booking_count'), 2)
+            'total_bookings' => $totalBookings,
+            'total_guests' => $totalGuests,
+            'average_guests_per_booking' => $totalBookings > 0
+                ? round($totalGuests / $totalBookings, 2)
                 : 0,
+            'tenant_count' => $monthlyData->count(),
         ];
 
-        $data = [
+        return [
             'year' => $year,
             'month' => $month,
             'monthName' => $startDate->format('F Y'),
@@ -1181,10 +1098,5 @@ class DashboardController extends Controller
             'tenantBookings' => $monthlyData,
             'summary' => $summary,
         ];
-
-        $pdf = \PDF::loadView('admin.reports.monthly-booking-pdf', $data);
-        $filename = "booking-report-{$year}-{$month}-".now()->timestamp.'.pdf';
-
-        return $pdf->download($filename);
     }
 }

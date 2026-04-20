@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class UpdateController extends Controller
 {
@@ -38,24 +39,40 @@ class UpdateController extends Controller
             $downloadParams['token'] = $token;
         }
 
+        $githubPackageUrl = $githubReleases->resolveLatestReleasePackageDownloadUrl();
+        $downloadUrl = $githubPackageUrl !== null
+            ? $githubPackageUrl
+            : route('updates.download', $downloadParams);
+
         return response()->json([
             'current_version' => $currentVersion,
             'latest_version' => $latestVersion,
             'has_update' => $hasUpdate,
             'release_notes' => $releaseNotes,
             'published_at' => $publishedAt,
-            'download_url' => route('updates.download', $downloadParams),
+            'download_url' => $downloadUrl,
         ]);
     }
 
-    public function download(Request $request): BinaryFileResponse
+    public function download(Request $request, GithubReleaseMetadataService $githubReleases): Response|BinaryFileResponse
     {
         $this->authorizeChannel($request);
+
+        $githubUrl = $githubReleases->resolveLatestReleasePackageDownloadUrl();
+
+        if ($githubUrl !== null) {
+            return redirect()->away($githubUrl);
+        }
 
         $filename = (string) config('updates.package_filename', 'latest-update.zip');
         $path = storage_path('app/public/updates/'.$filename);
 
-        abort_unless(File::exists($path), 404, 'Update package not found.');
+        if (! File::exists($path)) {
+            return response()->view('central.update-package-missing', [
+                'path' => $path,
+                'filename' => $filename,
+            ], 404);
+        }
 
         return response()->download($path, $filename, [
             'Content-Type' => 'application/zip',
