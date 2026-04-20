@@ -54,7 +54,7 @@ class RegisteredUserController extends Controller
         $isOwnerRegistration = ! $isTenantSignup && $request->input('role') === 'owner';
         if ($isOwnerRegistration) {
             $rules = array_merge($rules, [
-                'subscription_plan' => ['nullable', 'in:basic,plus,pro'],
+                'subscription_plan' => ['nullable', 'in:basic,plus,pro,promo'],
                 'app_title' => ['nullable', 'string', 'max:255'],
                 'primary_color' => ['nullable', 'regex:/^#[0-9A-F]{6}$/i'],
                 'accent_color' => ['nullable', 'regex:/^#[0-9A-F]{6}$/i'],
@@ -81,6 +81,12 @@ class RegisteredUserController extends Controller
             'tenant_id' => $isTenantSignup ? $tenant?->getKey() : null,
             'phone' => $request->phone,
         ]);
+
+        $user->syncRbacFromLegacyRole();
+
+        if ($isTenantSignup && $tenant) {
+            $user->syncEffectiveTenantPermissions($tenant);
+        }
 
         if (! $isTenantSignup && $user->isOwner()) {
             $customizationData = null;

@@ -4,15 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Models\UpdateLog;
+use App\Models\User;
 use App\Services\CentralUpdateService;
+use Database\Seeders\RbacCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class SystemUpdatePageController extends Controller
 {
     public function ownerIndex(Request $request, CentralUpdateService $updates): View
     {
+        $this->assertTenantAdminHasPermission($request, User::PERM_REPORTS_VIEW);
+
         return $this->renderPage('owner', $request, $updates);
     }
 
@@ -23,6 +29,8 @@ class SystemUpdatePageController extends Controller
 
     public function ownerMarkInstalled(Request $request): RedirectResponse
     {
+        $this->assertTenantAdminHasPermission($request, User::PERM_REPORTS_VIEW);
+
         return $this->markInstalled('owner', $request);
     }
 
@@ -54,9 +62,18 @@ class SystemUpdatePageController extends Controller
             ? 'unavailable'
             : ($hasUpdate ? 'update_available' : 'up_to_date');
 
+        $requestUser = $request->user();
+        $candidateUserId = $requestUser?->id;
+        $resolvedLandlordUserId = null;
+        if ($requestUser?->email) {
+            $resolvedLandlordUserId = DB::connection('landlord')
+                ->table('users')
+                ->where('email', $requestUser->email)
+                ->value('id');
+        }
         $log = UpdateLog::create([
             'tenant_id' => $tenantId,
-            'user_id' => $request->user()?->id,
+            'user_id' => $resolvedLandlordUserId,
             'current_version' => $currentVersion,
             'latest_version' => $latestVersion,
             'release_notes' => (string) ($payload['release_notes'] ?? config('updates.release_notes', '')),
@@ -116,5 +133,32 @@ class SystemUpdatePageController extends Controller
 
         return redirect()->to(($navType === 'admin' && ! $isTenantContext) ? '/admin/system-updates' : '/owner/system-updates')
             ->with('success', 'Latest update has been marked as installed.');
+    }
+
+    private function assertTenantAdminHasPermission(Request $request, string $permission): void
+    {
+        $user = $request->user();
+        $tenant = Tenant::current();
+
+        if (! $tenant || ! $user || ! $user->isAdmin()) {
+            return;
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $tenant->id) {
+            return;
+        }
+
+        $allowed = $user->hasPermission($permission);
+        if (! $allowed) {
+            RbacCatalog::ensurePermissionsExist();
+            RbacCatalog::ensureRolesAndGrantPermissions();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $user->syncRbacFromLegacyRole();
+            $user->syncEffectiveTenantPermissions($tenant);
+            $user->refresh();
+            $allowed = $user->hasPermission($permission);
+        }
+
+        abort_unless($allowed, 403);
     }
 }

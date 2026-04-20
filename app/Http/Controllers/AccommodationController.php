@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Accommodation;
 use App\Models\Tenant;
+use App\Models\User;
+use Database\Seeders\RbacCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\PermissionRegistrar;
 
 class AccommodationController extends Controller
 {
@@ -289,6 +292,12 @@ class AccommodationController extends Controller
      */
     public function ownerIndex(Request $request)
     {
+        $this->assertTenantAdminHasAnyPermission($request, [
+            User::PERM_ACCOMMODATIONS_CREATE,
+            User::PERM_ACCOMMODATIONS_UPDATE,
+            User::PERM_ACCOMMODATIONS_DELETE,
+        ]);
+
         $user = $request->user();
         $currentTenant = Tenant::current();
 
@@ -324,6 +333,7 @@ class AccommodationController extends Controller
                     Tenant::PLAN_BASIC => 'Basic',
                     Tenant::PLAN_PLUS => 'Standard',
                     Tenant::PLAN_PRO => 'Premium',
+                    Tenant::PLAN_PROMO => 'Promo (custom)',
                     default => ucfirst((string) $tenantForLimits->plan),
                 },
                 'used' => $totalForTenant,
@@ -398,5 +408,35 @@ class AccommodationController extends Controller
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     */
+    private function assertTenantAdminHasAnyPermission(Request $request, array $permissions): void
+    {
+        $user = $request->user();
+        $tenant = Tenant::current();
+
+        if (! $tenant || ! $user || ! $user->isAdmin()) {
+            return;
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $tenant->id) {
+            return;
+        }
+
+        $allowed = collect($permissions)->contains(fn (string $permission): bool => $user->hasPermission($permission));
+        if (! $allowed) {
+            RbacCatalog::ensurePermissionsExist();
+            RbacCatalog::ensureRolesAndGrantPermissions();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $user->syncRbacFromLegacyRole();
+            $user->syncEffectiveTenantPermissions($tenant);
+            $user->refresh();
+            $allowed = collect($permissions)->contains(fn (string $permission): bool => $user->hasPermission($permission));
+        }
+
+        abort_unless($allowed, 403);
     }
 }

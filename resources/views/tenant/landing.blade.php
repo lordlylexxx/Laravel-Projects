@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.tenant-favicon')
     <title>{{ $tenant->name }} | Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -62,6 +63,19 @@
             color: var(--white);
             background: linear-gradient(145deg, var(--green-dark), var(--green-primary));
             box-shadow: 0 8px 20px color-mix(in srgb, var(--green-primary) 30%, transparent);
+            flex-shrink: 0;
+        }
+
+        .brand-logo {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            object-fit: contain;
+            background: var(--white);
+            box-shadow: 0 8px 20px color-mix(in srgb, var(--green-primary) 30%, transparent);
+            border: 1px solid var(--green-soft);
+            padding: 4px;
+            flex-shrink: 0;
         }
 
         .nav-brand .system-name {
@@ -305,6 +319,7 @@
 <body>
     @php
         $currentUser = auth()->user();
+        $tenantNavLogo = $tenant->getLogoUrl();
         $canUseTenantPortal = false;
 
         if ($currentUser) {
@@ -319,7 +334,12 @@
 
     <nav class="navbar">
         <div class="nav-brand">
-            <div class="brand-mark">{{ strtoupper(substr($tenant->name, 0, 1)) }}</div>
+            @if(filled($tenantNavLogo))
+                <img src="{{ $tenantNavLogo }}" alt="{{ $tenant->name }}" class="brand-logo" width="54" height="54"
+                     onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
+            @else
+                <div class="brand-mark">{{ strtoupper(substr($tenant->name, 0, 1)) }}</div>
+            @endif
             <div>
                 <span class="system-name">{{ $tenant->name }}</span>
                 <span class="tagline">| {{ $settings['hero_subtitle'] }}</span>
@@ -366,7 +386,7 @@
         <p class="animate delay-2">{{ $settings['hero_subtitle'] }}</p>
 
         <div class="hero-buttons animate delay-2">
-            <a href="{{ route('accommodations.index') }}" class="btn btn-primary"><i class="fas fa-rocket"></i> {{ $settings['cta_text'] }}</a>
+            <a href="{{ auth()->check() ? route('accommodations.index') : route('landing.browse-accommodations') }}" class="btn btn-primary"><i class="fas fa-rocket"></i> {{ $settings['cta_text'] }}</a>
             <a href="#properties" class="btn btn-outline"><i class="fas fa-search"></i> Browse Properties</a>
         </div>
     </section>
@@ -381,8 +401,6 @@
             <div class="carousel-track" id="carouselTrack">
                 @forelse(($featuredAccommodations ?? collect()) as $accommodation)
                     @php
-                        $images = is_array($accommodation->images) ? $accommodation->images : [];
-                        $primaryImage = $accommodation->primary_image ?? ($images[0] ?? 'COMMUNAL.jpg');
                         $typeIcon = match ($accommodation->type) {
                             'airbnb' => 'fas fa-home',
                             'daily-rental' => 'fas fa-calendar',
@@ -393,7 +411,7 @@
                     @endphp
                     <div class="carousel-slide">
                         <div class="property-card">
-                            <img src="/{{ $primaryImage }}" alt="{{ $accommodation->name }}" class="property-img">
+                            <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-img" loading="lazy">
                             <div class="property-content">
                                 <span class="property-type"><i class="{{ $typeIcon }}"></i> {{ $accommodation->type_label }}</span>
                                 <h3>{{ $accommodation->name }}</h3>

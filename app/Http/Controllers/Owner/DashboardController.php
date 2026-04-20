@@ -7,9 +7,12 @@ use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Message;
 use App\Models\Tenant;
+use App\Models\User;
+use Database\Seeders\RbacCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class DashboardController extends Controller
 {
@@ -105,7 +108,7 @@ class DashboardController extends Controller
                 ->sum('total_price');
 
             $proFeatures = [
-                'is_pro' => (string) $dashboardTenant->plan === Tenant::PLAN_PRO && $dashboardTenant->hasActiveSubscription(),
+                'is_pro' => in_array((string) $dashboardTenant->plan, [Tenant::PLAN_PRO, Tenant::PLAN_PROMO], true) && $dashboardTenant->hasActiveSubscription(),
                 'has_advanced_reporting' => $dashboardTenant->hasFeature('advanced_reporting'),
                 'has_analytics_dashboard' => $dashboardTenant->hasFeature('analytics_dashboard'),
                 'unlimited_listings' => is_null($dashboardTenant->maxListings()),
@@ -207,6 +210,8 @@ class DashboardController extends Controller
 
     public function monthlyReport(Request $request)
     {
+        $this->assertTenantAdminHasPermission($request, User::PERM_REPORTS_VIEW);
+
         $tenantId = $this->resolveManagedTenantId($request);
 
         if (! $tenantId) {
@@ -231,6 +236,8 @@ class DashboardController extends Controller
 
     public function downloadMonthlySalesPdf(Request $request)
     {
+        $this->assertTenantAdminHasPermission($request, User::PERM_REPORTS_VIEW);
+
         $tenantId = $this->resolveManagedTenantId($request);
 
         if (! $tenantId) {
@@ -253,11 +260,13 @@ class DashboardController extends Controller
             'dailyBreakdown' => $report['daily_breakdown'],
         ]);
 
-        return $pdf->download('tenant-monthly-sales-report-' . $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.pdf');
+        return $pdf->download('tenant-monthly-sales-report-'.$year.'-'.str_pad((string) $month, 2, '0', STR_PAD_LEFT).'.pdf');
     }
 
     public function downloadMonthlyGuestsPdf(Request $request)
     {
+        $this->assertTenantAdminHasPermission($request, User::PERM_REPORTS_VIEW);
+
         $tenantId = $this->resolveManagedTenantId($request);
 
         if (! $tenantId) {
@@ -280,7 +289,7 @@ class DashboardController extends Controller
             'dailyBreakdown' => $report['daily_breakdown'],
         ]);
 
-        return $pdf->download('tenant-monthly-guests-report-' . $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.pdf');
+        return $pdf->download('tenant-monthly-guests-report-'.$year.'-'.str_pad((string) $month, 2, '0', STR_PAD_LEFT).'.pdf');
     }
 
     private function resolveManagedTenantId(Request $request): ?int
@@ -301,6 +310,33 @@ class DashboardController extends Controller
         }
 
         return null;
+    }
+
+    private function assertTenantAdminHasPermission(Request $request, string $permission): void
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if (! $user || ! $user->isAdmin() || ! $currentTenant) {
+            return;
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            return;
+        }
+
+        $allowed = $user->hasPermission($permission);
+        if (! $allowed) {
+            RbacCatalog::ensurePermissionsExist();
+            RbacCatalog::ensureRolesAndGrantPermissions();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $user->syncRbacFromLegacyRole();
+            $user->syncEffectiveTenantPermissions($currentTenant);
+            $user->refresh();
+            $allowed = $user->hasPermission($permission);
+        }
+
+        abort_unless($allowed, 403);
     }
 
     private function buildMonthlyTenantReport(int $tenantId, int $year, int $month): array
@@ -335,4 +371,3 @@ class DashboardController extends Controller
         ];
     }
 }
-

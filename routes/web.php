@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LandingPlanController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -18,7 +19,8 @@ use App\Http\Controllers\Owner\TenantUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SystemUpdatePageController;
 use App\Http\Controllers\TenantLandingController;
-use App\Models\Tenant;
+use App\Models\CentralLandingPlan;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 $centralDomain = env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
@@ -28,18 +30,16 @@ $registerCentralRoutes = function () {
         // Landing page route (accessible to everyone)
         Route::get('/', function () {
             try {
-                $featuredTenants = Tenant::query()
-                    ->with('owner')
-                    ->where('domain_enabled', true)
-                    ->whereIn('subscription_status', ['trialing', 'active'])
-                    ->latest('id')
-                    ->take(8)
+                $landingPlans = CentralLandingPlan::query()
+                    ->where('is_visible', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
                     ->get();
             } catch (\Throwable) {
-                $featuredTenants = collect();
+                $landingPlans = collect();
             }
 
-            return view('landingpage', compact('featuredTenants'));
+            return view('landingpage', compact('landingPlans'));
         })->name('landing');
 
         Route::view('/about', 'about')->name('about');
@@ -97,10 +97,8 @@ $registerCentralRoutes = function () {
             Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
 
-            // Profile routes - accessible to all authenticated users
-            Route::get('/profile', function () {
-                return view('profile.new-edit');
-            })->name('profile.edit');
+            // Profile routes - accessible to all authenticated users (tenant clients gated by profile.self in controller)
+            Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
             Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
             Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -182,6 +180,9 @@ $registerCentralRoutes = function () {
             Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
             Route::put('/users/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('users.permissions');
             Route::put('/users/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('users.activate');
+            Route::post('/users/custom-roles', [TenantUserController::class, 'storeCustomRole'])->name('users.custom-roles.store');
+            Route::put('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'updateCustomRole'])->name('users.custom-roles.update');
+            Route::delete('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'destroyCustomRole'])->name('users.custom-roles.destroy');
         });
 
         // ============ ADMIN ROUTES ============
@@ -191,6 +192,14 @@ $registerCentralRoutes = function () {
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'adminIndex'])->name('updates.index');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])->name('updates.mark-installed');
+
+            Route::get('/landing-plans', [LandingPlanController::class, 'index'])->name('landing-plans.index');
+            Route::get('/landing-plans/create', [LandingPlanController::class, 'create'])->name('landing-plans.create');
+            Route::post('/landing-plans', [LandingPlanController::class, 'store'])->name('landing-plans.store');
+            Route::get('/landing-plans/{central_landing_plan}/edit', [LandingPlanController::class, 'edit'])->name('landing-plans.edit');
+            Route::patch('/landing-plans/{central_landing_plan}/visibility', [LandingPlanController::class, 'toggleVisibility'])->name('landing-plans.toggle-visibility');
+            Route::put('/landing-plans/{central_landing_plan}', [LandingPlanController::class, 'update'])->name('landing-plans.update');
+            Route::delete('/landing-plans/{central_landing_plan}', [LandingPlanController::class, 'destroy'])->name('landing-plans.destroy');
 
             // Tenant Management
             Route::get('/tenants', [AdminDashboardController::class, 'tenants'])->name('tenants');
@@ -211,6 +220,8 @@ $registerCentralRoutes = function () {
             // Booking Reports
             Route::post('/reports/monthly-booking-pdf', [AdminDashboardController::class, 'downloadMonthlyBookingPdf'])->name('monthly-booking-pdf');
             Route::get('/reports/monthly-booking-pdf', [AdminDashboardController::class, 'generateMonthlyBookingReport'])->name('monthly-booking-report');
+            Route::get('/reports/demographics', [AdminDashboardController::class, 'demographicsReport'])->name('reports.demographics');
+            Route::post('/reports/demographics/export', [AdminDashboardController::class, 'exportDemographicsReport'])->name('reports.demographics.export');
 
             // Booking Management
             // Message Management (landlord central admin ↔ tenant “ImpaStay” proxy threads)
@@ -248,6 +259,16 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
         Route::get('/', [TenantLandingController::class, 'showPublic'])
             ->name('landing');
 
+        Route::get('/browse-accommodations', function (Request $request) {
+            if ($request->user()) {
+                return redirect()->route('accommodations.index');
+            }
+
+            $request->session()->put('url.intended', route('accommodations.index'));
+
+            return redirect()->route('login', ['portal' => 'client']);
+        })->name('landing.browse-accommodations');
+
         Route::get('/dashboard', [ClientDashboardController::class, 'index'])
             ->name('dashboard');
 
@@ -257,7 +278,7 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
         Route::get('/accommodations/{accommodation}', [\App\Http\Controllers\AccommodationController::class, 'show'])
             ->name('accommodations.show');
 
-        Route::middleware(['auth', 'client'])->group(function () {
+        Route::middleware(['auth', 'client', 'tenant.client_guest_rbac'])->group(function () {
             Route::post('/accommodations/{accommodation}/book', [\App\Http\Controllers\BookingController::class, 'store'])
                 ->name('accommodations.book');
 
@@ -312,9 +333,12 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
             Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
             Route::put('/users/{user}/permissions', [TenantUserController::class, 'updatePermissions'])->name('users.permissions');
             Route::put('/users/{user}/activate', [TenantUserController::class, 'toggleActive'])->name('users.activate');
+            Route::post('/users/custom-roles', [TenantUserController::class, 'storeCustomRole'])->name('users.custom-roles.store');
+            Route::put('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'updateCustomRole'])->name('users.custom-roles.update');
+            Route::delete('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'destroyCustomRole'])->name('users.custom-roles.destroy');
         });
 
-        Route::middleware('auth')->group(function () {
+        Route::middleware(['auth', 'tenant.client_guest_rbac'])->group(function () {
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
                 ->name('messages.index');
 
@@ -343,10 +367,8 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
                 ->name('messages.destroy');
         });
 
-        Route::middleware('auth')->group(function () {
-            Route::get('/profile', function () {
-                return view('profile.new-edit');
-            })->name('profile.edit');
+        Route::middleware(['auth', 'tenant.client_guest_rbac'])->group(function () {
+            Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
             Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
             Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         });

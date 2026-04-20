@@ -20,19 +20,44 @@ class BookingPolicy
     }
 
     /**
+     * List bookings (owner / tenant admin / clients with guest booking capability).
+     */
+    public function viewAny(User $user): bool
+    {
+        if ($user->isOwner()) {
+            return true;
+        }
+
+        if ($user->isAdmin() && $user->tenant_id !== null) {
+            return $this->hasPermissionOrLegacy($user, User::PERM_BOOKINGS_MANAGE);
+        }
+
+        return $user->tenantClientMayManageOwnStays();
+    }
+
+    /**
+     * Create a booking as a client (guest capability).
+     */
+    public function create(User $user): bool
+    {
+        return $user->tenantClientMayManageOwnStays();
+    }
+
+    /**
      * A booking can be viewed by its client, the accommodation owner, or the tenant admin for that tenant.
      */
     public function view(User $user, Booking $booking): bool
     {
         if ((int) $booking->client_id === (int) $user->id) {
-            return true;
+            return $user->tenantClientMayManageOwnStays();
         }
 
         if ($user->isOwner() && (int) $booking->accommodation->owner_id === (int) $user->id) {
             return true;
         }
 
-        return $this->isTenantAdminForBooking($user, $booking);
+        return $this->isTenantAdminForBooking($user, $booking)
+            && $this->hasPermissionOrLegacy($user, User::PERM_BOOKINGS_MANAGE);
     }
 
     /**
@@ -62,7 +87,11 @@ class BookingPolicy
      */
     public function cancel(User $user, Booking $booking): bool
     {
-        return $user->isClient() && (int) $booking->client_id === (int) $user->id;
+        if (! $user->isClient() || (int) $booking->client_id !== (int) $user->id) {
+            return false;
+        }
+
+        return $user->hasPermission(User::PERM_BOOKINGS_SELF);
     }
 
     private function hasPermissionOrLegacy(User $user, string $permission): bool
@@ -71,6 +100,6 @@ class BookingPolicy
             return true;
         }
 
-        return $user->isOwner() || ($user->isAdmin() && $user->tenant_id !== null);
+        return $user->isOwner();
     }
 }

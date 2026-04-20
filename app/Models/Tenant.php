@@ -17,6 +17,9 @@ class Tenant extends BaseTenant
 
     public const PLAN_PRO = 'pro';
 
+    /** Promotional: Premium feature set; optional `promo_max_listings` (null = unlimited) and `promo_price` (null = ₱0 in catalog). */
+    public const PLAN_PROMO = 'promo';
+
     public const ONBOARDING_AWAITING_PAYMENT = 'awaiting_payment';
 
     public const ONBOARDING_PENDING_APPROVAL = 'pending_approval';
@@ -39,6 +42,8 @@ class Tenant extends BaseTenant
         'db_password',
         'owner_user_id',
         'plan',
+        'promo_max_listings',
+        'promo_price',
         'subscription_status',
         'trial_ends_at',
         'current_period_starts_at',
@@ -89,6 +94,8 @@ class Tenant extends BaseTenant
             'bandwidth_usage_bytes' => 'integer',
             'bandwidth_quota_bytes' => 'integer',
             'bandwidth_last_recorded_at' => 'datetime',
+            'promo_max_listings' => 'integer',
+            'promo_price' => 'decimal:2',
         ];
     }
 
@@ -140,6 +147,10 @@ class Tenant extends BaseTenant
         $details = self::getPlanDetails();
         $plan = (string) ($this->plan ?? self::PLAN_BASIC);
 
+        if ($plan === self::PLAN_PROMO && $this->promo_price !== null) {
+            return (float) $this->promo_price;
+        }
+
         return (float) ($details[$plan]['price'] ?? $details[self::PLAN_BASIC]['price'] ?? 0);
     }
 
@@ -174,6 +185,7 @@ class Tenant extends BaseTenant
             self::PLAN_BASIC => 3,
             self::PLAN_PLUS => 10,
             self::PLAN_PRO => null,
+            self::PLAN_PROMO => $this->promo_max_listings,
             default => 3,
         };
     }
@@ -198,7 +210,7 @@ class Tenant extends BaseTenant
                 'advanced_reporting',
                 'analytics_dashboard',
             ]),
-            self::PLAN_PRO => in_array($feature, [
+            self::PLAN_PRO, self::PLAN_PROMO => in_array($feature, [
                 'bookings',
                 'messaging',
                 'reviews',
@@ -237,7 +249,7 @@ class Tenant extends BaseTenant
                 'priority_support' => false,
                 'featured_listings' => false,
             ],
-            self::PLAN_PRO => [
+            self::PLAN_PRO, self::PLAN_PROMO => [
                 'bookings' => true,
                 'messaging' => true,
                 'reviews' => true,
@@ -258,6 +270,10 @@ class Tenant extends BaseTenant
         if (str_starts_with($plan, 'custom:')) {
             // Custom plans default to premium capabilities unless explicitly modeled later.
             return self::PLAN_PRO;
+        }
+
+        if ($plan === self::PLAN_PROMO) {
+            return self::PLAN_PROMO;
         }
 
         return $plan;
@@ -303,7 +319,32 @@ class Tenant extends BaseTenant
                     'Advanced analytics',
                 ],
             ],
+            self::PLAN_PROMO => [
+                'name' => 'Promo (custom)',
+                'price' => 0,
+                'currency' => '₱',
+                'max_listings' => null,
+                'features' => [
+                    'Promotional / partner pricing',
+                    'Premium feature set',
+                    'Custom listing cap and monthly price (admin)',
+                ],
+            ],
         ];
+    }
+
+    /**
+     * Human-readable plan label for admin UI and emails.
+     */
+    public static function planLabel(string $plan): string
+    {
+        return match ($plan) {
+            self::PLAN_BASIC => 'Basic',
+            self::PLAN_PLUS => 'Standard',
+            self::PLAN_PRO => 'Premium',
+            self::PLAN_PROMO => 'Promo (custom)',
+            default => ucfirst($plan),
+        };
     }
 
     public function canCreateAccommodation(int $currentCount): bool

@@ -47,6 +47,16 @@ class AuthenticatedSessionController extends Controller
         $currentTenant = Tenant::current();
         $user = $request->user();
 
+        if ($user && ! $user->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Your account is currently inactive. Please contact your business administrator.',
+            ])->onlyInput('email');
+        }
+
         if (! $currentTenant && $user?->isClient()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
@@ -115,13 +125,13 @@ class AuthenticatedSessionController extends Controller
         // Update last login
         $user?->updateLastLogin();
 
-        // In tenant mode, redirect to the correct tenant dashboard by role.
+        // In tenant mode, redirect to the correct tenant dashboard by role (honour url.intended, e.g. after landing CTA → login).
         if ($currentTenant) {
             if ($user?->isOwner() || $user?->isAdmin()) {
-                return redirect()->to('/owner/dashboard');
+                return $this->tenantSafeIntendedRedirect($request, url('/owner/dashboard'));
             }
 
-            return redirect()->to('/dashboard');
+            return $this->tenantSafeIntendedRedirect($request, route('dashboard'));
         }
 
         return redirect()->intended($request->user()->getDashboardRoute());
@@ -141,5 +151,30 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return $isTenantContext ? redirect()->to('/') : redirect('/');
+    }
+
+    private function tenantSafeIntendedRedirect(Request $request, string $fallback): RedirectResponse
+    {
+        $intended = (string) $request->session()->get('url.intended', '');
+
+        if ($intended !== '' && ! $this->isSafeTenantIntendedUrl($request, $intended)) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->to($fallback);
+        }
+
+        return redirect()->intended($fallback);
+    }
+
+    private function isSafeTenantIntendedUrl(Request $request, string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+
+        // Relative intended URLs are safe on the current host.
+        if (! is_string($host) || $host === '') {
+            return true;
+        }
+
+        return strcasecmp($host, $request->getHost()) === 0;
     }
 }

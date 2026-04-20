@@ -46,8 +46,19 @@ class FeatureHelper
         }
 
         $plans = Tenant::getPlanDetails();
+        $planKey = (string) $tenant->plan;
+        $base = $plans[$planKey] ?? null;
 
-        return $plans[$tenant->plan] ?? null;
+        if ($base === null) {
+            return null;
+        }
+
+        if ($planKey === Tenant::PLAN_PROMO) {
+            $base['max_listings'] = $tenant->maxListings();
+            $base['price'] = $tenant->mockSubscriptionAmount();
+        }
+
+        return $base;
     }
 
     /**

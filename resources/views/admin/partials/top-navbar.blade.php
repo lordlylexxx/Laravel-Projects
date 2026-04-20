@@ -15,6 +15,7 @@
     $bookingsHref = '/owner/bookings';
     $reportsHref = '/owner/reports/monthly';
     $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
+    $landingPlansHref = '/admin/landing-plans';
     $messagesHref = $isTenantContext ? '/messages' : '/admin/messages';
     $settingsHref = '/profile';
     $landingHref = '/';
@@ -32,6 +33,9 @@
         @if($isTenantContext)
             <li><a href="{{ $reportsHref }}" class="{{ $current === 'reports' ? 'active' : '' }}"><i class="fas fa-chart-column"></i> Reports</a></li>
             <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+        @endif
+        @if(! $isTenantContext)
+            <li><a href="{{ $landingPlansHref }}" class="{{ $current === 'landing-plans' ? 'active' : '' }}"><i class="fas fa-tags"></i> Plans</a></li>
         @endif
         <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
         <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>

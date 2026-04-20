@@ -30,39 +30,49 @@ class DashboardController extends Controller
             return redirect()->route('accommodations.index');
         }
 
-        $bookingsBaseQuery = Booking::query()
-            ->forClient($user->id)
-            ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id));
+        $canManageOwnStays = $user->tenantClientMayManageOwnStays();
 
-        $today = Carbon::today();
+        if ($canManageOwnStays) {
+            $bookingsBaseQuery = Booking::query()
+                ->forClient($user->id)
+                ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id));
 
-        $upcomingBookingsCount = (clone $bookingsBaseQuery)
-            ->whereDate('check_out_date', '>=', $today)
-            ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_COMPLETED])
-            ->count();
+            $today = Carbon::today();
 
-        $pendingBookingsCount = (clone $bookingsBaseQuery)
-            ->where('status', Booking::STATUS_PENDING)
-            ->count();
+            $upcomingBookingsCount = (clone $bookingsBaseQuery)
+                ->whereDate('check_out_date', '>=', $today)
+                ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_COMPLETED])
+                ->count();
 
-        $completedBookingsCount = (clone $bookingsBaseQuery)
-            ->where(function ($query) use ($today) {
-                $query->where('status', Booking::STATUS_COMPLETED)
-                    ->orWhereDate('check_out_date', '<', $today);
-            })
-            ->count();
+            $pendingBookingsCount = (clone $bookingsBaseQuery)
+                ->where('status', Booking::STATUS_PENDING)
+                ->count();
 
-        $nextUpcomingBooking = (clone $bookingsBaseQuery)
-            ->with(['accommodation', 'accommodation.owner'])
-            ->whereDate('check_out_date', '>=', $today)
-            ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_COMPLETED])
-            ->orderBy('check_in_date')
-            ->first();
+            $completedBookingsCount = (clone $bookingsBaseQuery)
+                ->where(function ($query) use ($today) {
+                    $query->where('status', Booking::STATUS_COMPLETED)
+                        ->orWhereDate('check_out_date', '<', $today);
+                })
+                ->count();
 
-        $ytdSpend = (clone $bookingsBaseQuery)
-            ->whereIn('status', [Booking::STATUS_PAID, Booking::STATUS_COMPLETED])
-            ->whereDate('created_at', '>=', Carbon::now()->startOfYear())
-            ->sum('total_price');
+            $nextUpcomingBooking = (clone $bookingsBaseQuery)
+                ->with(['accommodation', 'accommodation.owner'])
+                ->whereDate('check_out_date', '>=', $today)
+                ->whereNotIn('status', [Booking::STATUS_CANCELLED, Booking::STATUS_COMPLETED])
+                ->orderBy('check_in_date')
+                ->first();
+
+            $ytdSpend = (clone $bookingsBaseQuery)
+                ->whereIn('status', [Booking::STATUS_PAID, Booking::STATUS_COMPLETED])
+                ->whereDate('created_at', '>=', Carbon::now()->startOfYear())
+                ->sum('total_price');
+        } else {
+            $upcomingBookingsCount = 0;
+            $pendingBookingsCount = 0;
+            $completedBookingsCount = 0;
+            $nextUpcomingBooking = null;
+            $ytdSpend = 0;
+        }
 
         $unreadMessagesCount = Message::query()
             ->forUser($user->id)
@@ -99,7 +109,8 @@ class DashboardController extends Controller
             'completedBookingsCount',
             'nextUpcomingBooking',
             'ytdSpend',
-            'categoryCounts'
+            'categoryCounts',
+            'canManageOwnStays'
         ));
     }
 }

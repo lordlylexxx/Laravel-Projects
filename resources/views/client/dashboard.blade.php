@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.tenant-favicon')
     <title>Client Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -312,6 +313,7 @@
         
         <!-- Property Categories -->
         <section class="section">
+            @if($canManageOwnStays)
             <div class="section-header">
                 <h2><i class="fas fa-chart-line"></i>My Booking Snapshot</h2>
                 <a href="{{ route('bookings.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> Manage Bookings</a>
@@ -348,6 +350,12 @@
                     @endif
                 </div>
             </div>
+            @else
+            <div class="section-header">
+                <h2><i class="fas fa-chart-line"></i>Bookings</h2>
+            </div>
+            <p style="color: var(--gray-600); max-width: 42rem; margin-bottom: 1.5rem;">Your account does not have permission to create or manage bookings on this site. Contact the business if you need this enabled.</p>
+            @endif
 
             <div class="section-header">
                 <h2><i class="fas fa-th-large"></i>Browse by Type</h2>

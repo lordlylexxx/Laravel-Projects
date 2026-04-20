@@ -1,8 +1,12 @@
 <?php
 
+use App\Models\Tenant;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -11,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prependToGroup('web', \App\Http\Middleware\ForceRootUrlWhenRequestHostDiffersFromAppUrl::class);
+
         $middleware->validateCsrfTokens(except: [
             'logout',
         ]);
@@ -28,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.context' => \App\Http\Middleware\SetCurrentTenant::class,
             'tenant.required' => \Spatie\Multitenancy\Http\Middleware\NeedsTenant::class,
             'tenant.permissions_team' => \App\Http\Middleware\SetSpatiePermissionsTeamForTenant::class,
+            'tenant.client_guest_rbac' => \App\Http\Middleware\EnsureTenantClientGuestRbacOnAuth::class,
             'tenant.session' => \App\Http\Middleware\EnsureTenantSessionIsSynchronized::class,
             'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
             'tenant.bandwidth' => \App\Http\Middleware\RecordTenantBandwidthUsage::class,
@@ -36,5 +43,26 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->expectsJson() || ! Tenant::checkCurrent()) {
+                return null;
+            }
+
+            $statusCode = null;
+            if ($e instanceof HttpExceptionInterface) {
+                $statusCode = $e->getStatusCode();
+            } elseif ($e instanceof AuthorizationException) {
+                $statusCode = 403;
+            }
+
+            if ($statusCode !== 403) {
+                return null;
+            }
+
+            return response()->view('tenant.limited-access', [
+                'tenant' => Tenant::current(),
+                'message' => 'Your role does not currently include access to this page. Contact your business owner/admin if you need this permission.',
+            ], 403);
+        });
+    })
+    ->create();

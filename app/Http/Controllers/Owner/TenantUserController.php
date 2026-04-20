@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Mail\TenantUserWelcomeMail;
 use App\Models\Tenant;
+use App\Models\TenantCustomRole;
 use App\Models\User;
 use App\Services\Messaging\TenantCentralSupportProxyUser;
 use Database\Seeders\RbacCatalog;
@@ -23,6 +24,7 @@ class TenantUserController extends Controller
     {
         $currentTenant = $this->currentTenantOrFail();
         $actor = $request->user();
+        $customRbacReady = User::tenantCustomRbacSchemaReady();
 
         abort_unless($this->canManageUsers($actor), 403);
 
@@ -31,10 +33,19 @@ class TenantUserController extends Controller
         $users = User::query()
             ->where('tenant_id', $currentTenant->id)
             ->where('email', 'not like', '__impastay_central_support.tenant-%')
+            ->when($customRbacReady, fn ($query) => $query->with(['tenantCustomRole.permissions']))
             ->orderByDesc('id')
-            ->paginate(15);
+            ->paginate(5);
 
-        $this->ensureClientUsersHaveBaselinePermissions($users->getCollection(), $currentTenant);
+        $this->ensureVisibleUsersHaveSyncedPermissions($users->getCollection(), $currentTenant);
+
+        $tenantCustomRoles = $customRbacReady
+            ? TenantCustomRole::query()
+                ->where('tenant_id', $currentTenant->id)
+                ->with('permissions')
+                ->orderBy('name')
+                ->get()
+            : collect();
 
         return view('owner.users.index', [
             'users' => $users,
@@ -47,6 +58,9 @@ class TenantUserController extends Controller
             'assignableRoles' => $this->assignableRoles($actor),
             'assignableStaffPermissions' => $this->assignableStaffPermissions($actor),
             'assignableClientPermissions' => $this->assignableClientPermissions($actor),
+            'tenantCustomRoles' => $tenantCustomRoles,
+            'customRoleAssignablePermissions' => $customRbacReady ? $this->assignableCustomRolePermissions($actor) : [],
+            'customRbacReady' => $customRbacReady,
         ]);
     }
 
@@ -60,32 +74,50 @@ class TenantUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'in:admin,client'],
         ]);
+
+        $role = User::ROLE_CLIENT;
+        $tenantCustomRoleId = null;
+        if (User::tenantCustomRbacSchemaReady()) {
+            $extra = $request->validate([
+                'role_selection' => ['required', 'string'],
+            ]);
+            [$role, $tenantCustomRoleId] = $this->parseRoleSelection(
+                (string) $extra['role_selection'],
+                $currentTenant
+            );
+        } else {
+            $extra = $request->validate([
+                'role' => ['required', 'in:admin,client'],
+            ]);
+            $role = (string) $extra['role'];
+        }
+
+        if (! in_array($role, $this->assignableRoles($actor), true)) {
+            return back()->withErrors(['role_selection' => 'You are not allowed to assign this role.'])->withInput();
+        }
 
         $plainPassword = Str::password(16, true, true, true, false);
 
-        $user = User::create([
+        $payload = [
             'name' => $validated['name'],
             'email' => strtolower($validated['email']),
             'password' => $plainPassword,
-            'role' => $validated['role'],
+            'role' => $role,
             'tenant_id' => $currentTenant->id,
             'is_active' => true,
-        ]);
+        ];
+
+        if (User::tenantCustomRbacSchemaReady()) {
+            $payload['tenant_custom_role_id'] = $tenantCustomRoleId;
+            $payload['tenant_permission_grants'] = [];
+            $payload['tenant_permission_revokes'] = [];
+        }
+
+        $user = User::create($payload);
 
         $user->syncRbacFromLegacyRole();
-
-        if ($user->isClient()) {
-            $this->bootstrapTenantSpatieRbac();
-            $previousTeam = getPermissionsTeamId();
-            setPermissionsTeamId($currentTenant->id);
-            try {
-                $user->syncPermissions(User::defaultClientSpatiePermissions());
-            } finally {
-                setPermissionsTeamId($previousTeam);
-            }
-        }
+        $user->syncEffectiveTenantPermissions($currentTenant);
 
         $loginUrl = url('/login');
 
@@ -121,20 +153,43 @@ class TenantUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:admin,client'],
         ]);
 
-        if (! in_array($validated['role'], $this->assignableRoles($actor), true)) {
-            return back()->withErrors(['role' => 'You are not allowed to assign this role.']);
+        $role = User::ROLE_CLIENT;
+        $tenantCustomRoleId = null;
+        if (User::tenantCustomRbacSchemaReady()) {
+            $extra = $request->validate([
+                'role_selection' => ['required', 'string'],
+            ]);
+            [$role, $tenantCustomRoleId] = $this->parseRoleSelection(
+                (string) $extra['role_selection'],
+                $currentTenant
+            );
+        } else {
+            $extra = $request->validate([
+                'role' => ['required', 'in:admin,client'],
+            ]);
+            $role = (string) $extra['role'];
         }
 
-        $user->update([
+        if (! in_array($role, $this->assignableRoles($actor), true)) {
+            return back()->withErrors(['role_selection' => 'You are not allowed to assign this role.']);
+        }
+
+        $payload = [
             'name' => $validated['name'],
             'email' => strtolower($validated['email']),
-            'role' => $validated['role'],
-        ]);
+            'role' => $role,
+        ];
+
+        if (User::tenantCustomRbacSchemaReady()) {
+            $payload['tenant_custom_role_id'] = $tenantCustomRoleId;
+        }
+
+        $user->update($payload);
 
         $user->syncRbacFromLegacyRole();
+        $user->syncEffectiveTenantPermissions($currentTenant);
 
         return redirect('/owner/users')->with('success', 'Tenant user updated.');
     }
@@ -146,36 +201,122 @@ class TenantUserController extends Controller
 
         abort_unless($this->canAssignPermissions($actor), 403);
         $this->assertManageableUser($actor, $user, $currentTenant);
+        $user->syncTenantPermissionOverrides([], [], $currentTenant);
 
-        $allowed = $this->assignablePermissionsForManagedUser($actor, $user);
+        return redirect('/owner/users')->with('warning', 'Per-user permission overrides are disabled. Manage access via role templates only.');
+    }
+
+    public function storeCustomRole(Request $request): RedirectResponse
+    {
+        abort_unless(User::tenantCustomRbacSchemaReady(), 503, 'Tenant RBAC schema is not available yet.');
+
+        $currentTenant = $this->currentTenantOrFail();
+        $actor = $request->user();
+
+        abort_unless($this->canAssignRoles($actor), 403);
+
+        $allowedPermissions = $this->assignableCustomRolePermissions($actor);
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:'.implode(',', $allowed)],
+            'permissions.*' => ['string', 'in:'.implode(',', $allowedPermissions)],
         ]);
 
-        $selected = array_values(array_intersect($validated['permissions'] ?? [], $allowed));
-
-        $this->bootstrapTenantSpatieRbac();
-
-        $previousTeam = getPermissionsTeamId();
-        setPermissionsTeamId($currentTenant->id);
-        try {
-            if ($user->isClient()) {
-                foreach (User::staffSpatiePermissionNames() as $staffPerm) {
-                    if ($user->getDirectPermissions()->contains(fn ($p) => $p->name === $staffPerm)) {
-                        $user->revokePermissionTo($staffPerm);
-                    }
-                }
-            }
-
-            $user->syncPermissions($selected);
-        } finally {
-            setPermissionsTeamId($previousTeam);
+        $baseSlug = TenantCustomRole::normalizeSlug($validated['name']);
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (TenantCustomRole::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->where('slug', $slug)
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
         }
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $role = TenantCustomRole::create([
+            'tenant_id' => $currentTenant->id,
+            'name' => $validated['name'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+        ]);
 
-        return redirect('/owner/users')->with('success', 'User permissions updated.');
+        $this->syncCustomRolePermissions($role, $validated['permissions'] ?? [], $allowedPermissions);
+
+        return redirect('/owner/users')->with('success', 'Custom role created.');
+    }
+
+    public function updateCustomRole(Request $request, TenantCustomRole $tenantCustomRole): RedirectResponse
+    {
+        abort_unless(User::tenantCustomRbacSchemaReady(), 503, 'Tenant RBAC schema is not available yet.');
+
+        $currentTenant = $this->currentTenantOrFail();
+        $actor = $request->user();
+
+        abort_unless($this->canAssignRoles($actor), 403);
+        abort_unless((int) $tenantCustomRole->tenant_id === (int) $currentTenant->id, 404);
+
+        $allowedPermissions = $this->assignableCustomRolePermissions($actor);
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'in:'.implode(',', $allowedPermissions)],
+        ]);
+
+        $baseSlug = TenantCustomRole::normalizeSlug($validated['name']);
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (TenantCustomRole::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->where('slug', $slug)
+            ->whereKeyNot($tenantCustomRole->id)
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        $tenantCustomRole->update([
+            'name' => $validated['name'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        $this->syncCustomRolePermissions($tenantCustomRole, $validated['permissions'] ?? [], $allowedPermissions);
+        $this->resyncUsersForCustomRole($tenantCustomRole, $currentTenant);
+
+        return redirect('/owner/users')->with('success', 'Custom role updated.');
+    }
+
+    public function destroyCustomRole(Request $request, TenantCustomRole $tenantCustomRole): RedirectResponse
+    {
+        abort_unless(User::tenantCustomRbacSchemaReady(), 503, 'Tenant RBAC schema is not available yet.');
+
+        $currentTenant = $this->currentTenantOrFail();
+        $actor = $request->user();
+
+        abort_unless($this->canAssignRoles($actor), 403);
+        abort_unless((int) $tenantCustomRole->tenant_id === (int) $currentTenant->id, 404);
+
+        $affectedUserIds = User::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->where('tenant_custom_role_id', $tenantCustomRole->id)
+            ->pluck('id');
+
+        User::query()
+            ->whereIn('id', $affectedUserIds)
+            ->update(['tenant_custom_role_id' => null]);
+
+        $tenantCustomRole->delete();
+
+        User::query()
+            ->whereIn('id', $affectedUserIds)
+            ->get()
+            ->each(function (User $managedUser) use ($currentTenant): void {
+                $managedUser->syncEffectiveTenantPermissions($currentTenant);
+            });
+
+        return redirect('/owner/users')->with('success', 'Custom role deleted.');
     }
 
     public function toggleActive(Request $request, User $user): RedirectResponse
@@ -230,56 +371,46 @@ class TenantUserController extends Controller
 
     private function canManageUsers(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
-            return true;
-        }
-
-        return $this->tenantAdminCan($actor, User::PERM_USERS_VIEW);
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_VIEW);
     }
 
     private function canCreateUsers(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
-            return true;
-        }
-
-        return $this->tenantAdminCan($actor, User::PERM_USERS_CREATE);
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_CREATE);
     }
 
     private function canEditUsers(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
-            return true;
-        }
-
-        return $this->tenantAdminCan($actor, User::PERM_USERS_UPDATE);
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_UPDATE);
     }
 
     private function canToggleUsers(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
-            return true;
-        }
-
-        return $this->tenantAdminCan($actor, User::PERM_USERS_ACTIVATE);
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_ACTIVATE);
     }
 
     private function canAssignRoles(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
-            return true;
-        }
-
-        return $this->tenantAdminCan($actor, User::PERM_USERS_ASSIGN_ROLES);
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_ASSIGN_ROLES);
     }
 
     private function canAssignPermissions(User $actor): bool
     {
-        if ($this->tenantManagerEquivalentToOwner($actor)) {
+        return $this->ownerOrTenantAdminWithPermission($actor, User::PERM_USERS_ASSIGN_PERMISSIONS);
+    }
+
+    /**
+     * Owner has full access; tenant admin access is permission-gated by role template.
+     */
+    private function ownerOrTenantAdminWithPermission(User $actor, string $permission): bool
+    {
+        if ($actor->isOwner()) {
             return true;
         }
 
-        return $this->tenantAdminCan($actor, User::PERM_USERS_ASSIGN_PERMISSIONS);
+        return $actor->isAdmin()
+            && $this->isTenantScopedActor($actor)
+            && $actor->hasPermission($permission);
     }
 
     private function tenantAdminCan(User $actor, string $permission): bool
@@ -320,6 +451,7 @@ class TenantUserController extends Controller
         abort_unless((int) $managedUser->tenant_id === (int) $tenant->id, 404);
 
         abort_if(TenantCentralSupportProxyUser::isProxy($managedUser), 403);
+        abort_if((int) $actor->id === (int) $managedUser->id, 403);
 
         // Non–tenant-scoped admins cannot modify owner accounts; tenant `admin` is owner-equivalent.
         if ($actor->isAdmin() && ! $actor->isOwner() && $managedUser->isOwner() && ! $this->isTenantScopedActor($actor)) {
@@ -384,39 +516,114 @@ class TenantUserController extends Controller
     }
 
     /**
-     * Clients should only carry guest-capability permissions. Strip mistaken staff direct grants,
-     * then ensure at least the default client capability set (direct; client Spatie role has none).
+     * @return list<string>
+     */
+    private function assignableCustomRolePermissions(User $actor): array
+    {
+        if (! $this->canAssignRoles($actor)) {
+            return [];
+        }
+
+        if ($this->tenantManagerEquivalentToOwner($actor)) {
+            return User::staffSpatiePermissionNames();
+        }
+
+        return $this->assignableStaffPermissions($actor);
+    }
+
+    private function validatedTenantCustomRoleId(mixed $candidateId, Tenant $currentTenant): ?int
+    {
+        if ($candidateId === null || $candidateId === '') {
+            return null;
+        }
+
+        $tenantCustomRole = TenantCustomRole::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->whereKey((int) $candidateId)
+            ->first();
+
+        if (! $tenantCustomRole) {
+            return null;
+        }
+
+        return (int) $tenantCustomRole->id;
+    }
+
+    /**
+     * @return array{0:string,1:?int}
+     */
+    private function parseRoleSelection(string $selection, Tenant $currentTenant): array
+    {
+        if (str_starts_with($selection, 'custom:')) {
+            $customId = (int) substr($selection, strlen('custom:'));
+            $tenantCustomRole = TenantCustomRole::query()
+                ->where('tenant_id', $currentTenant->id)
+                ->whereKey($customId)
+                ->first();
+
+            if (! $tenantCustomRole) {
+                return [User::ROLE_CLIENT, null];
+            }
+
+            return [$this->baseRoleForCustomTemplate($tenantCustomRole), (int) $tenantCustomRole->id];
+        }
+
+        return match ($selection) {
+            'core:admin' => [User::ROLE_ADMIN, null],
+            'core:client' => [User::ROLE_CLIENT, null],
+            default => [User::ROLE_CLIENT, null],
+        };
+    }
+
+    private function baseRoleForCustomTemplate(TenantCustomRole $tenantCustomRole): string
+    {
+        return User::ROLE_ADMIN;
+    }
+
+    /**
+     * @param  list<string>  $selectedPermissions
+     * @param  list<string>  $allowedPermissions
+     */
+    private function syncCustomRolePermissions(
+        TenantCustomRole $tenantCustomRole,
+        array $selectedPermissions,
+        array $allowedPermissions
+    ): void {
+        $allowedLookup = array_fill_keys($allowedPermissions, true);
+        $normalized = array_values(array_unique(array_filter(
+            $selectedPermissions,
+            static fn ($perm): bool => is_string($perm) && isset($allowedLookup[$perm])
+        )));
+
+        $tenantCustomRole->permissions()->delete();
+
+        foreach ($normalized as $permissionName) {
+            $tenantCustomRole->permissions()->create([
+                'permission_name' => $permissionName,
+            ]);
+        }
+    }
+
+    private function resyncUsersForCustomRole(TenantCustomRole $tenantCustomRole, Tenant $currentTenant): void
+    {
+        User::query()
+            ->where('tenant_id', $currentTenant->id)
+            ->where('tenant_custom_role_id', $tenantCustomRole->id)
+            ->each(function (User $managedUser) use ($currentTenant): void {
+                $managedUser->syncEffectiveTenantPermissions($currentTenant);
+            });
+    }
+
+    /**
+     * Strip mistaken staff direct grants from client rows. Does not add default guest permissions:
+     * an empty set is valid (tenant admin disabled all capabilities) and must persist across page loads.
      *
      * @param  Collection<int, User>  $users
      */
-    private function ensureClientUsersHaveBaselinePermissions(Collection $users, Tenant $currentTenant): void
+    private function ensureVisibleUsersHaveSyncedPermissions(Collection $users, Tenant $currentTenant): void
     {
-        $previousTeam = getPermissionsTeamId();
-        setPermissionsTeamId($currentTenant->id);
-        $mutated = false;
-        try {
-            foreach ($users as $managedUser) {
-                if (! $managedUser->isClient()) {
-                    continue;
-                }
-                foreach (User::staffSpatiePermissionNames() as $staffPerm) {
-                    if ($managedUser->getDirectPermissions()->contains(fn ($p) => $p->name === $staffPerm)) {
-                        $managedUser->revokePermissionTo($staffPerm);
-                        $mutated = true;
-                    }
-                }
-                $managedUser->refresh();
-                if ($managedUser->getAllPermissions()->isEmpty()) {
-                    $managedUser->syncPermissions(User::defaultClientSpatiePermissions());
-                    $mutated = true;
-                }
-            }
-        } finally {
-            setPermissionsTeamId($previousTeam);
-        }
-
-        if ($mutated) {
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        foreach ($users as $managedUser) {
+            $managedUser->syncEffectiveTenantPermissions($currentTenant);
         }
     }
 }

@@ -17,13 +17,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
     /**
      * Display the admin dashboard with sales monitoring analytics.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Current date range
         $now = now();
@@ -35,6 +37,23 @@ class DashboardController extends Controller
         $endOfYear = $now->copy()->endOfYear();
         $lastYearStart = $now->copy()->subYear()->startOfYear();
         $lastYearEnd = $now->copy()->subYear()->endOfYear();
+
+        $selectedTenantId = $request->filled('tenant_id')
+            ? (int) $request->integer('tenant_id')
+            : null;
+        if ($selectedTenantId !== null && ! Tenant::query()->whereKey($selectedTenantId)->exists()) {
+            $selectedTenantId = null;
+        }
+
+        $demographicsStartDate = $request->date('start_date')
+            ? Carbon::parse((string) $request->input('start_date'))->startOfDay()
+            : $startOfMonth->copy()->startOfDay();
+        $demographicsEndDate = $request->date('end_date')
+            ? Carbon::parse((string) $request->input('end_date'))->endOfDay()
+            : $endOfMonth->copy()->endOfDay();
+        if ($demographicsEndDate->lt($demographicsStartDate)) {
+            [$demographicsStartDate, $demographicsEndDate] = [$demographicsEndDate->copy()->startOfDay(), $demographicsStartDate->copy()->endOfDay()];
+        }
 
         // ============ REVENUE METRICS ============
         $totalRevenue = Booking::whereIn('status', ['confirmed', 'completed', 'paid'])->sum('total_price');
@@ -83,6 +102,7 @@ class DashboardController extends Controller
         // ============ MONTHLY CHART DATA ============
         $monthlyRevenueData = [];
         $monthlyBookingsData = [];
+        $monthlyGuestsData = [];
 
         for ($i = 1; $i <= 12; $i++) {
             $monthStart = $now->copy()->month($i)->startOfMonth();
@@ -94,6 +114,7 @@ class DashboardController extends Controller
                 ->sum('total_price');
 
             $monthlyBookingsData[$monthKey] = Booking::whereBetween('created_at', [$monthStart, $monthEnd])->count();
+            $monthlyGuestsData[$monthKey] = (int) Booking::whereBetween('created_at', [$monthStart, $monthEnd])->sum('number_of_guests');
         }
 
         // ============ REVENUE BY PROPERTY TYPE ============
@@ -125,14 +146,35 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $topTenantByBookings = Booking::query()
+            ->join('tenants', 'bookings.tenant_id', '=', 'tenants.id')
+            ->whereBetween('bookings.created_at', [$startOfMonth, $endOfMonth])
+            ->whereIn('bookings.status', ['confirmed', 'completed', 'paid'])
+            ->select('tenants.name', DB::raw('COUNT(*) as bookings_count'))
+            ->groupBy('tenants.id', 'tenants.name')
+            ->orderByDesc('bookings_count')
+            ->first();
+
         // ============ TENANT BOOKINGS FOR TODAY ============
         $tenantBookingsToday = $this->getTenantBookingsForToday();
+
+        $tenantFilterOptions = Tenant::query()
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        $demographics = $this->buildDemographicsPayload(
+            $selectedTenantId,
+            $demographicsStartDate,
+            $demographicsEndDate
+        );
 
         return view('admin.dashboard', compact(
             'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue', 'totalRevenue',
             'totalBookings', 'activeClients', 'occupancyRate', 'topProperty', 'growthRate',
-            'monthlyRevenueData', 'monthlyBookingsData', 'revenueByType',
-            'kpis', 'recentBookings', 'tenantBookingsToday'
+            'monthlyRevenueData', 'monthlyBookingsData', 'monthlyGuestsData', 'revenueByType',
+            'kpis', 'recentBookings', 'tenantBookingsToday', 'topTenantByBookings',
+            'tenantFilterOptions', 'selectedTenantId', 'demographicsStartDate', 'demographicsEndDate', 'demographics'
         ));
 
     }
@@ -248,17 +290,29 @@ class DashboardController extends Controller
     public function updateTenantPlan(Request $request, Tenant $tenant): RedirectResponse
     {
         $validated = $request->validate([
-            'plan' => ['required', 'in:'.implode(',', [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO])],
+            'plan' => ['required', 'in:'.implode(',', [
+                Tenant::PLAN_BASIC,
+                Tenant::PLAN_PLUS,
+                Tenant::PLAN_PRO,
+                Tenant::PLAN_PROMO,
+            ])],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
         ]);
 
         $oldPlan = (string) $tenant->plan;
+        $oldPromoMaxListings = $tenant->promo_max_listings;
+        $oldPromoPrice = $tenant->promo_price;
         $oldSubscriptionStatus = (string) ($tenant->subscription_status ?? 'trialing');
         $planChanged = $tenant->plan !== $validated['plan'];
 
         $updates = [
             'plan' => $validated['plan'],
         ];
+
+        if ($validated['plan'] !== Tenant::PLAN_PROMO) {
+            $updates['promo_max_listings'] = null;
+            $updates['promo_price'] = null;
+        }
 
         if ($planChanged) {
             $updates['subscription_status'] = 'active';
@@ -278,10 +332,14 @@ class DashboardController extends Controller
             reason: $validated['reason'],
             before: [
                 'plan' => $oldPlan,
+                'promo_max_listings' => $oldPromoMaxListings,
+                'promo_price' => $oldPromoPrice,
                 'subscription_status' => $oldSubscriptionStatus,
             ],
             after: [
                 'plan' => (string) $tenant->plan,
+                'promo_max_listings' => $tenant->promo_max_listings,
+                'promo_price' => $tenant->promo_price,
                 'subscription_status' => (string) ($tenant->subscription_status ?? 'trialing'),
             ]
         );
@@ -562,11 +620,11 @@ class DashboardController extends Controller
 
         $tenant->refresh();
 
-        $this->logLifecycleAction(
-            request: $request,
-            tenant: $tenant,
+                $this->logLifecycleAction(
+                    request: $request,
+                    tenant: $tenant,
             action: 'tenant.onboarding.approved',
-            reason: $validated['reason'],
+                    reason: $validated['reason'],
             before: [
                 'onboarding_status' => Tenant::ONBOARDING_PENDING_APPROVAL,
             ],
@@ -659,11 +717,11 @@ class DashboardController extends Controller
             try {
                 DB::connection('landlord')->statement("DROP USER IF EXISTS '{$dbUserSanitized}'@'%'");
                 DB::connection('landlord')->statement('FLUSH PRIVILEGES');
-            } catch (\Throwable $exception) {
+        } catch (\Throwable $exception) {
                 Log::warning('Failed to drop tenant database user after tenant delete.', [
                     'db_username' => $dbUserSanitized,
-                    'error' => $exception->getMessage(),
-                ]);
+                'error' => $exception->getMessage(),
+            ]);
             }
         }
 
@@ -712,6 +770,299 @@ class DashboardController extends Controller
             ->get();
 
         return $bookingsByTenant;
+    }
+
+    public function demographicsReport(Request $request)
+    {
+        $payload = $this->buildDemographicsPayloadFromRequest($request);
+        $tenantFilterOptions = Tenant::query()
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.reports.demographics', [
+            'demographics' => $payload['demographics'],
+            'selectedTenantId' => $payload['selectedTenantId'],
+            'demographicsStartDate' => $payload['demographicsStartDate'],
+            'demographicsEndDate' => $payload['demographicsEndDate'],
+            'tenantFilterOptions' => $tenantFilterOptions,
+        ]);
+    }
+
+    public function exportDemographicsReport(Request $request)
+    {
+        $validated = $request->validate([
+            'format' => ['required', 'in:pdf,csv'],
+            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date'],
+        ]);
+
+        $payload = $this->buildDemographicsPayloadFromRequest($request);
+        $demographics = $payload['demographics'];
+        $baseFileName = 'demographics-report-'.$demographics['scope_slug'].'-'.$demographics['start_date']->format('Ymd').'-'.$demographics['end_date']->format('Ymd');
+
+        if ($validated['format'] === 'csv') {
+            return $this->streamDemographicsCsv($demographics, $baseFileName.'.csv');
+        }
+
+        $pdf = \PDF::loadView('admin.reports.demographics-pdf', [
+            'demographics' => $demographics,
+        ]);
+
+        return $pdf->download($baseFileName.'.pdf');
+    }
+
+    private function buildDemographicsPayloadFromRequest(Request $request): array
+    {
+        $selectedTenantId = $request->filled('tenant_id')
+            ? (int) $request->integer('tenant_id')
+            : null;
+        if ($selectedTenantId !== null && ! Tenant::query()->whereKey($selectedTenantId)->exists()) {
+            $selectedTenantId = null;
+        }
+
+        $defaultStart = now()->startOfMonth()->startOfDay();
+        $defaultEnd = now()->endOfMonth()->endOfDay();
+        $demographicsStartDate = $request->date('start_date')
+            ? Carbon::parse((string) $request->input('start_date'))->startOfDay()
+            : $defaultStart;
+        $demographicsEndDate = $request->date('end_date')
+            ? Carbon::parse((string) $request->input('end_date'))->endOfDay()
+            : $defaultEnd;
+        if ($demographicsEndDate->lt($demographicsStartDate)) {
+            [$demographicsStartDate, $demographicsEndDate] = [$demographicsEndDate->copy()->startOfDay(), $demographicsStartDate->copy()->endOfDay()];
+        }
+
+        return [
+            'selectedTenantId' => $selectedTenantId,
+            'demographicsStartDate' => $demographicsStartDate,
+            'demographicsEndDate' => $demographicsEndDate,
+            'demographics' => $this->buildDemographicsPayload($selectedTenantId, $demographicsStartDate, $demographicsEndDate),
+        ];
+    }
+
+    private function buildDemographicsPayload(?int $tenantId, Carbon $startDate, Carbon $endDate): array
+    {
+        $tenantName = null;
+        if ($tenantId !== null) {
+            $tenantName = (string) (Tenant::query()->whereKey($tenantId)->value('name') ?? 'Selected tenant');
+        }
+
+        $columnsReady = Schema::hasColumns('bookings', [
+            'guest_gender',
+            'guest_age',
+            'guest_is_local',
+            'guest_local_place',
+            'guest_country',
+        ]);
+
+        $bookings = collect();
+        if ($columnsReady) {
+            $bookings = $this->demographicsBaseQuery($tenantId, $startDate, $endDate)
+                ->get([
+                    'bookings.id',
+                    'bookings.number_of_guests',
+                    'bookings.guest_gender',
+                    'bookings.guest_age',
+                    'bookings.guest_is_local',
+                    'bookings.guest_local_place',
+                    'bookings.guest_country',
+                ]);
+        }
+
+        $genderRaw = [
+            'male' => 0,
+            'female' => 0,
+            'unspecified' => 0,
+        ];
+        $locationRaw = [
+            'local' => 0,
+            'foreign' => 0,
+            'unspecified' => 0,
+        ];
+        $locationBreakdown = [
+            'local' => [],
+            'foreign' => [],
+        ];
+        $ageRaw = [
+            '0-17' => 0,
+            '18-24' => 0,
+            '25-34' => 0,
+            '35-44' => 0,
+            '45-54' => 0,
+            '55+' => 0,
+            'Unspecified' => 0,
+        ];
+        $ageSum = 0;
+        $ageCount = 0;
+
+        foreach ($bookings as $booking) {
+            $gender = strtolower(trim((string) ($booking->guest_gender ?? '')));
+            if (! in_array($gender, ['male', 'female'], true)) {
+                $gender = 'unspecified';
+            }
+            $genderRaw[$gender]++;
+
+            $isLocal = $booking->guest_is_local;
+            if ($isLocal === null) {
+                $locationRaw['unspecified']++;
+            } elseif ((bool) $isLocal === true) {
+                $locationRaw['local']++;
+                $localPlace = trim((string) ($booking->guest_local_place ?? ''));
+                if ($localPlace !== '') {
+                    $locationBreakdown['local'][$localPlace] = ($locationBreakdown['local'][$localPlace] ?? 0) + 1;
+                }
+            } else {
+                $locationRaw['foreign']++;
+                $country = trim((string) ($booking->guest_country ?? ''));
+                if ($country !== '') {
+                    $locationBreakdown['foreign'][$country] = ($locationBreakdown['foreign'][$country] ?? 0) + 1;
+                }
+            }
+
+            $age = is_numeric($booking->guest_age) ? (int) $booking->guest_age : null;
+            if ($age === null || $age < 0 || $age > 120) {
+                $ageRaw['Unspecified']++;
+                continue;
+            }
+
+            $ageSum += $age;
+            $ageCount++;
+            if ($age <= 17) {
+                $ageRaw['0-17']++;
+            } elseif ($age <= 24) {
+                $ageRaw['18-24']++;
+            } elseif ($age <= 34) {
+                $ageRaw['25-34']++;
+            } elseif ($age <= 44) {
+                $ageRaw['35-44']++;
+            } elseif ($age <= 54) {
+                $ageRaw['45-54']++;
+            } else {
+                $ageRaw['55+']++;
+            }
+        }
+
+        arsort($locationBreakdown['local']);
+        arsort($locationBreakdown['foreign']);
+
+        $totalBookings = $bookings->count();
+        $totalGuests = (int) $bookings->sum('number_of_guests');
+
+        return [
+            'scope_label' => $tenantId ? ('Tenant: '.$tenantName) : 'All tenants',
+            'scope_slug' => $tenantId ? 'tenant-'.$tenantId : 'all-tenants',
+            'tenant_id' => $tenantId,
+            'tenant_name' => $tenantName,
+            'start_date' => $startDate->copy(),
+            'end_date' => $endDate->copy(),
+            'columns_ready' => $columnsReady,
+            'total_bookings' => $totalBookings,
+            'total_guests' => $totalGuests,
+            'profiled_bookings' => (int) $bookings->filter(function ($booking): bool {
+                return $booking->guest_gender !== null
+                    || $booking->guest_age !== null
+                    || $booking->guest_is_local !== null
+                    || (string) ($booking->guest_local_place ?? '') !== ''
+                    || (string) ($booking->guest_country ?? '') !== '';
+            })->count(),
+            'average_age' => $ageCount > 0 ? round($ageSum / $ageCount, 1) : null,
+            'gender' => [
+                'labels' => ['Male', 'Female', 'Unspecified'],
+                'counts' => [$genderRaw['male'], $genderRaw['female'], $genderRaw['unspecified']],
+                'raw' => $genderRaw,
+            ],
+            'location' => [
+                'labels' => ['Local', 'Foreign', 'Unspecified'],
+                'counts' => [$locationRaw['local'], $locationRaw['foreign'], $locationRaw['unspecified']],
+                'raw' => $locationRaw,
+                'breakdown' => [
+                    'local_labels' => array_values(array_keys($locationBreakdown['local'])),
+                    'local_counts' => array_values(array_values($locationBreakdown['local'])),
+                    'foreign_labels' => array_values(array_keys($locationBreakdown['foreign'])),
+                    'foreign_counts' => array_values(array_values($locationBreakdown['foreign'])),
+                ],
+            ],
+            'age' => [
+                'labels' => array_keys($ageRaw),
+                'counts' => array_values($ageRaw),
+                'raw' => $ageRaw,
+            ],
+        ];
+    }
+
+    private function demographicsBaseQuery(?int $tenantId, Carbon $startDate, Carbon $endDate)
+    {
+        return Booking::query()
+            ->whereIn('bookings.status', ['confirmed', 'completed', 'paid'])
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('bookings.check_in_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhereBetween('bookings.check_out_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhere(function ($rangeQuery) use ($startDate, $endDate) {
+                        $rangeQuery->whereDate('bookings.check_in_date', '<', $startDate->toDateString())
+                            ->whereDate('bookings.check_out_date', '>', $endDate->toDateString());
+                    });
+            })
+            ->when($tenantId, fn ($query) => $query->where('bookings.tenant_id', $tenantId));
+    }
+
+    private function streamDemographicsCsv(array $demographics, string $filename): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($demographics): void {
+            $output = fopen('php://output', 'w');
+            if (! $output) {
+                return;
+            }
+
+            fputcsv($output, ['Scope', $demographics['scope_label']]);
+            fputcsv($output, ['Date range', $demographics['start_date']->toDateString().' to '.$demographics['end_date']->toDateString()]);
+            fputcsv($output, []);
+            fputcsv($output, ['Summary Metric', 'Value']);
+            fputcsv($output, ['Total bookings', (string) $demographics['total_bookings']]);
+            fputcsv($output, ['Total guests', (string) $demographics['total_guests']]);
+            fputcsv($output, ['Profiled bookings', (string) $demographics['profiled_bookings']]);
+            fputcsv($output, ['Average age', $demographics['average_age'] !== null ? (string) $demographics['average_age'] : 'N/A']);
+            fputcsv($output, []);
+
+            fputcsv($output, ['Gender Distribution']);
+            fputcsv($output, ['Gender', 'Bookings']);
+            foreach ($demographics['gender']['raw'] as $label => $count) {
+                fputcsv($output, [ucfirst($label), (string) $count]);
+            }
+            fputcsv($output, []);
+
+            fputcsv($output, ['Location Distribution']);
+            fputcsv($output, ['Type', 'Bookings']);
+            foreach ($demographics['location']['raw'] as $label => $count) {
+                fputcsv($output, [ucfirst($label), (string) $count]);
+            }
+            fputcsv($output, []);
+
+            fputcsv($output, ['Local Place Breakdown']);
+            fputcsv($output, ['Place', 'Bookings']);
+            foreach ($demographics['location']['breakdown']['local_labels'] as $index => $place) {
+                fputcsv($output, [$place, (string) ($demographics['location']['breakdown']['local_counts'][$index] ?? 0)]);
+            }
+            fputcsv($output, []);
+
+            fputcsv($output, ['Foreign Country Breakdown']);
+            fputcsv($output, ['Country', 'Bookings']);
+            foreach ($demographics['location']['breakdown']['foreign_labels'] as $index => $country) {
+                fputcsv($output, [$country, (string) ($demographics['location']['breakdown']['foreign_counts'][$index] ?? 0)]);
+            }
+            fputcsv($output, []);
+
+            fputcsv($output, ['Age Distribution']);
+            fputcsv($output, ['Age Bucket', 'Bookings']);
+            foreach ($demographics['age']['raw'] as $bucket => $count) {
+                fputcsv($output, [$bucket, (string) $count]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**

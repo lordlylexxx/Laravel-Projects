@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.tenant-favicon')
     <title>Profile Settings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @php
             $authUser = auth()->user();
+            $isTenantAdminContext = $authUser && $authUser->isAdmin() && \App\Models\Tenant::checkCurrent();
             $useLegacyProfileNav = $authUser && ! $authUser->isOwner() && ! $authUser->isClient() && ! $authUser->isAdmin();
         @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -52,7 +54,7 @@
         .nav-btn.secondary:hover { background: var(--green-pale); }
         @endif
 
-        @if(auth()->user()?->isOwner())
+        @if(auth()->user()?->isOwner() || $isTenantAdminContext)
             @include('owner.partials.top-navbar-styles')
         @elseif(auth()->user()?->isClient())
             @include('client.partials.top-navbar-styles')
@@ -281,10 +283,10 @@
         .breadcrumb span { color: var(--gray-500); }
     </style>
 </head>
-<body class="{{ auth()->user()?->isOwner() ? 'owner-nav-page' : '' }}">
+<body class="{{ (auth()->user()?->isOwner() || $isTenantAdminContext) ? 'owner-nav-page' : '' }}">
     <!-- Navigation -->
-    @if(auth()->user()?->isOwner())
-    @include('owner.partials.top-navbar')
+    @if(auth()->user()?->isOwner() || $isTenantAdminContext)
+    @include('owner.partials.top-navbar', ['active' => 'settings'])
     @elseif(auth()->user()?->isClient())
         @include('client.partials.top-navbar', ['active' => 'settings'])
     @elseif(auth()->user()?->isAdmin())
@@ -323,7 +325,7 @@
     @endif
     
     <!-- Main Content -->
-    <div class="main-container {{ auth()->user()?->isOwner() ? 'with-owner-nav' : '' }}">
+    <div class="main-container {{ (auth()->user()?->isOwner() || $isTenantAdminContext) ? 'with-owner-nav' : '' }}">
         <!-- Breadcrumb -->
         <div class="breadcrumb">
             <a href="{{ route('landing') }}">Home</a>

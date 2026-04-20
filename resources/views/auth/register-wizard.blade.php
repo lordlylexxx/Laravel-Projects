@@ -68,26 +68,25 @@
         
         .logo-container {
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: center;
-            gap: 20px;
-            margin-bottom: 30px;
-            width: 100%;
+            gap: clamp(12px, 3vw, 28px);
+            margin-bottom: 28px;
+            max-width: min(100%, 920px);
+            margin-left: auto;
+            margin-right: auto;
         }
         
-        .municipality-logo {
-            width: 150px;
-            height: 150px;
-            border-radius: 12px;
-            border: none;
+        .branding-logo {
+            width: 160px;
+            height: 160px;
             object-fit: contain;
-        }
-        
-        .logo-divider {
-            width: 3px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 2px;
+            flex-shrink: 0;
+            border: none;
+            border-radius: 12px;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
         }
         
         .branding-content h1 {
@@ -617,6 +616,7 @@
             'basic' => 'Basic',
             'plus' => 'Standard',
             'pro' => 'Premium',
+            'promo' => 'Promo',
         ];
         $selectedPlanLabel = $planLabels[$selectedPlan] ?? null;
     @endphp
@@ -625,12 +625,12 @@
     <div class="branding-section">
         <div class="branding-content">
             <div class="logo-container">
-                <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo" class="municipality-logo">
-                <div class="logo-divider"></div>
-                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong Logo" class="municipality-logo">
+                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong" class="branding-logo" width="160" height="160">
+                <img src="{{ asset('SYSTEMLOGO.png') }}" alt="ImpaStay Logo" class="branding-logo" width="160" height="160">
+                <img src="{{ asset('Lgu Socmed Template-02.png') }}" alt="LGU Impasugong" class="branding-logo" width="160" height="160">
             </div>
             
-            <h1>Join Impasugong</h1>
+            <h1>Join Impasugong Accommodations</h1>
             <p>Create your account today</p>
             
             <ul class="benefits-list">

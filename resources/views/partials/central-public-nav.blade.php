@@ -14,11 +14,6 @@
     </a>
     <ul class="hidden list-none items-center gap-2 md:flex lg:gap-5">
         <li>
-            <a href="{{ route('landing') }}#properties" class="{{ $linkBase }} {{ $linkDefault }}">
-                <i class="fas fa-building text-sm opacity-90"></i> Properties
-            </a>
-        </li>
-        <li>
             <a href="{{ route('landing') }}#pricing" class="{{ $linkBase }} {{ $linkDefault }}">
                 <i class="fas fa-tags text-sm opacity-90"></i> Pricing
             </a>

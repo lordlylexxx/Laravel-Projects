@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
@@ -32,6 +33,7 @@ class User extends Authenticatable
         'password',
         'role',
         'tenant_id',
+        'tenant_custom_role_id',
         'phone',
         'address',
         'bio',
@@ -39,6 +41,8 @@ class User extends Authenticatable
         'is_active',
         'last_login',
         'notification_preferences',
+        'tenant_permission_grants',
+        'tenant_permission_revokes',
     ];
 
     /**
@@ -64,6 +68,8 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login' => 'datetime',
             'notification_preferences' => 'array',
+            'tenant_permission_grants' => 'array',
+            'tenant_permission_revokes' => 'array',
         ];
     }
 
@@ -208,20 +214,85 @@ class User extends Authenticatable
      */
     public function permissionNamesForOwnerUsersTable(): array
     {
+        if (self::tenantCustomRbacSchemaReady()) {
+            return [collect($this->effectiveTenantPermissionNames())->values(), false];
+        }
+
         $fromSpatie = $this->getAllPermissions()->pluck('name')->values();
 
         if ($fromSpatie->isNotEmpty()) {
             return [$fromSpatie, false];
         }
 
-        $fallback = collect(match ($this->role) {
+        $fallback = collect($this->effectiveTenantPermissionNames())->values();
+
+        return [$fallback, true];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function assignablePermissionNamesForRole(): array
+    {
+        return $this->isClient() ? self::defaultClientSpatiePermissions() : self::staffSpatiePermissionNames();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function customRoleTemplatePermissionNames(): array
+    {
+        if (! self::tenantCustomRbacSchemaReady()) {
+            return [];
+        }
+
+        $tenantRole = $this->tenantCustomRole;
+        if (! $tenantRole) {
+            return [];
+        }
+
+        $allowed = $this->assignablePermissionNamesForRole();
+        $allowedLookup = array_fill_keys($allowed, true);
+
+        return array_values(array_filter(
+            $tenantRole->permissionNames(),
+            static fn (string $name): bool => isset($allowedLookup[$name])
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function defaultTemplatePermissionNames(): array
+    {
+        return match ($this->role) {
             self::ROLE_OWNER => self::defaultOwnerSpatiePermissions(),
             self::ROLE_ADMIN => self::defaultTenantAdminSpatiePermissions(),
             self::ROLE_CLIENT => self::defaultClientSpatiePermissions(),
             default => [],
-        })->values();
+        };
+    }
 
-        return [$fallback, true];
+    /**
+     * @return list<string>
+     */
+    public function effectiveTenantPermissionNames(): array
+    {
+        if (! self::tenantCustomRbacSchemaReady()) {
+            return $this->defaultTemplatePermissionNames();
+        }
+
+        $allowed = $this->assignablePermissionNamesForRole();
+        $allowedLookup = array_fill_keys($allowed, true);
+
+        $template = $this->tenant_custom_role_id
+            ? $this->customRoleTemplatePermissionNames()
+            : $this->defaultTemplatePermissionNames();
+
+        return array_values(array_filter(
+            array_values(array_unique($template)),
+            static fn (string $name): bool => isset($allowedLookup[$name])
+        ));
     }
 
     /**
@@ -236,6 +307,54 @@ class User extends Authenticatable
         }
 
         $this->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * Persist grant/revoke overrides, then sync effective permissions to Spatie.
+     *
+     * @param  list<string>  $grants
+     * @param  list<string>  $revokes
+     */
+    public function syncTenantPermissionOverrides(array $grants, array $revokes, ?Tenant $tenant = null): void
+    {
+        if (! self::tenantCustomRbacSchemaReady()) {
+            $this->syncEffectiveTenantPermissions($tenant);
+
+            return;
+        }
+
+        $this->forceFill([
+            'tenant_permission_grants' => [],
+            'tenant_permission_revokes' => [],
+        ])->save();
+
+        $this->syncEffectiveTenantPermissions($tenant);
+    }
+
+    public function syncEffectiveTenantPermissions(?Tenant $tenant = null): void
+    {
+        if (! self::tenantCustomRbacSchemaReady()) {
+            $this->syncTenantPermissions($this->defaultTemplatePermissionNames());
+
+            return;
+        }
+
+        $teamId = (int) ($tenant?->id ?? $this->tenant_id ?? 0);
+        $previousTeam = getPermissionsTeamId();
+
+        if ($teamId > 0) {
+            setPermissionsTeamId($teamId);
+        }
+
+        try {
+            $this->syncPermissions($this->effectiveTenantPermissionNames());
+        } finally {
+            if ($teamId > 0) {
+                setPermissionsTeamId($previousTeam);
+            }
+        }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -267,6 +386,60 @@ class User extends Authenticatable
         return $this->checkPermissionTo($permission, $guardName);
     }
 
+    /**
+     * Guest capability: create, view, pay, and cancel own bookings on the current tenant.
+     */
+    public function tenantClientMayManageOwnStays(): bool
+    {
+        return $this->isClient() && $this->hasPermission(self::PERM_BOOKINGS_SELF);
+    }
+
+    /**
+     * Guest capability: inbox / compose / reply on the tenant app.
+     */
+    public function tenantClientMayUseMessaging(): bool
+    {
+        return $this->isClient() && $this->hasPermission(self::PERM_MESSAGES_USE);
+    }
+
+    /**
+     * Guest capability: profile and password updates on the tenant app.
+     */
+    public function tenantClientMayEditOwnProfile(): bool
+    {
+        return $this->isClient() && $this->hasPermission(self::PERM_PROFILE_SELF);
+    }
+
+    /**
+     * Abort 403 when a tenant client lacks `profile.self` (no-op for staff or off-tenant requests).
+     */
+    public function assertTenantGuestMayEditProfile(): void
+    {
+        $tenant = Tenant::current();
+
+        if (! $tenant || ! $this->isClient()) {
+            return;
+        }
+
+        abort_unless((int) ($this->tenant_id ?? 0) === (int) $tenant->id, 403);
+        abort_unless($this->hasPermission(self::PERM_PROFILE_SELF), 403);
+    }
+
+    /**
+     * Abort 403 when a tenant client lacks `messages.use` (no-op for staff or off-tenant requests).
+     */
+    public function assertTenantGuestMayUseMessages(): void
+    {
+        $tenant = Tenant::current();
+
+        if (! $tenant || ! $this->isClient()) {
+            return;
+        }
+
+        abort_unless((int) ($this->tenant_id ?? 0) === (int) $tenant->id, 403);
+        abort_unless($this->hasPermission(self::PERM_MESSAGES_USE), 403);
+    }
+
     // Relationships
     public function accommodations()
     {
@@ -276,6 +449,26 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function tenantCustomRole(): BelongsTo
+    {
+        return $this->belongsTo(TenantCustomRole::class);
+    }
+
+    public static function tenantCustomRbacSchemaReady(): bool
+    {
+        try {
+            $connection = DB::getDefaultConnection();
+
+            return Schema::connection($connection)->hasTable('tenant_custom_roles')
+                && Schema::connection($connection)->hasTable('tenant_custom_role_permissions')
+                && Schema::connection($connection)->hasColumn('users', 'tenant_custom_role_id')
+                && Schema::connection($connection)->hasColumn('users', 'tenant_permission_grants')
+                && Schema::connection($connection)->hasColumn('users', 'tenant_permission_revokes');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function ownedTenant(): HasOne
@@ -429,7 +622,7 @@ class User extends Authenticatable
         // Apply customization if provided
         if ($customizationData && is_array($customizationData)) {
             if (! empty($customizationData['subscription_plan'])
-                && in_array($customizationData['subscription_plan'], [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO], true)) {
+                && in_array($customizationData['subscription_plan'], [Tenant::PLAN_BASIC, Tenant::PLAN_PLUS, Tenant::PLAN_PRO, Tenant::PLAN_PROMO], true)) {
                 $tenantData['plan'] = $customizationData['subscription_plan'];
             }
 

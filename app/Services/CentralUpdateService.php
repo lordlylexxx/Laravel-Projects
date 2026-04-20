@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\GithubReleaseMetadataService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -35,11 +36,7 @@ class CentralUpdateService
                     ->get($baseUrl . '/system-updates/check', $params);
 
                 if (! $response->ok()) {
-                    return [
-                        'has_update' => false,
-                        'unavailable' => true,
-                        'message' => 'Unable to reach central update server.',
-                    ];
+                    return $this->githubFallbackPayload($currentVersion, $baseUrl, true);
                 }
 
                 $data = $response->json();
@@ -58,12 +55,34 @@ class CentralUpdateService
                     'unavailable' => false,
                 ];
             } catch (\Throwable $exception) {
-                return [
-                    'has_update' => false,
-                    'unavailable' => true,
-                    'message' => 'Unable to check updates at the moment.',
-                ];
+                return $this->githubFallbackPayload($currentVersion, $baseUrl, true);
             }
         });
+    }
+
+    private function githubFallbackPayload(string $currentVersion, string $baseUrl, bool $markUnavailable): array
+    {
+        $github = app(GithubReleaseMetadataService::class)->fetchLatestReleaseMetadata();
+
+        if ($github !== null) {
+            $latestVersion = (string) ($github['latest_version'] ?? $currentVersion);
+
+            return [
+                'has_update' => version_compare($latestVersion, $currentVersion, '>'),
+                'current_version' => $currentVersion,
+                'latest_version' => $latestVersion,
+                'release_notes' => (string) ($github['release_notes'] ?? ''),
+                'published_at' => $github['published_at'] ?? null,
+                'download_url' => $baseUrl . '/system-updates/download',
+                'unavailable' => false,
+                'message' => $markUnavailable ? 'Central channel unavailable. Showing latest release from GitHub metadata.' : '',
+            ];
+        }
+
+        return [
+            'has_update' => false,
+            'unavailable' => true,
+            'message' => 'Unable to check updates at the moment.',
+        ];
     }
 }

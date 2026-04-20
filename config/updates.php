@@ -17,4 +17,14 @@ return [
     'channel_token' => env('CENTRAL_UPDATE_CHANNEL_TOKEN'),
 
     'central_base_url' => env('CENTRAL_UPDATE_BASE_URL', "http://{$centralHost}:{$centralPort}"),
+
+    /*
+    | Optional: fetch latest_version, release_notes, published_at from GitHub Releases API
+    | (central app only). Repo format: "owner/name". Empty = use env keys above only.
+    */
+    'github_repo' => env('CENTRAL_GITHUB_REPO', ''),
+
+    'github_token' => env('CENTRAL_GITHUB_TOKEN', ''),
+
+    'github_cache_ttl' => (int) env('CENTRAL_GITHUB_CACHE_TTL', 300),
 ];

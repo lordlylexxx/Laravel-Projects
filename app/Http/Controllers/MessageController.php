@@ -8,12 +8,14 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Messaging\CentralSupportInboxService;
 use App\Services\Messaging\TenantCentralSupportProxyUser;
+use Database\Seeders\RbacCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use Spatie\Permission\PermissionRegistrar;
 use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
 use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
 
@@ -25,7 +27,9 @@ class MessageController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         // One inbox row per conversation partner (latest message in each pair).
         $messages = Message::query()
@@ -113,7 +117,9 @@ class MessageController extends Controller
     public function create(Request $request): View
     {
         $user = $request->user();
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = $this->currentTenantOrActivateForMessaging($user);
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         abort_unless($currentTenant, 404);
 
@@ -158,6 +164,7 @@ class MessageController extends Controller
     public function markAllAsRead(Request $request): RedirectResponse
     {
         $user = $request->user();
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
 
         $query = Message::query()
@@ -183,6 +190,8 @@ class MessageController extends Controller
     public function show(Message $message)
     {
         $user = Auth::user();
+        abort_unless($user, 403);
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
 
         if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
@@ -226,12 +235,14 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = $this->currentTenantOrActivateForMessaging($user);
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         if ($request->filled('recipient_key')) {
             abort_unless($currentTenant, 404);
             if ($this->userIsTenantManager($user, $currentTenant)) {
-                return $this->storeTenantManagerOutbound($request, $user, $currentTenant);
+            return $this->storeTenantManagerOutbound($request, $user, $currentTenant);
             }
             if ($user->isClient()
                 && (int) ($user->tenant_id ?? 0) === (int) $currentTenant->id) {
@@ -598,6 +609,30 @@ class MessageController extends Controller
             ->get();
     }
 
+    private function assertTenantAdminHasPermission(User $user, ?Tenant $tenant, string $permission): void
+    {
+        if (! $tenant || ! $user->isAdmin()) {
+            return;
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $tenant->id) {
+            return;
+        }
+
+        $allowed = $user->hasPermission($permission);
+        if (! $allowed) {
+            RbacCatalog::ensurePermissionsExist();
+            RbacCatalog::ensureRolesAndGrantPermissions();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            $user->syncRbacFromLegacyRole();
+            $user->syncEffectiveTenantPermissions($tenant);
+            $user->refresh();
+            $allowed = $user->hasPermission($permission);
+        }
+
+        abort_unless($allowed, 403);
+    }
+
     /**
      * Tenant DB owner rows may not match tenants.owner_user_id (landlord user id); match by email instead.
      */
@@ -622,7 +657,9 @@ class MessageController extends Controller
     public function reply(Request $request, Message $message)
     {
         $user = $request->user();
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
             abort(404);
@@ -647,7 +684,11 @@ class MessageController extends Controller
      */
     public function markAsRead(Message $message)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
             abort(404);
@@ -665,7 +706,11 @@ class MessageController extends Controller
      */
     public function archive(Message $message)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $user->assertTenantGuestMayUseMessages();
         $currentTenant = Tenant::current();
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
 
         if ($currentTenant && (int) $message->tenant_id !== (int) $currentTenant->id) {
             abort(404);
@@ -691,7 +736,10 @@ class MessageController extends Controller
         }
 
         $user = Auth::user();
-        abort_unless($user && $this->userCanDeleteTenantMessage($user, $message, $currentTenant), 403);
+        abort_unless($user, 403);
+        $user->assertTenantGuestMayUseMessages();
+        $this->assertTenantAdminHasPermission($user, $currentTenant, User::PERM_MESSAGES_MANAGE);
+        abort_unless($this->userCanDeleteTenantMessage($user, $message, $currentTenant), 403);
 
         $this->deletePairwiseConversation($message, $currentTenant);
 

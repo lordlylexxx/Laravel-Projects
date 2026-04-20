@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.tenant-favicon')
     <title>Owner Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -387,9 +388,6 @@
                 <p>Monitor your properties and booking performance</p>
             </div>
 
-            <!-- Plan Status Card -->
-            <x-plan-status-card />
-            
             <!-- Quick Stats -->
             <div class="stats-grid animate delay-1">
                 <div class="stat-card">

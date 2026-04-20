@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.tenant-favicon')
     <title>{{ $accommodation->name }} - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -402,9 +403,15 @@
                 @elseif(Auth::user()->role !== 'client')
                     <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
                 @endif
+                @if(Auth::user()->tenantClientMayManageOwnStays())
                 <li><a href="{{ route('bookings.index') }}">My Bookings</a></li>
-                <li><a href="{{ route('messages.index', [], false) }}">Messages</a></li>
+                @endif
+                @if(Auth::user()->tenantClientMayUseMessaging())
+                    <li><a href="{{ route('messages.index', [], false) }}">Messages</a></li>
+                @endif
+                @if(Auth::user()->tenantClientMayEditOwnProfile())
                 <li><a href="{{ route('profile.edit') }}">Settings</a></li>
+                @endif
             @endauth
         </ul>
         
@@ -485,7 +492,7 @@
             @if($galleryCount > 1)
                 <div class="thumbnail-row" id="carouselThumbnails" role="tablist" aria-label="Photo thumbnails">
                     @foreach($galleryImages as $index => $imageUrl)
-                        <img src="{{ $imageUrl }}"
+                        <img src="{{ $imageUrl }}" 
                              alt=""
                              class="thumbnail {{ $index === 0 ? 'active' : '' }}"
                              data-index="{{ $index }}"
@@ -616,7 +623,7 @@
                     
                     @php
                         $authUser = auth()->user();
-                        $canBookAccommodation = $authUser && $authUser->isClient() && (int) $accommodation->owner_id !== (int) $authUser->id;
+                        $canBookAccommodation = $authUser && $authUser->isClient() && (int) $accommodation->owner_id !== (int) $authUser->id && $authUser->tenantClientMayManageOwnStays();
                     @endphp
 
                     @auth
@@ -642,6 +649,41 @@
                                     @endfor
                                 </select>
                             </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Guest Gender (Optional)</label>
+                                    <select name="guest_gender">
+                                        <option value="">Prefer not to say</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="unspecified">Unspecified</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Guest Age (Optional)</label>
+                                    <input type="number" name="guest_age" min="0" max="120" placeholder="e.g. 28">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Guest Location Type (Optional)</label>
+                                <select name="guest_is_local" id="guestIsLocalSelect">
+                                    <option value="">Select location type</option>
+                                    <option value="1">Local</option>
+                                    <option value="0">Foreign</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="guestLocalPlaceGroup" style="display:none;">
+                                <label>Local Place (Optional)</label>
+                                <input type="text" name="guest_local_place" id="guestLocalPlaceInput" placeholder="e.g. Bukidnon">
+                            </div>
+
+                            <div class="form-group" id="guestCountryGroup" style="display:none;">
+                                <label>Country (Optional)</label>
+                                <input type="text" name="guest_country" id="guestCountryInput" placeholder="e.g. Japan">
+                            </div>
                             
                             <div class="form-group">
                                 <label>Special Requests (Optional)</label>
@@ -652,6 +694,10 @@
                                 Continue to Payment
                             </button>
                         </form>
+                        @elseif($authUser && $authUser->isClient() && (int) $accommodation->owner_id !== (int) $authUser->id)
+                            <div style="text-align: center; padding: 16px 0 10px; color: var(--gray-600); font-weight: 600;">
+                                Booking is disabled for your account. Contact the business if you need access.
+                            </div>
                         @else
                             <div style="text-align: center; padding: 16px 0 10px; color: var(--gray-600); font-weight: 600;">
                                 Booking is available for client accounts only.
@@ -891,6 +937,45 @@
 
             showSlide(0);
             startAutoplay();
+        })();
+
+        (function () {
+            var locationType = document.getElementById('guestIsLocalSelect');
+            var localGroup = document.getElementById('guestLocalPlaceGroup');
+            var countryGroup = document.getElementById('guestCountryGroup');
+            var localInput = document.getElementById('guestLocalPlaceInput');
+            var countryInput = document.getElementById('guestCountryInput');
+            if (!locationType || !localGroup || !countryGroup || !localInput || !countryInput) return;
+
+            function syncLocationFields() {
+                var value = locationType.value;
+                if (value === '1') {
+                    localGroup.style.display = '';
+                    countryGroup.style.display = 'none';
+                    localInput.required = true;
+                    countryInput.required = false;
+                    countryInput.value = '';
+                    return;
+                }
+                if (value === '0') {
+                    localGroup.style.display = 'none';
+                    countryGroup.style.display = '';
+                    localInput.required = false;
+                    countryInput.required = true;
+                    localInput.value = '';
+                    return;
+                }
+
+                localGroup.style.display = 'none';
+                countryGroup.style.display = 'none';
+                localInput.required = false;
+                countryInput.required = false;
+                localInput.value = '';
+                countryInput.value = '';
+            }
+
+            locationType.addEventListener('change', syncLocationFields);
+            syncLocationFields();
         })();
     </script>
 </body>

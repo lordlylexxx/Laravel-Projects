@@ -104,6 +104,6 @@ class AccommodationPolicy
             return true;
         }
 
-        return $user->isOwner() || ($user->isAdmin() && $user->tenant_id !== null);
+        return $user->isOwner();
     }
 }

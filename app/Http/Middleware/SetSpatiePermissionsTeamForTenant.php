@@ -15,6 +15,8 @@ class SetSpatiePermissionsTeamForTenant
 
         if ($tenant) {
             setPermissionsTeamId($tenant->id);
+        } else {
+            setPermissionsTeamId(null);
         }
 
         return $next($request);

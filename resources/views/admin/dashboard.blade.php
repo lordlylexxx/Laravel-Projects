@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('admin.partials.favicon')
     <title>Admin Dashboard - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -192,6 +193,122 @@
             gap: 10px;
         }
         .dashboard-card h3 .icon { color: var(--green-primary); }
+
+        .filter-card {
+            background: var(--white);
+            border: 1px solid var(--green-soft);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+        .filter-field label {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--gray-500);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .filter-field input,
+        .filter-field select {
+            width: 100%;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            padding: 9px 11px;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            background: var(--white);
+        }
+        .btn-filter {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .btn-filter.primary {
+            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
+            color: white;
+        }
+        .btn-filter.secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .demographics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .demographics-meta {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+        .breakdown-list {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .breakdown-block {
+            background: var(--green-white);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .breakdown-block h4 {
+            font-size: 0.78rem;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+        .demographics-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .demographics-pill {
+            background: linear-gradient(135deg, var(--cream), var(--green-white));
+            border: 1px solid var(--green-soft);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+        .demographics-pill .value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--green-dark);
+        }
+        .demographics-pill .label {
+            display: block;
+            color: var(--gray-600);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
         
         /* Content Grid */
         .content-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
@@ -272,12 +389,16 @@
         /* Responsive */
         @media (max-width: 1200px) {
             .content-grid { grid-template-columns: 1fr; }
+            .demographics-grid { grid-template-columns: 1fr; }
+            .demographics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 768px) {
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             .main-content { padding: 20px; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .demographics-summary { grid-template-columns: 1fr; }
+            .breakdown-list { grid-template-columns: 1fr; }
         }
         
         /* Animations */
@@ -309,6 +430,126 @@
             <div class="page-header animate">
                 <h1><i class="fas fa-chart-line" style="color: var(--green-primary); margin-right: 12px;"></i>Sales Monitoring Dashboard</h1>
                 <p>Business performance metrics and analytics</p>
+            </div>
+
+            <div class="filter-card animate delay-1">
+                <h3 style="margin-bottom: 12px; display:flex; align-items:center; gap:8px;"><i class="fas fa-filter icon"></i>Demographics Filters & Reports</h3>
+                <form method="GET" action="{{ route('admin.dashboard') }}" class="filters-grid">
+                    <div class="filter-field">
+                        <label for="tenant_id">Tenant Scope</label>
+                        <select id="tenant_id" name="tenant_id">
+                            <option value="">All tenants</option>
+                            @foreach($tenantFilterOptions as $tenantOption)
+                                <option value="{{ $tenantOption->id }}" @selected((int) ($selectedTenantId ?? 0) === (int) $tenantOption->id)>{{ $tenantOption->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label for="start_date">Start Date</label>
+                        <input id="start_date" type="date" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
+                    </div>
+                    <div class="filter-field">
+                        <label for="end_date">End Date</label>
+                        <input id="end_date" type="date" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
+                    </div>
+                    <div class="filter-field" style="display:flex; gap:8px;">
+                        <button type="submit" class="btn-filter primary"><i class="fas fa-chart-line"></i> Apply</button>
+                        <a href="{{ route('admin.dashboard') }}" class="btn-filter secondary">Reset</a>
+                    </div>
+                </form>
+                <div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <a class="btn-filter secondary" href="{{ route('admin.reports.demographics', ['tenant_id' => $selectedTenantId, 'start_date' => optional($demographicsStartDate)->toDateString(), 'end_date' => optional($demographicsEndDate)->toDateString()]) }}">
+                        <i class="fas fa-eye"></i> View Demographics Report
+                    </a>
+                    <form method="POST" action="{{ route('admin.reports.demographics.export') }}" style="display:inline;">
+                        @csrf
+                        <input type="hidden" name="format" value="pdf">
+                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
+                        <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
+                        <button type="submit" class="btn-filter secondary"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.reports.demographics.export') }}" style="display:inline;">
+                        @csrf
+                        <input type="hidden" name="format" value="csv">
+                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
+                        <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
+                        <button type="submit" class="btn-filter secondary"><i class="fas fa-file-csv"></i> Export CSV</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="dashboard-card animate delay-1">
+                <h3><i class="fas fa-people-group icon"></i>Booking Demographics</h3>
+                <p class="demographics-meta">
+                    {{ $demographics['scope_label'] ?? 'All tenants' }} |
+                    {{ optional($demographicsStartDate)->toFormattedDateString() }} - {{ optional($demographicsEndDate)->toFormattedDateString() }}
+                </p>
+
+                @if(empty($demographics['columns_ready']))
+                    <div style="background:#FFFBEB; border:1px solid #FCD34D; color:#92400E; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
+                        Demographic columns are not available yet in `bookings`. Run migrations first to populate this section.
+                    </div>
+                @endif
+
+                <div class="demographics-summary">
+                    <div class="demographics-pill">
+                        <span class="value">{{ number_format($demographics['total_bookings'] ?? 0) }}</span>
+                        <span class="label">Bookings in Scope</span>
+                    </div>
+                    <div class="demographics-pill">
+                        <span class="value">{{ number_format($demographics['total_guests'] ?? 0) }}</span>
+                        <span class="label">Guests in Scope</span>
+                    </div>
+                    <div class="demographics-pill">
+                        <span class="value">{{ number_format($demographics['profiled_bookings'] ?? 0) }}</span>
+                        <span class="label">Profiled Bookings</span>
+                    </div>
+                    <div class="demographics-pill">
+                        <span class="value">{{ isset($demographics['average_age']) && $demographics['average_age'] !== null ? $demographics['average_age'] : 'N/A' }}</span>
+                        <span class="label">Average Age</span>
+                    </div>
+                </div>
+
+                <div class="demographics-grid">
+                    <div class="dashboard-card" style="margin-bottom:0;">
+                        <h3><i class="fas fa-venus-mars icon"></i>Gender Distribution</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="genderChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="dashboard-card" style="margin-bottom:0;">
+                        <h3><i class="fas fa-map-marked-alt icon"></i>Location Distribution</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="locationChart"></canvas>
+                        </div>
+                        <div class="breakdown-list">
+                            <div class="breakdown-block">
+                                <h4>Local Places</h4>
+                                @forelse(collect($demographics['location']['breakdown']['local_labels'] ?? [])->take(5) as $i => $label)
+                                    <div class="breakdown-item"><span>{{ $label }}</span><strong>{{ $demographics['location']['breakdown']['local_counts'][$i] ?? 0 }}</strong></div>
+                                @empty
+                                    <div class="breakdown-item"><span>No local breakdown yet</span><strong>-</strong></div>
+                                @endforelse
+                            </div>
+                            <div class="breakdown-block">
+                                <h4>Foreign Countries</h4>
+                                @forelse(collect($demographics['location']['breakdown']['foreign_labels'] ?? [])->take(5) as $i => $label)
+                                    <div class="breakdown-item"><span>{{ $label }}</span><strong>{{ $demographics['location']['breakdown']['foreign_counts'][$i] ?? 0 }}</strong></div>
+                                @empty
+                                    <div class="breakdown-item"><span>No foreign breakdown yet</span><strong>-</strong></div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card" style="margin-bottom:0;">
+                        <h3><i class="fas fa-user-clock icon"></i>Age Distribution</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="ageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- KPI Cards -->
@@ -480,6 +721,82 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const demographics = @json($demographics ?? []);
+
+            const genderChartEl = document.getElementById('genderChart');
+            if (genderChartEl) {
+                new Chart(genderChartEl.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: demographics.gender?.labels ?? ['Male', 'Female', 'Unspecified'],
+                        datasets: [{
+                            data: demographics.gender?.counts ?? [0, 0, 0],
+                            backgroundColor: ['#2E7D32', '#8B5CF6', '#D1D5DB'],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            const locationChartEl = document.getElementById('locationChart');
+            if (locationChartEl) {
+                new Chart(locationChartEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: demographics.location?.labels ?? ['Local', 'Foreign', 'Unspecified'],
+                        datasets: [{
+                            label: 'Bookings',
+                            data: demographics.location?.counts ?? [0, 0, 0],
+                            backgroundColor: ['#2E7D32', '#2563EB', '#9CA3AF'],
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            const ageChartEl = document.getElementById('ageChart');
+            if (ageChartEl) {
+                new Chart(ageChartEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: demographics.age?.labels ?? ['0-17', '18-24', '25-34', '35-44', '45-54', '55+', 'Unspecified'],
+                        datasets: [{
+                            label: 'Bookings',
+                            data: demographics.age?.counts ?? [0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: '#F59E0B',
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
             // Monthly Revenue Line Chart
             const revenueCtx = document.getElementById('revenueChart').getContext('2d');
             new Chart(revenueCtx, {

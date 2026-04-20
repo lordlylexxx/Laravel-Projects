@@ -16,7 +16,7 @@
             <td style="padding: 24px;">
                 <p style="margin-top: 0;">Hi {{ $ownerName }},</p>
                 <p>Your tenant subscription for <strong>{{ $tenantName }}</strong> was updated by <strong>{{ $changedBy }}</strong>.</p>
-                <p><strong>Plan:</strong> {{ ucfirst($plan) }}</p>
+                <p><strong>Plan:</strong> {{ \App\Models\Tenant::planLabel($plan) }}</p>
                 <p><strong>Status:</strong> {{ ucfirst(str_replace('_', ' ', $subscriptionStatus)) }}</p>
                 @if($periodEndsAt)
                     <p><strong>Current period ends:</strong> {{ \Illuminate\Support\Carbon::parse($periodEndsAt)->format('M d, Y') }}</p>

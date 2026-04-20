@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    @include('admin.partials.favicon')
     <title>Monthly Booking Report - {{ $monthName }}</title>
     <style>
         * {

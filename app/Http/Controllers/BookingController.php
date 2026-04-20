@@ -16,6 +16,8 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $this->authorize('viewAny', Booking::class);
+
         $tenantId = $user->tenant_id;
         $currentTenant = Tenant::current();
         $status = $request->query('status');
@@ -60,10 +62,11 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        // Only client accounts can create bookings.
         if (! $user || ! $user->isClient()) {
             return back()->with('error', 'Only client accounts can book accommodations.');
         }
+
+        $this->authorize('create', Booking::class);
 
         // Prevent self-booking of own listings.
         if ((int) $accommodation->owner_id === (int) $user->id) {
@@ -82,7 +85,25 @@ class BookingController extends Controller
             'number_of_guests' => 'required|integer|min:1',
             'special_requests' => 'nullable|string',
             'client_message' => 'nullable|string',
+            'guest_gender' => 'nullable|in:male,female,unspecified',
+            'guest_age' => 'nullable|integer|min:0|max:120',
+            'guest_is_local' => 'nullable|boolean',
+            'guest_local_place' => 'nullable|string|max:120|required_if:guest_is_local,1',
+            'guest_country' => 'nullable|string|max:120|required_if:guest_is_local,0',
         ]);
+
+        if (! array_key_exists('guest_is_local', $validated)) {
+            $validated['guest_is_local'] = null;
+        }
+
+        if ($validated['guest_is_local'] === null) {
+            $validated['guest_local_place'] = null;
+            $validated['guest_country'] = null;
+        } elseif ((bool) $validated['guest_is_local']) {
+            $validated['guest_country'] = null;
+        } else {
+            $validated['guest_local_place'] = null;
+        }
 
         // Validate guests
         if ($validated['number_of_guests'] > $accommodation->max_guests) {
@@ -313,6 +334,8 @@ class BookingController extends Controller
      */
     public function sendMessage(Request $request, Booking $booking)
     {
+        $this->authorize('view', $booking);
+
         $validated = $request->validate([
             'message' => 'required|string',
         ]);
