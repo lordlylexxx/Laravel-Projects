@@ -33,6 +33,7 @@ final class RbacCatalog
             User::PERM_BOOKINGS_SELF,
             User::PERM_MESSAGES_USE,
             User::PERM_PROFILE_SELF,
+            User::PERM_UPDATES_TICKETS_USE,
         ];
     }
 

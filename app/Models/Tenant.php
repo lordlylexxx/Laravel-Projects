@@ -11,6 +11,11 @@ use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 #[ObservedBy([TenantObserver::class])]
 class Tenant extends BaseTenant
 {
+    /**
+     * Tenant configuration rows live on the landlord database (never on per-tenant DBs).
+     */
+    protected $connection = 'landlord';
+
     public const PLAN_BASIC = 'basic';
 
     public const PLAN_PLUS = 'plus';
@@ -172,6 +177,11 @@ class Tenant extends BaseTenant
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    public function updateTickets(): HasMany
+    {
+        return $this->hasMany(UpdateTicket::class, 'tenant_id');
     }
 
     public function hasActiveSubscription(): bool

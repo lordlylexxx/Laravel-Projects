@@ -71,13 +71,6 @@
     </ul>
 
     <div class="nav-actions">
-        @if(($tenantUpdate['has_update'] ?? false) && !empty($tenantUpdate['download_url']))
-            <a href="{{ $tenantUpdate['download_url'] }}" class="nav-btn" title="Update to v{{ $tenantUpdate['latest_version'] ?? '' }}">
-                <i class="fas fa-download"></i>
-                Update v{{ $tenantUpdate['latest_version'] }}
-            </a>
-        @endif
-
         <div class="user-display">
             @if($authUser?->avatar)
                 <img src="{{ asset('storage/avatars/' . $authUser->avatar . '?v=' . time()) }}" alt="{{ $authUser->name }}" class="user-avatar" style="object-fit: cover;">

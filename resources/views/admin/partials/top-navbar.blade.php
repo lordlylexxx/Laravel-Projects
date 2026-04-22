@@ -15,6 +15,7 @@
     $bookingsHref = '/owner/bookings';
     $reportsHref = '/owner/reports/monthly';
     $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
+    $updateTicketsHref = ! $isTenantContext ? '/admin/system-updates/tickets' : null;
     $landingPlansHref = '/admin/landing-plans';
     $messagesHref = $isTenantContext ? '/messages' : '/admin/messages';
     $settingsHref = '/profile';
@@ -24,7 +25,10 @@
 <nav class="navbar">
     <a href="{{ $landingHref }}" class="nav-logo">
         <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
-        <span>ImpaStay</span>
+        <span class="nav-brand-text">
+            <span class="nav-brand-title">IMPASUGONG TOURISM</span>
+            <span class="nav-brand-subtitle">Admin Dashboard</span>
+        </span>
     </a>
 
     <ul class="nav-links">
@@ -38,6 +42,9 @@
             <li><a href="{{ $landingPlansHref }}" class="{{ $current === 'landing-plans' ? 'active' : '' }}"><i class="fas fa-tags"></i> Plans</a></li>
         @endif
         <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
+        @if($updateTicketsHref)
+            <li><a href="{{ $updateTicketsHref }}" class="{{ $current === 'update-tickets' ? 'active' : '' }}"><i class="fas fa-life-ring"></i> Support</a></li>
+        @endif
         <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>
         <li><a href="{{ $settingsHref }}" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>

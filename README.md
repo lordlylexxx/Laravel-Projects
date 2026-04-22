@@ -391,6 +391,11 @@ Central update endpoints:
 
 - `GET /system-updates/check`
 - `GET /system-updates/download`
+- `GET /system-updates/checksum`
+
+To publish a companion SHA-256 checksum for the central package:
+
+- `php artisan system-updates:publish-checksum`
 
 Tenant owner/admin update page:
 

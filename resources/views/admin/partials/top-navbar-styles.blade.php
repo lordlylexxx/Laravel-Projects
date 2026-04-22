@@ -15,9 +15,11 @@
     z-index: 1000;
 }
 
-.nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
 .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
-.nav-logo span { font-size: 1.1rem; font-weight: 700; color: var(--green-dark); line-height: 1.05; }
+.nav-brand-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+.nav-brand-title { font-size: 0.78rem; font-weight: 800; color: var(--green-dark); line-height: 1.05; letter-spacing: 0.02em; }
+.nav-brand-subtitle { margin-top: 1px; font-size: 0.48rem; font-weight: 600; color: var(--green-medium); line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .nav-links { display: flex; gap: 4px; list-style: none; flex: 1; min-width: 0; justify-content: center; }
 .nav-links a {
@@ -109,4 +111,6 @@
     .navbar { padding: 0 12px; height: 64px; }
     .nav-links { display: none; }
     .user-display { max-width: 170px; }
+    .nav-brand-title { font-size: 0.7rem; }
+    .nav-brand-subtitle { font-size: 0.44rem; }
 }

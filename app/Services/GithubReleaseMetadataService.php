@@ -82,6 +82,42 @@ class GithubReleaseMetadataService
         );
     }
 
+    public function resolveLatestReleaseChecksumUrl(): ?string
+    {
+        $payload = $this->getLatestReleasePayload();
+
+        if ($payload === null) {
+            return null;
+        }
+
+        $assets = $payload['assets'];
+        $preferred = trim((string) config('updates.github_release_checksum_asset', ''));
+
+        if ($preferred !== '') {
+            foreach ($assets as $asset) {
+                if (strcasecmp($asset['name'], $preferred) === 0) {
+                    return $asset['url'];
+                }
+            }
+
+            foreach ($assets as $asset) {
+                if (str_contains(strtolower($asset['name']), strtolower($preferred))) {
+                    return $asset['url'];
+                }
+            }
+        }
+
+        foreach ($assets as $asset) {
+            $lowerName = strtolower($asset['name']);
+
+            if (str_ends_with($lowerName, '.sha256') || str_ends_with($lowerName, '.checksum') || str_ends_with($lowerName, '.txt')) {
+                return $asset['url'];
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return array{
      *     latest_version: string,

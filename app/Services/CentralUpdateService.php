@@ -52,6 +52,7 @@ class CentralUpdateService
                     'release_notes' => (string) ($data['release_notes'] ?? ''),
                     'published_at' => $data['published_at'] ?? null,
                     'download_url' => (string) ($data['download_url'] ?? ''),
+                    'checksum_url' => (string) ($data['checksum_url'] ?? ''),
                     'unavailable' => false,
                 ];
             } catch (\Throwable $exception) {
@@ -62,11 +63,17 @@ class CentralUpdateService
 
     private function githubFallbackPayload(string $currentVersion, string $baseUrl, bool $markUnavailable): array
     {
+        $token = (string) config('updates.channel_token', '');
+        $tokenQuery = $token !== '' ? '?token='.urlencode($token) : '';
+
         $github = app(GithubReleaseMetadataService::class)->fetchLatestReleaseMetadata();
 
         if ($github !== null) {
             $latestVersion = (string) ($github['latest_version'] ?? $currentVersion);
             $githubPackageUrl = app(GithubReleaseMetadataService::class)->resolveLatestReleasePackageDownloadUrl();
+            $githubChecksumUrl = app(GithubReleaseMetadataService::class)->resolveLatestReleaseChecksumUrl();
+            $fallbackDownloadUrl = $baseUrl.'/system-updates/download'.$tokenQuery;
+            $fallbackChecksumUrl = $baseUrl.'/system-updates/checksum'.$tokenQuery;
 
             return [
                 'has_update' => version_compare($latestVersion, $currentVersion, '>'),
@@ -74,7 +81,10 @@ class CentralUpdateService
                 'latest_version' => $latestVersion,
                 'release_notes' => (string) ($github['release_notes'] ?? ''),
                 'published_at' => $github['published_at'] ?? null,
-                'download_url' => $githubPackageUrl ?? ($baseUrl . '/system-updates/download'),
+                'download_url' => $githubPackageUrl ?? $fallbackDownloadUrl,
+                'checksum_url' => $githubPackageUrl !== null
+                    ? ($githubChecksumUrl ?? '')
+                    : $fallbackChecksumUrl,
                 'unavailable' => false,
                 'message' => $markUnavailable ? 'Central channel unavailable. Showing latest release from GitHub metadata.' : '',
             ];

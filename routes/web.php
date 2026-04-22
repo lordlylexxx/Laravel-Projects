@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\LandingPlanController;
+use App\Http\Controllers\Admin\UpdateTicketController as CentralAdminUpdateTicketController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Owner\TenantUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SystemUpdatePageController;
 use App\Http\Controllers\TenantLandingController;
+use App\Http\Controllers\UpdateTicketController;
 use App\Models\CentralLandingPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +49,7 @@ $registerCentralRoutes = function () {
         Route::prefix('system-updates')->name('updates.')->group(function () {
             Route::get('/check', [CentralUpdateController::class, 'check'])->name('check');
             Route::get('/download', [CentralUpdateController::class, 'download'])->name('download');
+            Route::get('/checksum', [CentralUpdateController::class, 'checksum'])->name('checksum');
         });
 
         // Public routes
@@ -153,7 +156,12 @@ $registerCentralRoutes = function () {
             Route::get('/reports/monthly/download-sales', [OwnerDashboardController::class, 'downloadMonthlySalesPdf'])->name('reports.monthly.download-sales');
             Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
+            Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
+            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])->name('updates.install');
+            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])->name('updates.restore');
+            Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
+            Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
             // Owner Landing Page Customization
             Route::get('/landing-page', [TenantLandingController::class, 'edit'])->name('landing.edit');
@@ -191,7 +199,16 @@ $registerCentralRoutes = function () {
             // Admin Dashboard with Sales Monitoring
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'adminIndex'])->name('updates.index');
+            Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])->name('updates.mark-installed');
+            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'adminInstall'])->name('updates.install');
+            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'adminRestore'])->name('updates.restore');
+            Route::post('/system-updates/tickets/report', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
+            Route::get('/system-updates/tickets/report/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.staff-show');
+
+            Route::get('/system-updates/tickets', [CentralAdminUpdateTicketController::class, 'index'])->name('update-tickets.index');
+            Route::get('/system-updates/tickets/{updateTicket}', [CentralAdminUpdateTicketController::class, 'show'])->name('update-tickets.show');
+            Route::patch('/system-updates/tickets/{updateTicket}', [CentralAdminUpdateTicketController::class, 'update'])->name('update-tickets.update');
 
             Route::get('/landing-plans', [LandingPlanController::class, 'index'])->name('landing-plans.index');
             Route::get('/landing-plans/create', [LandingPlanController::class, 'create'])->name('landing-plans.create');
@@ -310,6 +327,10 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
             Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
+            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])->name('updates.install');
+            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])->name('updates.restore');
+            Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
+            Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
             Route::get('/landing-page', [TenantLandingController::class, 'edit'])->name('landing.edit');
             Route::put('/landing-page', [TenantLandingController::class, 'update'])->name('landing.update');
@@ -339,6 +360,12 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
         });
 
         Route::middleware(['auth', 'tenant.client_guest_rbac'])->group(function () {
+            Route::prefix('update-tickets')->name('update-tickets.')->group(function () {
+                Route::get('/', [UpdateTicketController::class, 'clientIndex'])->name('index');
+                Route::post('/', [UpdateTicketController::class, 'clientStore'])->name('store');
+                Route::get('/{updateTicket}', [UpdateTicketController::class, 'clientShow'])->name('show');
+            });
+
             Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
                 ->name('messages.index');
 

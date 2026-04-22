@@ -353,8 +353,6 @@
             @if($canUseTenantPortal)
                 @if($currentUser->isClient())
                     <a href="{{ route('accommodations.index') }}" class="btn btn-outline"><i class="fas fa-search"></i> Browse</a>
-                @else
-                    <a href="{{ route('owner.dashboard') }}" class="btn btn-outline"><i class="fas fa-gauge"></i> Dashboard</a>
                 @endif
                 <form method="POST" action="/logout">
                     @csrf

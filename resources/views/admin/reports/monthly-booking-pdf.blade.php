@@ -310,7 +310,7 @@
         <!-- Footer -->
         <div class="footer">
             <div class="footer-detail">
-                <strong>ImpaStay Management System</strong> | Monthly Booking Report
+                <strong>IMPASUGONG TOURISM Management System</strong> | Monthly Booking Report
             </div>
             
             <div class="footer-divider">

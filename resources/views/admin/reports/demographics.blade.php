@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @include('admin.partials.favicon')
-    <title>Demographics Report - ImpaStay</title>
+    <title>Demographics Report - IMPASUGONG TOURISM</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #F8FAFC; color: #1F2937; margin: 0; }
         .container { max-width: 1100px; margin: 30px auto; padding: 0 20px 30px; }

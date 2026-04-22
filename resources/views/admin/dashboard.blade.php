@@ -4,139 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @include('admin.partials.favicon')
-    <title>Admin Dashboard - ImpaStay</title>
+    <title>Admin Dashboard - IMPASUGONG TOURISM</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
-            --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
-            --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
-            --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
-            --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
-            --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
-            --blue-500: #3B82F6; --blue-600: #2563EB;
-            --red-500: #EF4444; --orange-500: #F97316;
-            --purple-500: #8B5CF6; --cyan-500: #06B6D4;
-            --amber-500: #F59E0B;
+        @include('admin.partials.admin-shell-styles')
+
+        .page-header {
+            margin-bottom: 30px;
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
-            min-height: 100vh;
-            color: var(--gray-800);
-        }
-        
-        /* Navigation */
-        .navbar {
-            background: var(--white);
-            padding: 0 40px;
-            height: 70px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(27, 94, 32, 0.1);
-            position: fixed;
-            width: 100%;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 45px; height: 45px; border-radius: 0; border: none; object-fit: contain; }
-        .nav-logo span { font-size: 1.3rem; font-weight: 700; color: var(--green-dark); }
-        
-        .nav-links { display: flex; gap: 8px; list-style: none; }
-        .nav-links a { 
-            text-decoration: none; 
-            color: var(--gray-600); 
-            font-weight: 500; 
-            padding: 10px 16px; 
-            border-radius: 8px; 
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-links a:hover, .nav-links a.active { 
-            background: linear-gradient(135deg, var(--green-primary), var(--green-medium)); 
-            color: var(--white);
-            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
-        }
-        
-        .nav-actions { display: flex; gap: 15px; align-items: center; }
-        .user-display {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, var(--green-soft), var(--green-white));
-            border-radius: 10px;
-            border: 1px solid var(--green-soft);
-        }
-        .user-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-        .user-info {
-            text-align: left;
-        }
-        .user-name {
-            font-weight: 700;
+
+        .page-header h1 {
+            font-size: 2rem;
             color: var(--green-dark);
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--gray-500);
             font-size: 0.95rem;
-            line-height: 1.2;
         }
-        .user-role {
-            font-size: 0.75rem;
-            color: var(--green-medium);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .nav-btn { 
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            text-decoration: none;
-            transition: all 0.3s; 
-            cursor: pointer; 
-            border: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-btn.primary { 
-            background: linear-gradient(135deg, var(--green-dark), var(--green-primary)); 
-            color: var(--white); 
-        }
-        .nav-btn.primary:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
-        }
-        
-        /* Main Layout */
-        .dashboard-layout { display: flex; padding-top: 80px; }
-        
-        /* Main Content */
-        .main-content { flex: 1; padding: 30px 40px; min-height: calc(100vh - 80px); }
-        
-        /* Page Header */
-        .page-header { margin-bottom: 30px; }
-        .page-header h1 { font-size: 2rem; color: var(--green-dark); margin-bottom: 5px; font-weight: 700; }
-        .page-header p { color: var(--gray-500); font-size: 0.95rem; }
         
         /* KPI Cards */
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
@@ -385,17 +273,14 @@
             color: white;
             transform: rotate(90deg);
         }
-        
-        /* Responsive */
+
         @media (max-width: 1200px) {
             .content-grid { grid-template-columns: 1fr; }
             .demographics-grid { grid-template-columns: 1fr; }
             .demographics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
+
         @media (max-width: 768px) {
-            .navbar { padding: 0 20px; height: 60px; }
-            .nav-links { display: none; }
-            .main-content { padding: 20px; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .demographics-summary { grid-template-columns: 1fr; }
             .breakdown-list { grid-template-columns: 1fr; }

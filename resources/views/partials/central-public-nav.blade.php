@@ -9,7 +9,7 @@
         <img src="/SYSTEMLOGO.png" alt="IMPASUGONG TOURISM" class="h-11 w-auto shrink-0 rounded-lg md:h-[48px]">
         <div class="min-w-0 leading-tight">
             <span class="block text-base font-extrabold tracking-tight text-brand-dark md:text-lg">IMPASUGONG TOURISM</span>
-            <span class="mt-0.5 block text-xs font-medium leading-tight text-brand-medium md:text-[0.8125rem]">| Impasugong Accommodations</span>
+            <span class="block text-[0.68rem] font-medium leading-none text-brand-medium md:text-[0.75rem]">| Impasugong Accommodations</span>
         </div>
     </a>
     <ul class="hidden list-none items-center gap-2 md:flex lg:gap-5">

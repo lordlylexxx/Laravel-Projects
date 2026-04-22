@@ -112,6 +112,9 @@ class User extends Authenticatable
 
     public const PERM_PROFILE_SELF = 'profile.self';
 
+    /** Submit update-channel support tickets (tenant clients). */
+    public const PERM_UPDATES_TICKETS_USE = 'updates.tickets.use';
+
     /**
      * All staff-oriented permissions (owner / tenant admin); not for client rows in the users UI.
      *
@@ -146,6 +149,7 @@ class User extends Authenticatable
             self::PERM_BOOKINGS_SELF,
             self::PERM_MESSAGES_USE,
             self::PERM_PROFILE_SELF,
+            self::PERM_UPDATES_TICKETS_USE,
         ];
     }
 
@@ -158,6 +162,7 @@ class User extends Authenticatable
             self::PERM_BOOKINGS_SELF => 'Book and manage own stays',
             self::PERM_MESSAGES_USE => 'Message the business',
             self::PERM_PROFILE_SELF => 'Edit own profile',
+            self::PERM_UPDATES_TICKETS_USE => 'Submit update support tickets',
             self::PERM_USERS_VIEW => 'View users',
             self::PERM_USERS_CREATE => 'Create users',
             self::PERM_USERS_UPDATE => 'Update users',
@@ -408,6 +413,14 @@ class User extends Authenticatable
     public function tenantClientMayEditOwnProfile(): bool
     {
         return $this->isClient() && $this->hasPermission(self::PERM_PROFILE_SELF);
+    }
+
+    /**
+     * Guest capability: file update-module support tickets for central admin.
+     */
+    public function tenantClientMaySubmitUpdateTickets(): bool
+    {
+        return $this->isClient() && $this->hasPermission(self::PERM_UPDATES_TICKETS_USE);
     }
 
     /**

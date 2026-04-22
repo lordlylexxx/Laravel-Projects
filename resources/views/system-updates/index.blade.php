@@ -10,6 +10,16 @@
     @endif
     <title>System Updates - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -103,6 +113,39 @@
         .status-pill.current { background: #DBEAFE; color: #1D4ED8; }
         .status-pill.offline { background: #FEE2E2; color: var(--red-700); }
         .status-pill.installed { background: #EDE9FE; color: #6D28D9; }
+        .status-pill.restoring { background: #FEF3C7; color: #92400E; }
+        .status-pill.failed { background: #FEE2E2; color: #B91C1C; }
+
+        .progress-card {
+            margin-bottom: 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 12px;
+            border-radius: 999px;
+            background: #E5E7EB;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
+            transition: width 0.25s ease;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
 
         .actions {
             margin-top: 14px;
@@ -181,6 +224,16 @@
             font-weight: 600;
         }
 
+        .flash-error {
+            margin: 0 0 16px;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid #FECACA;
+            background: #FEF2F2;
+            color: #991B1B;
+            font-weight: 600;
+        }
+
         .table-wrap {
             overflow: auto;
             border-radius: 10px;
@@ -241,10 +294,13 @@
         @if(session('success'))
             <div class="flash">{{ session('success') }}</div>
         @endif
+        @if(session('error'))
+            <div class="flash-error">{{ session('error') }}</div>
+        @endif
 
         <div class="header">
             <h1><i class="fas fa-cloud-arrow-down"></i> System Updates</h1>
-            <p>Check version status, read release notes, and download the latest package from the central app.</p>
+            <p>Check version status, read release notes, and install updates from the central app in one click.</p>
         </div>
 
         <section class="grid">
@@ -292,26 +348,111 @@
                 <div class="meta-value">{{ $downloadUrl ?: 'Not available' }}</div>
             </div>
 
+            @if($latestInstallActivity)
+                <div class="card progress-card" style="margin-top: 16px;">
+                    <h2>Live Install Progress</h2>
+                    <div class="progress-track" aria-label="Install progress">
+                        <div class="progress-fill" id="install-progress-fill" style="width: {{ (int) ($latestInstallActivity->progress_percent ?? 0) }}%;"></div>
+                    </div>
+                    <div class="progress-meta">
+                        <span id="install-step-text">{{ $latestInstallActivity->current_step ?: 'queued' }}</span>
+                        <span id="install-progress-text">{{ (int) ($latestInstallActivity->progress_percent ?? 0) }}%</span>
+                    </div>
+                    <div class="sub" id="install-status-text">{{ $latestInstallActivity->status_message ?: 'Waiting for the installer...' }}</div>
+                </div>
+            @endif
+
             <div class="actions" style="margin-top: 16px;">
-                @if($downloadUrl !== '')
-                    <a href="{{ $downloadUrl }}" class="btn primary">
-                        <i class="fas fa-download"></i>
-                        Download Latest Package
-                    </a>
+                <form method="POST" action="{{ $installRoute }}" style="display:inline-flex;">
+                    @csrf
+                    <button type="submit" class="btn primary" {{ ($downloadUrl === '' || $installInProgress) ? 'disabled' : '' }}>
+                        <i class="fas fa-cloud-arrow-down"></i>
+                        Install Update
+                    </button>
+                </form>
+
+                @if($restoreAvailable)
+                    <form method="POST" action="{{ $restoreRoute }}" style="display:inline-flex;">
+                        @csrf
+                        <button type="submit" class="btn ghost" {{ $installInProgress ? 'disabled' : '' }}>
+                            <i class="fas fa-rotate-left"></i>
+                            Restore Previous Version
+                        </button>
+                    </form>
                 @endif
+
                 <form method="POST" action="{{ $markInstalledRoute }}" style="display:inline-flex;">
                     @csrf
-                    <button type="submit" class="btn ghost">
+                    <button type="submit" class="btn ghost" {{ $installInProgress ? 'disabled' : '' }}>
                         <i class="fas fa-circle-check"></i>
                         Mark as Installed
                     </button>
                 </form>
-                <a href="{{ ($navType === 'admin' && !\App\Models\Tenant::checkCurrent()) ? '/admin/dashboard' : '/owner/dashboard' }}" class="btn ghost">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Dashboard
-                </a>
             </div>
         </section>
+
+        @php
+            $showStaffTicketUi = $tenantId && ($navType === 'owner' || ($navType === 'admin' && \App\Models\Tenant::checkCurrent()));
+        @endphp
+
+        @if($showStaffTicketUi)
+            <section class="card" style="margin-top: 18px;">
+                <h2>Support</h2>
+                <p class="sub" style="margin-bottom: 14px;">Report an issue with the update channel or installation. Central admin will respond and mark tickets resolved.</p>
+
+                <form method="POST" action="{{ $ownerUpdateTicketStoreRoute }}" style="margin-bottom: 20px;">
+                    @csrf
+                    <div style="margin-bottom: 12px;">
+                        <label for="ticket_subject" style="display:block; font-weight:600; margin-bottom:6px; color: var(--gray-700);">Subject</label>
+                        <input id="ticket_subject" name="subject" type="text" value="{{ old('subject') }}" required maxlength="255"
+                            style="width:100%; max-width:520px; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label for="ticket_body" style="display:block; font-weight:600; margin-bottom:6px; color: var(--gray-700);">Details</label>
+                        <textarea id="ticket_body" name="body" rows="4" required maxlength="10000"
+                            style="width:100%; max-width:720px; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px;">{{ old('body') }}</textarea>
+                    </div>
+                    @if ($errors->any())
+                        <div class="flash-error" style="margin-bottom:12px;">{{ $errors->first() }}</div>
+                    @endif
+                    <button type="submit" class="btn primary"><i class="fas fa-paper-plane"></i> Submit ticket</button>
+                </form>
+
+                <h3 style="font-size:0.95rem; margin-bottom:10px; color: var(--gray-700);">Recent tickets (this business)</h3>
+                <div class="table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Submitted</th>
+                                <th>Subject</th>
+                                <th>From</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($updateTickets as $t)
+                                <tr>
+                                    <td>{{ $t->created_at?->format('Y-m-d H:i') }}</td>
+                                    <td>{{ \Illuminate\Support\Str::limit($t->subject, 60) }}</td>
+                                    <td>{{ $t->reporter_name }} <span class="mono" style="color:var(--gray-500);">({{ $t->reporter_role }})</span></td>
+                                    <td>
+                                        @if($t->status === \App\Models\UpdateTicket::STATUS_RESOLVED)
+                                            <span class="status-pill current"><i class="fas fa-check"></i> Fixed</span>
+                                        @else
+                                            <span class="status-pill update"><i class="fas fa-inbox"></i> Pending</span>
+                                        @endif
+                                    </td>
+                                    <td><a href="{{ $updateTicketShowPathPrefix.'/'.$t->id }}" class="btn ghost" style="padding:6px 10px;font-size:0.85rem;">View</a></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5">No tickets yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
 
         <section class="card" style="margin-top: 18px;">
             <h2>Update History</h2>
@@ -334,6 +475,14 @@
                                 <td>
                                     @if($entry->channel_status === 'installed')
                                         <span class="status-pill installed"><i class="fas fa-circle-check"></i> Installed</span>
+                                    @elseif($entry->channel_status === 'restored')
+                                        <span class="status-pill restoring"><i class="fas fa-rotate-left"></i> Restored</span>
+                                    @elseif($entry->channel_status === 'installing')
+                                        <span class="status-pill update"><i class="fas fa-spinner"></i> Installing</span>
+                                    @elseif($entry->channel_status === 'restoring')
+                                        <span class="status-pill restoring"><i class="fas fa-spinner"></i> Restoring</span>
+                                    @elseif($entry->channel_status === 'failed')
+                                        <span class="status-pill failed"><i class="fas fa-circle-xmark"></i> Failed</span>
                                     @elseif($entry->channel_status === 'update_available')
                                         <span class="status-pill update"><i class="fas fa-arrow-up"></i> Update Available</span>
                                     @elseif($entry->channel_status === 'unavailable')
@@ -353,7 +502,66 @@
                     </tbody>
                 </table>
             </div>
+            <div class="mt-3">{{ $history->links('pagination::tailwind') }}</div>
         </section>
     </main>
+
+    @if($latestInstallActivity)
+        <script>
+            (function () {
+                const statusUrl = @json($installStatusRoute);
+                const activeUpdateLogId = @json($activeUpdateLogId);
+                const progressFill = document.getElementById('install-progress-fill');
+                const progressText = document.getElementById('install-progress-text');
+                const stepText = document.getElementById('install-step-text');
+                const statusText = document.getElementById('install-status-text');
+                if (!progressFill || !progressText || !stepText || !statusText) {
+                    return;
+                }
+
+                const updateLiveStatus = async () => {
+                    try {
+                        const url = activeUpdateLogId
+                            ? `${statusUrl}?update_log_id=${encodeURIComponent(activeUpdateLogId)}`
+                            : statusUrl;
+
+                        const response = await fetch(url, {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const payload = await response.json();
+
+                        if (typeof payload.progress_percent === 'number') {
+                            const percent = Math.max(0, Math.min(100, payload.progress_percent));
+                            progressFill.style.width = percent + '%';
+                            progressText.textContent = percent + '%';
+                        }
+
+                        if (payload.current_step) {
+                            stepText.textContent = payload.current_step;
+                        }
+
+                        if (payload.message) {
+                            statusText.textContent = payload.message;
+                        }
+
+                        if (payload.status === 'installed' || payload.status === 'failed') {
+                            clearInterval(timer);
+                        }
+                    } catch (error) {
+                        // Ignore transient polling errors while the installer runs.
+                    }
+                };
+
+                updateLiveStatus();
+                const timer = setInterval(updateLiveStatus, 3000);
+            })();
+        </script>
+    @endif
 </body>
 </html>

@@ -7,6 +7,7 @@ use App\Services\GithubReleaseMetadataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Response as ResponseFactory;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -40,9 +41,18 @@ class UpdateController extends Controller
         }
 
         $githubPackageUrl = $githubReleases->resolveLatestReleasePackageDownloadUrl();
+        $githubChecksumUrl = $githubReleases->resolveLatestReleaseChecksumUrl();
+        $checksumParams = [];
+        if ($token !== '') {
+            $checksumParams['token'] = $token;
+        }
+
         $downloadUrl = $githubPackageUrl !== null
             ? $githubPackageUrl
             : route('updates.download', $downloadParams);
+        $checksumUrl = $githubPackageUrl !== null
+            ? $githubChecksumUrl
+            : route('updates.checksum', $checksumParams);
 
         return response()->json([
             'current_version' => $currentVersion,
@@ -51,6 +61,7 @@ class UpdateController extends Controller
             'release_notes' => $releaseNotes,
             'published_at' => $publishedAt,
             'download_url' => $downloadUrl,
+            'checksum_url' => $checksumUrl,
         ]);
     }
 
@@ -77,6 +88,44 @@ class UpdateController extends Controller
         return response()->download($path, $filename, [
             'Content-Type' => 'application/zip',
         ]);
+    }
+
+    public function checksum(Request $request, GithubReleaseMetadataService $githubReleases): Response
+    {
+        $this->authorizeChannel($request);
+
+        $githubChecksumUrl = $githubReleases->resolveLatestReleaseChecksumUrl();
+
+        if ($githubChecksumUrl !== null) {
+            return redirect()->away($githubChecksumUrl);
+        }
+
+        $filename = $this->resolveChecksumFilename();
+        $path = storage_path('app/public/updates/'.$filename);
+
+        if (! File::exists($path)) {
+            return response('Update checksum file not found.', 404, [
+                'Content-Type' => 'text/plain; charset=UTF-8',
+            ]);
+        }
+
+        return ResponseFactory::make(File::get($path), 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    private function resolveChecksumFilename(): string
+    {
+        $configured = trim((string) config('updates.checksum_filename', ''));
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        $package = (string) config('updates.package_filename', 'latest-update.zip');
+
+        return $package.'.sha256';
     }
 
     private function authorizeChannel(Request $request): void

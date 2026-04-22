@@ -47,6 +47,10 @@ class EnsureTenantClientGuestRbacOnAuth
             abort_unless($user->tenantClientMayEditOwnProfile(), 403);
         }
 
+        if ($request->is('update-tickets', 'update-tickets/*')) {
+            abort_unless($user->tenantClientMaySubmitUpdateTickets(), 403);
+        }
+
         if ($request->is('password') && in_array($request->method(), ['PUT', 'PATCH'], true)) {
             abort_unless($user->tenantClientMayEditOwnProfile(), 403);
         }

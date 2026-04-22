@@ -14,6 +14,8 @@ return [
 
     'package_filename' => env('CENTRAL_UPDATE_PACKAGE_FILENAME', 'latest-update.zip'),
 
+    'checksum_filename' => env('CENTRAL_UPDATE_CHECKSUM_FILENAME', ''),
+
     'channel_token' => env('CENTRAL_UPDATE_CHANNEL_TOKEN'),
 
     'central_base_url' => env('CENTRAL_UPDATE_BASE_URL', "http://{$centralHost}:{$centralPort}"),
@@ -30,7 +32,15 @@ return [
     */
     'github_release_asset' => env('CENTRAL_GITHUB_RELEASE_ASSET', ''),
 
+    'github_release_checksum_asset' => env('CENTRAL_GITHUB_RELEASE_CHECKSUM_ASSET', ''),
+
     'github_token' => env('CENTRAL_GITHUB_TOKEN', ''),
 
     'github_cache_ttl' => (int) env('CENTRAL_GITHUB_CACHE_TTL', 300),
+
+    'regenerate_app_key' => (bool) env('UPDATE_REGENERATE_APP_KEY', false),
+
+    'require_download_checksum' => (bool) env('UPDATE_REQUIRE_DOWNLOAD_CHECKSUM', false),
+
+    'trusted_download_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('UPDATE_TRUSTED_DOWNLOAD_HOSTS', 'github.com,objects.githubusercontent.com,githubusercontent.com'))))),
 ];
