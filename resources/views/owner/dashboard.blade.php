@@ -287,6 +287,101 @@
         .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px; }
         .chart-container { position: relative; height: 220px; }
 
+        .availability-board {
+            background: var(--white);
+            border: 1px solid var(--green-soft);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .availability-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .availability-select {
+            min-width: 260px;
+            padding: 9px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--gray-800);
+        }
+        .month-nav-btn {
+            border: 1px solid var(--green-soft);
+            background: var(--green-white);
+            color: var(--green-dark);
+            border-radius: 8px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .availability-month-label {
+            min-width: 150px;
+            text-align: center;
+            color: var(--green-dark);
+            font-weight: 700;
+        }
+        .availability-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .availability-dow,
+        .availability-day {
+            border-radius: 8px;
+            text-align: center;
+            padding: 9px 4px;
+            font-size: 0.8rem;
+        }
+        .availability-dow {
+            background: var(--green-white);
+            color: var(--green-dark);
+            font-weight: 700;
+        }
+        .availability-day {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .availability-day.empty {
+            background: transparent;
+            border-color: transparent;
+        }
+        .availability-day.blocked {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: #991b1b;
+            font-weight: 700;
+        }
+        .availability-day.today {
+            border-color: var(--green-primary);
+            box-shadow: inset 0 0 0 1px var(--green-primary);
+            font-weight: 700;
+        }
+        .availability-legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            color: var(--gray-600);
+            font-size: 0.8rem;
+        }
+        .availability-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .availability-dot.available { background: #bbf7d0; }
+        .availability-dot.blocked { background: #fecaca; }
+
         .pagination-clean .pagination {
             display: flex;
             list-style: none;
@@ -439,6 +534,29 @@
                     <h4>Messages</h4>
                     <p>Respond to inquiries</p>
                 </a>
+            </div>
+
+            <div class="availability-board animate delay-2">
+                <h3><i class="fas fa-calendar-days icon"></i>Room Availability Calendar</h3>
+                @if(($availabilityAccommodations ?? collect())->isNotEmpty())
+                    <div class="availability-controls">
+                        <select id="ownerAvailabilityAccommodation" class="availability-select" aria-label="Select unit for availability calendar">
+                            @foreach($availabilityAccommodations as $accommodation)
+                                <option value="{{ $accommodation->id }}">{{ $accommodation->name }} ({{ str_replace('-', ' ', $accommodation->type) }})</option>
+                            @endforeach
+                        </select>
+                        <button type="button" class="month-nav-btn" id="ownerAvailabilityPrev" aria-label="Previous month">&lt;</button>
+                        <div class="availability-month-label" id="ownerAvailabilityMonthLabel">Month</div>
+                        <button type="button" class="month-nav-btn" id="ownerAvailabilityNext" aria-label="Next month">&gt;</button>
+                    </div>
+                    <div class="availability-grid" id="ownerAvailabilityGrid"></div>
+                    <div class="availability-legend">
+                        <span><span class="availability-dot available"></span>Available</span>
+                        <span><span class="availability-dot blocked"></span>Booked / Pending</span>
+                    </div>
+                @else
+                    <p style="color: var(--gray-500);">No units yet. Add your first accommodation to start tracking availability.</p>
+                @endif
             </div>
 
             <div class="chart-grid animate delay-3">
@@ -624,6 +742,106 @@
     </div>
 
     <script>
+        (function () {
+            const selectEl = document.getElementById('ownerAvailabilityAccommodation');
+            const gridEl = document.getElementById('ownerAvailabilityGrid');
+            const monthLabelEl = document.getElementById('ownerAvailabilityMonthLabel');
+            const prevBtn = document.getElementById('ownerAvailabilityPrev');
+            const nextBtn = document.getElementById('ownerAvailabilityNext');
+
+            if (!selectEl || !gridEl || !monthLabelEl || !prevBtn || !nextBtn) {
+                return;
+            }
+
+            const eventsByAccommodation = @json($availabilityEventsByAccommodation ?? []);
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let currentMonth = new Date();
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+
+            const toDateKey = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+
+                return `${year}-${month}-${day}`;
+            };
+
+            const blockedSetForAccommodation = (accommodationId) => {
+                const rows = eventsByAccommodation[String(accommodationId)] || eventsByAccommodation[accommodationId] || [];
+                const blocked = new Set();
+
+                rows.forEach((row) => {
+                    if (!row.start || !row.end) {
+                        return;
+                    }
+
+                    const start = new Date(`${row.start}T00:00:00`);
+                    const end = new Date(`${row.end}T00:00:00`);
+
+                    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                        return;
+                    }
+
+                    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+                        blocked.add(toDateKey(cursor));
+                    }
+                });
+
+                return blocked;
+            };
+
+            const renderCalendar = () => {
+                const selectedAccommodationId = selectEl.value;
+                const blockedSet = blockedSetForAccommodation(selectedAccommodationId);
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
+                const monthStart = new Date(year, month, 1);
+                const monthEnd = new Date(year, month + 1, 0);
+                const today = toDateKey(new Date());
+
+                monthLabelEl.textContent = monthStart.toLocaleDateString(undefined, {
+                    month: 'long',
+                    year: 'numeric',
+                });
+
+                const cells = [];
+                dayNames.forEach((name) => {
+                    cells.push(`<div class="availability-dow">${name}</div>`);
+                });
+
+                for (let i = 0; i < monthStart.getDay(); i++) {
+                    cells.push('<div class="availability-day empty"></div>');
+                }
+
+                for (let day = 1; day <= monthEnd.getDate(); day++) {
+                    const date = new Date(year, month, day);
+                    const key = toDateKey(date);
+                    const isBlocked = blockedSet.has(key);
+                    const isToday = key === today;
+
+                    const classes = ['availability-day'];
+                    if (isBlocked) classes.push('blocked');
+                    if (isToday) classes.push('today');
+
+                    cells.push(`<div class="${classes.join(' ')}" title="${isBlocked ? 'Not available' : 'Available'}">${day}</div>`);
+                }
+
+                gridEl.innerHTML = cells.join('');
+            };
+
+            selectEl.addEventListener('change', renderCalendar);
+            prevBtn.addEventListener('click', () => {
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+                renderCalendar();
+            });
+            nextBtn.addEventListener('click', () => {
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+                renderCalendar();
+            });
+
+            renderCalendar();
+        })();
+
         const trendCtx = document.getElementById('ownerTrendChart');
         if (trendCtx) {
             new Chart(trendCtx, {
