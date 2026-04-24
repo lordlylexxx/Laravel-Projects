@@ -404,6 +404,15 @@ Tenant owner/admin update page:
 
 Persistent update logs are stored in `update_logs` (landlord connection), including check status and install acknowledgement timestamps.
 
+### Release Notes
+
+#### v1.0.5-dev
+
+- Added responsive top navigation for central admin, tenant owner/admin, and client pages with a mobile toggle menu.
+- Improved small-screen layout safety across role dashboards (overflow handling, table scrolling, and adaptive spacing).
+- Hardened system update install-flow tests to use signed routes for admin and owner update actions.
+- Added tenant-owner install test coverage and improved reliability under transient landlord DB lock contention.
+
 ## Deployment Notes
 
 - Set APP_ENV=production and APP_DEBUG=false in .env
