@@ -4,7 +4,7 @@
     $tenantDisplayName = $tenant?->name ?: config('app.name', 'ImpaStay');
 @endphp
 
-<nav class="navbar">
+<nav class="navbar" id="appNavbar">
     <a href="/dashboard" class="nav-logo">
         <img src="/SYSTEMLOGO.png" alt="" width="45" height="45">
         <span class="nav-logo-text">
@@ -12,6 +12,11 @@
             <span class="nav-logo-subtitle">Impasugong Accommodations</span>
         </span>
     </a>
+
+    <button type="button" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false"
+            onclick="var n=document.getElementById('appNavbar');var o=n.classList.toggle('nav-open');this.setAttribute('aria-expanded',o?'true':'false');">
+        <i class="fas fa-bars"></i>
+    </button>
 
     <ul class="nav-links">
         <li><a href="/dashboard" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-home"></i> Dashboard</a></li>

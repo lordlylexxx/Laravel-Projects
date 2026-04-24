@@ -107,10 +107,84 @@
     box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
 }
 
+/* Hamburger toggle (hidden on desktop, shown on mobile) */
+.nav-toggle {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--green-soft);
+    color: var(--green-dark);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+}
+.nav-toggle:focus-visible { outline: 2px solid var(--green-primary); outline-offset: 2px; }
+
+@media (max-width: 960px) {
+    .navbar { grid-template-columns: auto 1fr auto; padding: 0 14px; }
+    .nav-toggle { display: inline-flex; order: 2; justify-self: end; }
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 14px;
+        gap: 6px;
+        box-shadow: 0 10px 25px rgba(27, 94, 32, 0.12);
+        border-top: 1px solid var(--green-soft);
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+    }
+    .nav-links a { width: 100%; }
+    #appNavbar.nav-open .nav-links { display: flex; }
+    .nav-actions { display: none; }
+    #appNavbar.nav-open .nav-actions {
+        display: flex;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        padding: 0 14px 14px;
+        background: var(--white);
+        flex-wrap: wrap;
+        gap: 10px;
+        box-shadow: 0 10px 25px rgba(27, 94, 32, 0.12);
+        /* Stack below nav-links which also uses top:100% */
+        transform: translateY(calc(100% + 1px));
+    }
+}
+
 @media (max-width: 768px) {
     .navbar { padding: 0 12px; height: 64px; }
-    .nav-links { display: none; }
     .user-display { max-width: 170px; }
     .nav-brand-title { font-size: 0.7rem; }
     .nav-brand-subtitle { font-size: 0.44rem; }
+}
+
+/* =================== Global responsive helpers (admin pages) =================== */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, video, iframe { max-width: 100%; height: auto; }
+
+/* Fluid table wrapping on mobile — works even when tables are inside .card with overflow:hidden */
+@media (max-width: 768px) {
+    .card { overflow-x: auto; }
+    table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .main-content { padding: 18px 14px !important; }
+    .page-header h1 { font-size: 1.5rem !important; }
+    .page-header-row { align-items: stretch; }
+    .page-header-row > * { width: 100%; }
+    .kpi-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+}
+
+@media (max-width: 480px) {
+    .main-content { padding: 14px 10px !important; }
+    .page-header h1 { font-size: 1.25rem !important; }
+    .btn-admin-primary, .btn-admin-secondary { width: 100%; justify-content: center; }
 }
