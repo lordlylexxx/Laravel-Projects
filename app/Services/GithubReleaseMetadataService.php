@@ -223,13 +223,18 @@ class GithubReleaseMetadataService
 
         $token = (string) config('updates.github_token', '');
 
-        $request = Http::connectTimeout(2)
-            ->timeout(8)
+        $request = Http::connectTimeout(1)
+            ->timeout(3)
             ->withHeaders([
                 'Accept' => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
             ])
             ->withUserAgent((string) config('app.name', 'Laravel').' (Central Update Check)');
+
+        $caBundle = $this->resolveCaBundle();
+        if ($caBundle !== null) {
+            $request = $request->withOptions(['verify' => $caBundle]);
+        }
 
         if ($token !== '') {
             $request = $request->withToken($token);
@@ -294,6 +299,20 @@ class GithubReleaseMetadataService
             'name' => $name,
             'assets' => $assets,
         ];
+    }
+
+    private function resolveCaBundle(): ?string
+    {
+        foreach ([getenv('CURL_CA_BUNDLE'), ini_get('curl.cainfo'), ini_get('openssl.cafile')] as $candidate) {
+            $candidate = (string) $candidate;
+            if ($candidate !== '' && is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $bundled = base_path('storage/certs/cacert.pem');
+
+        return is_file($bundled) ? $bundled : null;
     }
 
     private function normalizeVersion(string $tag): string

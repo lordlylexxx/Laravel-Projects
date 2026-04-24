@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Services\GithubReleaseMetadataService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Request as RequestFacade;
 
 class CentralUpdateService
 {
@@ -16,9 +17,16 @@ class CentralUpdateService
             return null;
         }
 
-        $cacheKey = 'updates.check.' . sha1($baseUrl . '|' . $currentVersion . '|' . (string) config('updates.channel_token', ''));
+        $cacheKey = $this->updateCacheKey($currentVersion);
+        $cacheTtl = (int) config('updates.check_cache_ttl', 300);
 
-        return Cache::remember($cacheKey, now()->addSeconds(45), function () use ($baseUrl, $currentVersion): ?array {
+        $payload = Cache::remember($cacheKey, now()->addSeconds($cacheTtl), function () use ($baseUrl, $currentVersion): ?array {
+            // Avoid self-HTTP on single-threaded dev servers (php artisan serve).
+            // If the configured central URL points to the same app, resolve locally.
+            if ($this->isSelfRequest($baseUrl)) {
+                return $this->localPayload($currentVersion, $baseUrl);
+            }
+
             $params = [
                 'version' => $currentVersion,
             ];
@@ -59,6 +67,92 @@ class CentralUpdateService
                 return $this->githubFallbackPayload($currentVersion, $baseUrl, true);
             }
         });
+
+        if (is_array($payload) && (bool) ($payload['unavailable'] ?? false)) {
+            Cache::forget($cacheKey);
+        }
+
+        return $payload;
+    }
+
+    public function getCachedUpdatePayload(string $currentVersion): ?array
+    {
+        $cacheKey = $this->updateCacheKey($currentVersion);
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached) && (bool) ($cached['unavailable'] ?? false)) {
+            Cache::forget($cacheKey);
+
+            return null;
+        }
+
+        return $cached;
+    }
+
+    private function updateCacheKey(string $currentVersion): string
+    {
+        return 'updates.check.' . sha1(rtrim((string) config('updates.central_base_url', ''), '/'). '|' . $currentVersion . '|' . (string) config('updates.channel_token', ''));
+    }
+
+    private function isSelfRequest(string $baseUrl): bool
+    {
+        $host = parse_url($baseUrl, PHP_URL_HOST);
+        if (! is_string($host) || $host === '') {
+            return false;
+        }
+
+        $host = strtolower($host);
+        $localHosts = ['localhost', '127.0.0.1', '::1'];
+        $centralDomain = strtolower((string) env('CENTRAL_DOMAIN', ''));
+        if ($centralDomain !== '') {
+            $localHosts[] = $centralDomain;
+        }
+
+        try {
+            $currentHost = strtolower((string) RequestFacade::getHost());
+        } catch (\Throwable) {
+            $currentHost = '';
+        }
+
+        return in_array($host, $localHosts, true)
+            || ($currentHost !== '' && $host === $currentHost);
+    }
+
+    private function localPayload(string $currentVersion, string $baseUrl): array
+    {
+        $token = (string) config('updates.channel_token', '');
+        $tokenQuery = $token !== '' ? '?token='.urlencode($token) : '';
+
+        $github = app(GithubReleaseMetadataService::class)->fetchLatestReleaseMetadata();
+
+        if ($github !== null) {
+            $latestVersion = (string) ($github['latest_version'] ?? $currentVersion);
+            $releaseNotes = (string) ($github['release_notes'] ?? '');
+            $publishedAt = $github['published_at'] ?? null;
+            $githubPackageUrl = app(GithubReleaseMetadataService::class)->resolveLatestReleasePackageDownloadUrl();
+            $githubChecksumUrl = app(GithubReleaseMetadataService::class)->resolveLatestReleaseChecksumUrl();
+            $downloadUrl = $githubPackageUrl ?? $baseUrl.'/system-updates/download'.$tokenQuery;
+            $checksumUrl = $githubPackageUrl !== null
+                ? ($githubChecksumUrl ?? '')
+                : $baseUrl.'/system-updates/checksum'.$tokenQuery;
+        } else {
+            $latestVersion = (string) config('updates.latest_version', $currentVersion);
+            $releaseNotes = (string) config('updates.release_notes', '');
+            $publishedAt = config('updates.published_at');
+            $downloadUrl = $baseUrl.'/system-updates/download'.$tokenQuery;
+            $checksumUrl = $baseUrl.'/system-updates/checksum'.$tokenQuery;
+        }
+
+        return [
+            'has_update' => version_compare($latestVersion, $currentVersion, '>'),
+            'current_version' => $currentVersion,
+            'latest_version' => $latestVersion,
+            'release_notes' => $releaseNotes,
+            'published_at' => $publishedAt,
+            'download_url' => $downloadUrl,
+            'checksum_url' => $checksumUrl,
+            'unavailable' => false,
+        ];
     }
 
     private function githubFallbackPayload(string $currentVersion, string $baseUrl, bool $markUnavailable): array

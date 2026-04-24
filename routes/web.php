@@ -157,9 +157,15 @@ $registerCentralRoutes = function () {
             Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
             Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
-            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
-            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])->name('updates.install');
-            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])->name('updates.restore');
+            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])
+                ->name('updates.mark-installed')
+                ->middleware('signed');
+            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])
+                ->name('updates.install')
+                ->middleware('signed');
+            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])
+                ->name('updates.restore')
+                ->middleware('signed');
             Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
@@ -200,9 +206,15 @@ $registerCentralRoutes = function () {
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('/system-updates', [SystemUpdatePageController::class, 'adminIndex'])->name('updates.index');
             Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
-            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])->name('updates.mark-installed');
-            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'adminInstall'])->name('updates.install');
-            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'adminRestore'])->name('updates.restore');
+            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])
+                ->name('updates.mark-installed')
+                ->middleware('signed');
+            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'adminInstall'])
+                ->name('updates.install')
+                ->middleware('signed');
+            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'adminRestore'])
+                ->name('updates.restore')
+                ->middleware('signed');
             Route::post('/system-updates/tickets/report', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/system-updates/tickets/report/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.staff-show');
 

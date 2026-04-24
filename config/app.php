@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Release Version
+    |--------------------------------------------------------------------------
+    |
+    | Tracks the current installed release of the application. Used by the
+    | self-update system to compare against the latest available release.
+    | Kept in sync with APP_RELEASE_VERSION (.env) and config('updates.current_version').
+    |
+    */
+
+    'version' => env('APP_RELEASE_VERSION', '1.0.0'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

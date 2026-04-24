@@ -101,6 +101,41 @@ class DashboardController extends Controller
             'daily-rental' => (int) ($typeCounts['daily-rental'] ?? 0),
         ];
 
+        $availabilityAccommodations = Accommodation::query()
+            ->available()
+            ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id))
+            ->orderBy('name')
+            ->get(['id', 'name', 'type']);
+
+        $availabilityEventsByAccommodation = [];
+        $availabilityAccommodationIds = $availabilityAccommodations->pluck('id')->values()->all();
+
+        if ($availabilityAccommodationIds !== []) {
+            $availabilityBookings = Booking::query()
+                ->when($currentTenant, fn ($query) => $query->forTenant($currentTenant->id))
+                ->whereIn('accommodation_id', $availabilityAccommodationIds)
+                ->whereIn('status', [
+                    Booking::STATUS_PENDING,
+                    Booking::STATUS_CONFIRMED,
+                    Booking::STATUS_PAID,
+                ])
+                ->whereDate('check_out_date', '>=', Carbon::today()->subMonths(1)->toDateString())
+                ->get(['accommodation_id', 'check_in_date', 'check_out_date', 'status']);
+
+            $availabilityEventsByAccommodation = $availabilityBookings
+                ->groupBy('accommodation_id')
+                ->map(function ($rows) {
+                    return $rows->map(function ($row) {
+                        return [
+                            'start' => Carbon::parse($row->check_in_date)->toDateString(),
+                            'end' => Carbon::parse($row->check_out_date)->toDateString(),
+                            'status' => (string) $row->status,
+                        ];
+                    })->values()->all();
+                })
+                ->all();
+        }
+
         return view('client.dashboard', compact(
             'featuredAccommodations',
             'unreadMessagesCount',
@@ -110,7 +145,9 @@ class DashboardController extends Controller
             'nextUpcomingBooking',
             'ytdSpend',
             'categoryCounts',
-            'canManageOwnStays'
+            'canManageOwnStays',
+            'availabilityAccommodations',
+            'availabilityEventsByAccommodation'
         ));
     }
 }

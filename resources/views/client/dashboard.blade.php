@@ -158,6 +158,101 @@
             color: var(--gray-600);
             font-size: 0.9rem;
         }
+
+        .availability-board {
+            background: var(--white);
+            border: 1px solid var(--green-soft);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(27, 94, 32, 0.08);
+            padding: 18px;
+            margin-bottom: 28px;
+        }
+        .availability-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .availability-select {
+            min-width: 240px;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            color: var(--gray-800);
+            background: #fff;
+        }
+        .month-nav-btn {
+            border: 1px solid var(--green-soft);
+            background: var(--green-white);
+            color: var(--green-dark);
+            border-radius: 9px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .availability-month-label {
+            min-width: 150px;
+            text-align: center;
+            color: var(--green-dark);
+            font-weight: 700;
+        }
+        .availability-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .availability-dow,
+        .availability-day {
+            border-radius: 8px;
+            text-align: center;
+            padding: 9px 4px;
+            font-size: 0.82rem;
+        }
+        .availability-dow {
+            background: var(--green-white);
+            color: var(--green-dark);
+            font-weight: 700;
+        }
+        .availability-day {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .availability-day.empty {
+            background: transparent;
+            border-color: transparent;
+        }
+        .availability-day.blocked {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: #991b1b;
+            font-weight: 700;
+        }
+        .availability-day.today {
+            border-color: var(--green-primary);
+            box-shadow: inset 0 0 0 1px var(--green-primary);
+            font-weight: 700;
+        }
+        .availability-legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            color: var(--gray-600);
+            font-size: 0.8rem;
+        }
+        .availability-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .availability-dot.available { background: #bbf7d0; }
+        .availability-dot.blocked { background: #fecaca; }
         
         /* Category Cards */
         .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 50px; }
@@ -187,35 +282,37 @@
         .category-content p { color: var(--green-medium); font-size: 0.9rem; }
         
         /* Property Cards */
-        .properties-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .properties-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
         .property-card {
             background: var(--white);
-            border-radius: 20px;
+            border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 8px 30px rgba(27, 94, 32, 0.1);
+            box-shadow: 0 8px 24px rgba(27, 94, 32, 0.11);
             transition: all 0.3s;
             border: 1px solid var(--green-soft);
+            max-width: 560px;
+            margin: 0 auto;
         }
-        .property-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(27, 94, 32, 0.2); }
+        .property-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(27, 94, 32, 0.2); }
         .property-img-wrapper { position: relative; }
-        .property-img { width: 100%; height: 220px; object-fit: cover; }
+        .property-img { width: 100%; height: 180px; object-fit: cover; }
         .property-type-badge {
             position: absolute;
             top: 15px;
             left: 15px;
             background: linear-gradient(135deg, var(--green-dark), var(--green-primary));
             color: var(--white);
-            padding: 6px 15px;
+            padding: 6px 14px;
             border-radius: 50px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
         }
         .property-favorite {
             position: absolute;
             top: 15px;
             right: 15px;
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             background: var(--white);
             border-radius: 50%;
             display: flex;
@@ -224,32 +321,32 @@
             cursor: pointer;
             transition: all 0.3s;
             border: none;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--gray-400);
         }
         .property-favorite:hover { background: var(--green-pale); color: var(--red-500); transform: scale(1.1); }
-        .property-content { padding: 20px; }
-        .property-price { font-size: 1.4rem; font-weight: 700; color: var(--green-primary); margin-bottom: 8px; }
-        .property-price span { font-size: 0.85rem; font-weight: 400; color: var(--green-medium); }
-        .property-title { font-size: 1.1rem; color: var(--green-dark); margin-bottom: 8px; font-weight: 600; }
-        .property-location { display: flex; align-items: center; gap: 6px; color: var(--green-medium); font-size: 0.9rem; margin-bottom: 15px; }
-        .property-features { display: flex; gap: 15px; padding-top: 15px; border-top: 1px solid var(--green-soft); }
-        .feature { display: flex; align-items: center; gap: 6px; color: var(--green-primary); font-size: 0.85rem; }
+        .property-content { padding: 16px; }
+        .property-price { font-size: 1.2rem; font-weight: 700; color: var(--green-primary); margin-bottom: 6px; }
+        .property-price span { font-size: 0.8rem; font-weight: 400; color: var(--green-medium); }
+        .property-title { font-size: 1rem; color: var(--green-dark); margin-bottom: 6px; font-weight: 600; }
+        .property-location { display: flex; align-items: center; gap: 6px; color: var(--green-medium); font-size: 0.85rem; margin-bottom: 12px; }
+        .property-features { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--green-soft); }
+        .feature { display: flex; align-items: center; gap: 6px; color: var(--green-primary); font-size: 0.82rem; }
         .property-rating { display: flex; align-items: center; gap: 5px; margin-top: 10px; }
         .stars { color: var(--amber-500); }
-        .rating-count { color: var(--green-medium); font-size: 0.85rem; }
+        .rating-count { color: var(--green-medium); font-size: 0.82rem; }
         .book-btn {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
             color: var(--white);
             border: none;
             border-radius: 10px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 15px;
+            margin-top: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -358,87 +455,30 @@
             @endif
 
             <div class="section-header">
-                <h2><i class="fas fa-th-large"></i>Browse by Type</h2>
-                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
+                <h2><i class="fas fa-calendar-days"></i>Room Availability Calendar</h2>
             </div>
-            
-            <div class="categories">
-                <div class="category-card animate delay-1">
-                    <img src="/COMMUNAL.jpg" alt="Traveller-Inns" class="category-img">
-                    <div class="category-content">
-                        <span class="category-badge"><i class="fas fa-bed"></i> Traditional</span>
-                        <h3>Traveller-Inns</h3>
-                        <p>{{ $categoryCounts['traveller-inn'] ?? 0 }} listings available for booking</p>
+            <div class="availability-board animate delay-2">
+                @if(($availabilityAccommodations ?? collect())->isNotEmpty())
+                    <div class="availability-controls">
+                        <select id="clientAvailabilityAccommodation" class="availability-select" aria-label="Select room for availability calendar">
+                            @foreach($availabilityAccommodations as $accommodation)
+                                <option value="{{ $accommodation->id }}">{{ $accommodation->name }} ({{ str_replace('-', ' ', $accommodation->type) }})</option>
+                            @endforeach
+                        </select>
+                        <button type="button" class="month-nav-btn" id="clientAvailabilityPrev" aria-label="Previous month">&lt;</button>
+                        <div class="availability-month-label" id="clientAvailabilityMonthLabel">Month</div>
+                        <button type="button" class="month-nav-btn" id="clientAvailabilityNext" aria-label="Next month">&gt;</button>
                     </div>
-                </div>
-                
-                <div class="category-card animate delay-2">
-                    <img src="/1.jpg" alt="Airbnb" class="category-img">
-                    <div class="category-content">
-                        <span class="category-badge"><i class="fas fa-home"></i> Unique Stays</span>
-                        <h3>Airbnb Rentals</h3>
-                        <p>{{ $categoryCounts['airbnb'] ?? 0 }} listings available for booking</p>
+                    <div class="availability-grid" id="clientAvailabilityGrid"></div>
+                    <div class="availability-legend">
+                        <span><span class="availability-dot available"></span>Available</span>
+                        <span><span class="availability-dot blocked"></span>Booked / Pending</span>
                     </div>
-                </div>
-                
-                <div class="category-card animate delay-3">
-                    <img src="/2.jpg" alt="Daily Rentals" class="category-img">
-                    <div class="category-content">
-                        <span class="category-badge"><i class="fas fa-calendar"></i> Flexible</span>
-                        <h3>Daily Rentals</h3>
-                        <p>{{ $categoryCounts['daily-rental'] ?? 0 }} listings available for booking</p>
-                    </div>
-                </div>
+                @else
+                    <p class="snapshot-meta">No rooms are currently listed for this tenant.</p>
+                @endif
             </div>
-        </section>
-        
-        <!-- Featured Properties -->
-        <section class="section">
-            <div class="section-header">
-                <h2><i class="fas fa-star"></i>Featured Accommodations</h2>
-                <a href="{{ route('accommodations.index') }}" class="view-all"><i class="fas fa-arrow-right"></i> View All</a>
-            </div>
-            
-            <div class="properties-grid">
-                @forelse($featuredAccommodations as $index => $accommodation)
-                    <div class="property-card animate delay-{{ ($index % 3) + 1 }}">
-                        <div class="property-img-wrapper">
-                            <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-img">
-                            <span class="property-type-badge">
-                                @if($accommodation->type === 'traveller-inn')
-                                    <i class="fas fa-bed"></i>
-                                @elseif($accommodation->type === 'airbnb')
-                                    <i class="fas fa-home"></i>
-                                @else
-                                    <i class="fas fa-calendar"></i>
-                                @endif
-                                {{ $accommodation->type_label }}
-                            </span>
-                            <button type="button" class="property-favorite"><i class="far fa-heart"></i></button>
-                        </div>
-                        <div class="property-content">
-                            <div class="property-price">{{ $accommodation->formatted_price }} <span>/ night</span></div>
-                            <h3 class="property-title">{{ $accommodation->name }}</h3>
-                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> {{ $accommodation->barangay ?: $accommodation->address }}</div>
-                            <div class="property-features">
-                                <span class="feature"><i class="fas fa-bed"></i> {{ $accommodation->bedrooms }} Beds</span>
-                                <span class="feature"><i class="fas fa-bath"></i> {{ $accommodation->bathrooms }} Baths</span>
-                                <span class="feature"><i class="fas fa-users"></i> {{ $accommodation->max_guests }} Guests</span>
-                            </div>
-                            <div class="property-rating">
-                                <span class="stars"><i class="fas fa-star"></i></span>
-                                <span class="rating-count">{{ number_format((float) $accommodation->rating, 1) }} ({{ $accommodation->total_reviews }} reviews)</span>
-                            </div>
-                            <a href="{{ route('accommodations.show', $accommodation) }}" class="book-btn" style="text-decoration: none;"><i class="fas fa-ticket-alt"></i> Book Now</a>
-                        </div>
-                    </div>
-                @empty
-                    <div class="snapshot-card" style="grid-column: 1 / -1;">
-                        <h4><i class="fas fa-info-circle"></i>No featured accommodations yet</h4>
-                        <p class="snapshot-meta">New listings will appear here once tenant properties are published and verified.</p>
-                    </div>
-                @endforelse
-            </div>
+
         </section>
         
         <!-- Footer -->
@@ -448,6 +488,106 @@
     </div>
     
     <script>
+        (function () {
+            const selectEl = document.getElementById('clientAvailabilityAccommodation');
+            const gridEl = document.getElementById('clientAvailabilityGrid');
+            const monthLabelEl = document.getElementById('clientAvailabilityMonthLabel');
+            const prevBtn = document.getElementById('clientAvailabilityPrev');
+            const nextBtn = document.getElementById('clientAvailabilityNext');
+
+            if (!selectEl || !gridEl || !monthLabelEl || !prevBtn || !nextBtn) {
+                return;
+            }
+
+            const eventsByAccommodation = @json($availabilityEventsByAccommodation ?? []);
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let currentMonth = new Date();
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+
+            const toDateKey = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+
+                return `${year}-${month}-${day}`;
+            };
+
+            const blockedSetForAccommodation = (accommodationId) => {
+                const rows = eventsByAccommodation[String(accommodationId)] || eventsByAccommodation[accommodationId] || [];
+                const blocked = new Set();
+
+                rows.forEach((row) => {
+                    if (!row.start || !row.end) {
+                        return;
+                    }
+
+                    const start = new Date(`${row.start}T00:00:00`);
+                    const end = new Date(`${row.end}T00:00:00`);
+
+                    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                        return;
+                    }
+
+                    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+                        blocked.add(toDateKey(cursor));
+                    }
+                });
+
+                return blocked;
+            };
+
+            const renderCalendar = () => {
+                const selectedAccommodationId = selectEl.value;
+                const blockedSet = blockedSetForAccommodation(selectedAccommodationId);
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
+                const monthStart = new Date(year, month, 1);
+                const monthEnd = new Date(year, month + 1, 0);
+                const today = toDateKey(new Date());
+
+                monthLabelEl.textContent = monthStart.toLocaleDateString(undefined, {
+                    month: 'long',
+                    year: 'numeric',
+                });
+
+                const cells = [];
+                dayNames.forEach((name) => {
+                    cells.push(`<div class="availability-dow">${name}</div>`);
+                });
+
+                for (let i = 0; i < monthStart.getDay(); i++) {
+                    cells.push('<div class="availability-day empty"></div>');
+                }
+
+                for (let day = 1; day <= monthEnd.getDate(); day++) {
+                    const date = new Date(year, month, day);
+                    const key = toDateKey(date);
+                    const isBlocked = blockedSet.has(key);
+                    const isToday = key === today;
+
+                    const classes = ['availability-day'];
+                    if (isBlocked) classes.push('blocked');
+                    if (isToday) classes.push('today');
+
+                    cells.push(`<div class="${classes.join(' ')}" title="${isBlocked ? 'Not available' : 'Available'}">${day}</div>`);
+                }
+
+                gridEl.innerHTML = cells.join('');
+            };
+
+            selectEl.addEventListener('change', renderCalendar);
+            prevBtn.addEventListener('click', () => {
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+                renderCalendar();
+            });
+            nextBtn.addEventListener('click', () => {
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+                renderCalendar();
+            });
+
+            renderCalendar();
+        })();
+
         // Simple favorite toggle
         document.querySelectorAll('.property-favorite').forEach(btn => {
             btn.addEventListener('click', function() {

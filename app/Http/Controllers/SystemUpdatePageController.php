@@ -12,8 +12,10 @@ use Database\Seeders\RbacCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -72,7 +74,14 @@ class SystemUpdatePageController extends Controller
         $currentTenant = Tenant::current();
         $tenantId = $currentTenant?->id ?? $request->user()?->tenant_id;
         $currentVersion = (string) config('updates.current_version', '1.0.0');
-        $payload = $updates->checkForUpdates($currentVersion) ?? [];
+        $payload = $updates->getCachedUpdatePayload($currentVersion) ?? [];
+
+        // Keep the page fast: refresh update metadata after response if cache is cold.
+        if ($payload === []) {
+            app()->terminating(function () use ($updates, $currentVersion): void {
+                $updates->checkForUpdates($currentVersion);
+            });
+        }
 
         $latestVersion = (string) ($payload['latest_version'] ?? config('updates.latest_version', $currentVersion));
         $hasUpdate = (bool) ($payload['has_update'] ?? version_compare($latestVersion, $currentVersion, '>'));
@@ -91,14 +100,7 @@ class SystemUpdatePageController extends Controller
             ? 'unavailable'
             : ($hasUpdate ? 'update_available' : 'up_to_date');
 
-        $requestUser = $request->user();
-        $resolvedLandlordUserId = null;
-        if ($requestUser?->email) {
-            $resolvedLandlordUserId = DB::connection('landlord')
-                ->table('users')
-                ->where('email', $requestUser->email)
-                ->value('id');
-        }
+        $resolvedLandlordUserId = $this->resolveLandlordUserId($request);
         $log = UpdateLog::create([
             'tenant_id' => $tenantId,
             'user_id' => $resolvedLandlordUserId,
@@ -124,6 +126,16 @@ class SystemUpdatePageController extends Controller
         $installStatusRoute = ($navType === 'admin' && ! $isTenantContext)
             ? '/admin/system-updates/status'
             : '/owner/system-updates/status';
+
+        $installRoute = $navType === 'admin'
+            ? URL::signedRoute('admin.updates.install')
+            : URL::signedRoute('owner.updates.install');
+        $restoreRoute = $navType === 'admin'
+            ? URL::signedRoute('admin.updates.restore')
+            : URL::signedRoute('owner.updates.restore');
+        $markInstalledRoute = $navType === 'admin'
+            ? URL::signedRoute('admin.updates.mark-installed')
+            : URL::signedRoute('owner.updates.mark-installed');
 
         if ($navType === 'admin' && $isTenantContext) {
             $ownerUpdateTicketStoreRoute = '/admin/system-updates/tickets/report';
@@ -169,15 +181,9 @@ class SystemUpdatePageController extends Controller
             'centralBaseUrl' => (string) config('updates.central_base_url', ''),
             'history' => $history,
             'lastCheckLogId' => $log->id,
-            'markInstalledRoute' => ($navType === 'admin' && ! $isTenantContext)
-                ? '/admin/system-updates/mark-installed'
-                : '/owner/system-updates/mark-installed',
-            'installRoute' => ($navType === 'admin' && ! $isTenantContext)
-                ? '/admin/system-updates/install'
-                : '/owner/system-updates/install',
-            'restoreRoute' => ($navType === 'admin' && ! $isTenantContext)
-                ? '/admin/system-updates/restore'
-                : '/owner/system-updates/restore',
+            'markInstalledRoute' => $markInstalledRoute,
+            'installRoute' => $installRoute,
+            'restoreRoute' => $restoreRoute,
             'installStatusRoute' => $installStatusRoute,
             'updateTickets' => $updateTickets,
             'ownerUpdateTicketStoreRoute' => $ownerUpdateTicketStoreRoute,
@@ -386,10 +392,13 @@ class SystemUpdatePageController extends Controller
             return null;
         }
 
-        $resolvedLandlordUserId = DB::connection('landlord')
-            ->table('users')
-            ->where('email', $requestUser->email)
-            ->value('id');
+        $cacheKey = 'updates.landlord_user_id.'.sha1(strtolower((string) $requestUser->email));
+        $resolvedLandlordUserId = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($requestUser) {
+            return DB::connection('landlord')
+                ->table('users')
+                ->where('email', $requestUser->email)
+                ->value('id');
+        });
 
         return $resolvedLandlordUserId ? (int) $resolvedLandlordUserId : null;
     }

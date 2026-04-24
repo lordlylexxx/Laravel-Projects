@@ -38,6 +38,8 @@ return [
 
     'github_cache_ttl' => (int) env('CENTRAL_GITHUB_CACHE_TTL', 300),
 
+    'check_cache_ttl' => (int) env('CENTRAL_UPDATE_CHECK_CACHE_TTL', 300),
+
     'regenerate_app_key' => (bool) env('UPDATE_REGENERATE_APP_KEY', false),
 
     'require_download_checksum' => (bool) env('UPDATE_REQUIRE_DOWNLOAD_CHECKSUM', false),

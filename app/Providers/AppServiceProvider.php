@@ -11,6 +11,7 @@ use App\Policies\BookingPolicy;
 use App\Services\CentralUpdateService;
 use App\Services\Messaging\CentralSupportInboxService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -30,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->ensureCaBundleConfigured();
+
         Gate::policy(Accommodation::class, AccommodationPolicy::class);
         Gate::policy(Booking::class, BookingPolicy::class);
 
@@ -124,5 +127,63 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('unreadMessagesCount', $unreadMessagesCount);
         });
+
+        Blade::directive('fileSize', function ($expression) {
+            return "<?php echo e(\\App\\Providers\\AppServiceProvider::formatFileSize($expression)); ?>";
+        });
+    }
+
+    /**
+     * Ensure PHP/Guzzle can verify SSL certificates even when php.ini has no
+     * openssl.cafile / curl.cainfo set (common on Windows dev setups).
+     * Falls back to a bundled cacert.pem in storage/certs.
+     */
+    private function ensureCaBundleConfigured(): void
+    {
+        $existing = (string) (getenv('CURL_CA_BUNDLE') ?: '');
+        $iniCurl = (string) ini_get('curl.cainfo');
+        $iniOpenssl = (string) ini_get('openssl.cafile');
+
+        if ($existing !== '' || $iniCurl !== '' || $iniOpenssl !== '') {
+            return;
+        }
+
+        $bundlePath = base_path('storage/certs/cacert.pem');
+
+        if (! is_file($bundlePath)) {
+            return;
+        }
+
+        putenv('CURL_CA_BUNDLE='.$bundlePath);
+        $_ENV['CURL_CA_BUNDLE'] = $bundlePath;
+        $_SERVER['CURL_CA_BUNDLE'] = $bundlePath;
+    }
+
+    public static function formatFileSize(mixed $size): string
+    {
+        if (! is_numeric($size)) {
+            return (string) $size;
+        }
+
+        try {
+            return \Illuminate\Support\Number::fileSize($size);
+        } catch (\RuntimeException $exception) {
+            return self::formatBytes((float) $size);
+        }
+    }
+
+    private static function formatBytes(float $bytes, int $decimals = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max(0, $bytes);
+
+        if ($bytes === 0.0) {
+            return '0 B';
+        }
+
+        $power = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $bytes /= 1024 ** $power;
+
+        return number_format($bytes, $decimals) . ' ' . $units[$power];
     }
 }

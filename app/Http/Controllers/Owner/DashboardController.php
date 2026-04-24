@@ -129,6 +129,51 @@ class DashboardController extends Controller
         [$trendLabels, $revenueTrend, $bookingsTrend] = $this->buildMonthlyTrendData($dashboardTenant?->id, $ownerId);
         $bookingStatusBreakdown = $this->buildBookingStatusBreakdown($dashboardTenant?->id, $ownerId);
 
+        if ($isTenantAdmin && $currentTenant) {
+            $availabilityAccommodations = Accommodation::query()
+                ->forTenant((int) $currentTenant->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type']);
+        } else {
+            $availabilityAccommodations = $user->accommodations()
+                ->orderBy('name')
+                ->get(['id', 'name', 'type']);
+        }
+
+        $availabilityEventsByAccommodation = [];
+        $availabilityAccommodationIds = $availabilityAccommodations->pluck('id')->values()->all();
+
+        if ($availabilityAccommodationIds !== []) {
+            $availabilityBookingsQuery = Booking::query()
+                ->whereIn('accommodation_id', $availabilityAccommodationIds)
+                ->whereIn('status', [
+                    Booking::STATUS_PENDING,
+                    Booking::STATUS_CONFIRMED,
+                    Booking::STATUS_PAID,
+                ])
+                ->whereDate('check_out_date', '>=', Carbon::today()->subMonths(1)->toDateString());
+
+            if ($isTenantAdmin && $currentTenant) {
+                $availabilityBookingsQuery->forTenant((int) $currentTenant->id);
+            } else {
+                $availabilityBookingsQuery->forOwner($user->id);
+            }
+
+            $availabilityEventsByAccommodation = $availabilityBookingsQuery
+                ->get(['accommodation_id', 'check_in_date', 'check_out_date', 'status'])
+                ->groupBy('accommodation_id')
+                ->map(function ($rows) {
+                    return $rows->map(function ($row) {
+                        return [
+                            'start' => Carbon::parse($row->check_in_date)->toDateString(),
+                            'end' => Carbon::parse($row->check_out_date)->toDateString(),
+                            'status' => (string) $row->status,
+                        ];
+                    })->values()->all();
+                })
+                ->all();
+        }
+
         return view('owner.dashboard', compact(
             'stats',
             'properties',
@@ -138,7 +183,9 @@ class DashboardController extends Controller
             'trendLabels',
             'revenueTrend',
             'bookingsTrend',
-            'bookingStatusBreakdown'
+            'bookingStatusBreakdown',
+            'availabilityAccommodations',
+            'availabilityEventsByAccommodation'
         ));
     }
 

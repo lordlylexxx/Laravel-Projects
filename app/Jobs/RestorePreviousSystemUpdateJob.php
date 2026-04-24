@@ -18,6 +18,10 @@ class RestorePreviousSystemUpdateJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public int $timeout = 1800;
+
+    public int $tries = 1;
+
     public function __construct(
         public int $updateLogId,
         public string $backupPath,
@@ -46,5 +50,21 @@ class RestorePreviousSystemUpdateJob implements ShouldQueue
 
             throw $exception;
         }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $log = UpdateLog::query()->find($this->updateLogId);
+
+        if (! $log) {
+            return;
+        }
+
+        $log->update([
+            'channel_status' => 'failed',
+            'status_message' => 'Restore job did not complete.',
+            'install_finished_at' => now(),
+            'install_error' => $exception?->getMessage() ?? 'Queue worker terminated before the restore completed.',
+        ]);
     }
 }

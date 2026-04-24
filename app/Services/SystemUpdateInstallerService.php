@@ -63,6 +63,9 @@ class SystemUpdateInstallerService
             $this->updateProgress($log, 'dependencies', 70, 'Installing composer and frontend dependencies...');
             $this->runPostDeployCommands($log, $backupDir, true);
 
+            $this->updateProgress($log, 'finalizing', 95, 'Finalizing release version...');
+            $this->bumpInstalledVersion((string) $log->latest_version);
+
             $log->update([
                 'channel_status' => 'installed',
                 'status_message' => 'Update installed successfully.',
@@ -107,6 +110,7 @@ class SystemUpdateInstallerService
             $this->updateProgress($log, 'restoring_dependencies', 80, 'Reinstalling dependencies after restore...');
             $this->runPostDeployCommands($log, null, false);
             $this->restoreAppKeyIfAvailable($log);
+            $this->bumpInstalledVersion((string) ($log->latest_version ?: $log->current_version));
 
             $log->update([
                 'channel_status' => 'restored',
@@ -509,6 +513,35 @@ class SystemUpdateInstallerService
         }
 
         File::put($envPath, $contents);
+    }
+
+    private function bumpInstalledVersion(string $newVersion): void
+    {
+        $newVersion = trim($newVersion);
+
+        if ($newVersion === '' || ! preg_match('/^[A-Za-z0-9._-]+$/', $newVersion)) {
+            return;
+        }
+
+        $envPath = base_path('.env');
+
+        if (! File::exists($envPath)) {
+            return;
+        }
+
+        $contents = File::get($envPath);
+        $pattern = '/^APP_RELEASE_VERSION=.*$/m';
+        $line = 'APP_RELEASE_VERSION='.$newVersion;
+
+        if (preg_match($pattern, $contents) === 1) {
+            $contents = preg_replace($pattern, $line, $contents) ?? $contents;
+        } else {
+            $contents = rtrim($contents).PHP_EOL.$line.PHP_EOL;
+        }
+
+        File::put($envPath, $contents);
+
+        $this->runArtisanCommand(['config:clear']);
     }
 
     private function assertTrustedDownloadUrl(string $url): void

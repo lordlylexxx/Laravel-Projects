@@ -193,10 +193,10 @@
                                         <span class="tabular-nums text-sm font-medium text-gray-800">{{ is_null($dbUsed) ? '—' : number_format((float) $dbUsed, 2) }}</span>
                                     </div>
                                     <div class="w-36 shrink-0">
-                                        <p class="text-sm font-semibold text-gray-900">{{ \Illuminate\Support\Number::fileSize($bwUsed) }}</p>
+                                        <p class="text-sm font-semibold text-gray-900">@fileSize($bwUsed)</p>
                                         <p class="text-[10px] text-gray-500">
                                             @if($bwQuota)
-                                                of {{ \Illuminate\Support\Number::fileSize((int) $bwQuota) }}
+                                                of @fileSize((int) $bwQuota)
                                             @else
                                                 no cap
                                             @endif
