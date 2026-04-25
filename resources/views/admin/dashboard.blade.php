@@ -374,7 +374,9 @@
 
                 @if(empty($demographics['columns_ready']))
                     <div style="background:#FFFBEB; border:1px solid #FCD34D; color:#92400E; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
-                        Demographic columns are not available yet in `bookings`. Run migrations first to populate this section.
+                        Demographic columns are not on tenant <code>bookings</code> tables yet. Bookings live in each tenant database; plain <code>php artisan migrate</code> only touches the landlord DB. Run tenant schema migrations:
+                        <code style="display:block; margin-top:8px; padding:8px 10px; background:#fff; border-radius:6px; font-size:0.82rem;">php artisan tenants:migrate</code>
+                        One tenant: <code style="font-size:0.82rem;">php artisan tenants:migrate YOUR_TENANT_ID</code>
                     </div>
                 @endif
 

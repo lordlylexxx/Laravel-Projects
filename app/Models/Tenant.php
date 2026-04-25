@@ -58,6 +58,7 @@ class Tenant extends BaseTenant
         'primary_color',
         'accent_color',
         'logo_path',
+        'gcash_qr_path',
         'locale',
         'feature_bookings',
         'feature_messaging',
@@ -440,6 +441,11 @@ class Tenant extends BaseTenant
     public function getLogoUrl(): ?string
     {
         return $this->logo_path ? asset('storage/'.$this->logo_path) : null;
+    }
+
+    public function getGcashQrUrl(): ?string
+    {
+        return $this->gcash_qr_path ? asset('storage/'.$this->gcash_qr_path) : null;
     }
 
     /**

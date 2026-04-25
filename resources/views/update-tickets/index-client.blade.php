@@ -9,9 +9,9 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-soft: #C8E6C9;
+            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047; --green-soft: #C8E6C9;
             --green-white: #E8F5E9; --cream: #F1F8E9; --white: #FFFFFF;
-            --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-700: #374151; --gray-800: #1F2937;
+            --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
         }
         @include('client.partials.top-navbar-styles')
         body {

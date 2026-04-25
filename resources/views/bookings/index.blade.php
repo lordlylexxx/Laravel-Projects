@@ -130,6 +130,10 @@
         .status-badge.cancelled { background: #FFEBEE; color: #C62828; }
         .status-badge.completed { background: #E3F2FD; color: #1565C0; }
         .status-badge.paid { background: #E8F5E9; color: #2E7D32; }
+        .payment-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; }
+        .payment-badge.neutral { background: #F3F4F6; color: #374151; }
+        .payment-badge.pending-review { background: #FFF7ED; color: #9A3412; }
+        .payment-badge.paid { background: #ECFDF5; color: #166534; }
         
         /* Action Buttons */
         .action-btns { display: flex; gap: 10px; }
@@ -319,6 +323,33 @@
             <h1>My Bookings</h1>
             <p>View and manage your accommodation bookings</p>
         </div>
+
+        @if($isOwner)
+            <div style="background: var(--white); border: 1px solid var(--green-soft); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);">
+                <h3 style="color: var(--green-dark); margin-bottom: 10px; font-size: 1rem;">GCash QR Code</h3>
+                @if(session('success'))
+                    <p style="font-size:0.85rem;color:var(--green-dark);margin-bottom:8px;">{{ session('success') }}</p>
+                @endif
+                @if($currentTenant?->getGcashQrUrl())
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                        <img src="{{ $currentTenant->getGcashQrUrl() }}" alt="GCash QR" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--gray-200);">
+                        <form method="POST" action="/owner/bookings/payment-settings/gcash-qr">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Remove QR</button>
+                        </form>
+                    </div>
+                @endif
+                <form method="POST" action="/owner/bookings/payment-settings/gcash-qr" enctype="multipart/form-data" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    @csrf
+                    <input type="file" name="gcash_qr" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                    <button type="submit" class="btn btn-primary">{{ $currentTenant?->getGcashQrUrl() ? 'Replace' : 'Upload' }} GCash QR Photo</button>
+                </form>
+                @error('gcash_qr')
+                    <p style="font-size:0.82rem;color:#C62828;margin-top:8px;">{{ $message }}</p>
+                @enderror
+            </div>
+        @endif
         
         <!-- Filter Tabs -->
         <div class="filter-tabs">
@@ -369,12 +400,39 @@
                                         <div class="info-label">Total</div>
                                         <div class="info-value">₱{{ number_format($booking->total_price, 2) }}</div>
                                     </div>
+                                    @if($isOwner)
+                                        <div class="info-item">
+                                            <div class="info-label">Proof Status</div>
+                                            <div class="info-value">
+                                                @if($booking->gcash_payment_proof_path)
+                                                    Proof Submitted (Needs Review)
+                                                @else
+                                                    No Proof Yet
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
+
+                                @if($isOwner && $booking->gcash_payment_proof_url)
+                                    <div style="margin-top:8px;">
+                                        <a href="{{ $booking->gcash_payment_proof_url }}" target="_blank" class="btn btn-outline" style="padding:8px 12px; font-size:0.8rem;">
+                                            View Client Proof
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         
                         <div class="booking-footer">
-                            <span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span>
+                            @php
+                                $paymentUi = $booking->payment_ui_state;
+                                $paymentToneClass = $paymentUi['tone'] === 'pending_review' ? 'pending-review' : $paymentUi['tone'];
+                            @endphp
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span>
+                                <span class="payment-badge {{ $paymentToneClass }}">{{ $paymentUi['label'] }}</span>
+                            </div>
                             @if($isOwner)
                                 <button type="button" class="toggle-actions-btn" data-target="owner-actions-{{ $booking->id }}" aria-expanded="false">
                                     Show Actions

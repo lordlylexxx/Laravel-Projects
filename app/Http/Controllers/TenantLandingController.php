@@ -6,6 +6,7 @@ use App\Models\Accommodation;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class TenantLandingController extends Controller
@@ -83,9 +84,28 @@ class TenantLandingController extends Controller
             'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'accent_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'hero_image_url' => ['nullable', 'url', 'max:500'],
+            'gcash_qr' => ['nullable', 'image', 'max:5120', 'mimes:jpeg,jpg,png,webp'],
+            'remove_gcash_qr' => ['nullable', 'boolean'],
         ]);
 
+        $removeGcashQr = (bool) ($validated['remove_gcash_qr'] ?? false);
+        unset($validated['gcash_qr'], $validated['remove_gcash_qr']);
+
+        if ($removeGcashQr && $tenant->gcash_qr_path) {
+            Storage::disk('public')->delete($tenant->gcash_qr_path);
+            $tenant->gcash_qr_path = null;
+        }
+
+        if ($request->hasFile('gcash_qr')) {
+            if ($tenant->gcash_qr_path) {
+                Storage::disk('public')->delete($tenant->gcash_qr_path);
+            }
+
+            $tenant->gcash_qr_path = $request->file('gcash_qr')->store('tenant-gcash-qr', 'public');
+        }
+
         $tenant->updateLandingSettings($validated);
+        $tenant->save();
 
         return back()->with('success', 'Landing page settings updated successfully.');
     }

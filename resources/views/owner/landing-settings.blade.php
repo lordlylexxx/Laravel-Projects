@@ -136,7 +136,7 @@
                 <div class="ok">{{ session('success') }}</div>
             @endif
 
-            <form method="POST" action="{{ route('owner.landing.update') }}">
+            <form method="POST" action="{{ route('owner.landing.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -207,6 +207,24 @@
                     <label>Hero Image URL (optional)</label>
                     <input type="url" name="hero_image_url" value="{{ old('hero_image_url', $settings['hero_image_url']) }}">
                     @error('hero_image_url') <div class="error">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="field" style="margin-top:14px; padding-top:14px; border-top:1px solid #e5e7eb;">
+                    <label>GCash QR Code (optional)</label>
+                    @if($tenant->getGcashQrUrl())
+                        <div style="margin-bottom:10px;">
+                            <img src="{{ $tenant->getGcashQrUrl() }}" alt="GCash QR" style="max-width:220px; border:1px solid #d1d5db; border-radius:10px; padding:6px; background:#fff;">
+                        </div>
+                    @endif
+                    <input type="file" name="gcash_qr" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                    @error('gcash_qr') <div class="error">{{ $message }}</div> @enderror
+
+                    @if($tenant->gcash_qr_path)
+                        <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-weight:600; font-size:0.85rem;">
+                            <input type="checkbox" name="remove_gcash_qr" value="1" style="width:auto;">
+                            Remove current GCash QR
+                        </label>
+                    @endif
                 </div>
 
                 <div class="field">

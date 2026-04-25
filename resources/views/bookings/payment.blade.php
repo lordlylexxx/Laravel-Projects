@@ -87,44 +87,12 @@
 
         .notice {
             margin-top: 14px;
-            background: #FEF3C7;
-            border: 1px solid #FDE68A;
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
             border-radius: 10px;
             padding: 10px 12px;
-            color: #92400E;
+            color: #1E40AF;
             font-size: 0.85rem;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 7px;
-            font-size: 0.88rem;
-            color: var(--gray-700);
-            font-weight: 600;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 11px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--gray-200);
-            font-size: 0.95rem;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--green-primary);
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.14);
-        }
-
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
         }
 
         .error-list {
@@ -196,6 +164,11 @@
     </style>
 </head>
 <body>
+    @php
+        $stripeConfigured = filled(config('services.stripe.secret'));
+        $currentTenant = \App\Models\Tenant::current();
+        $gcashQrUrl = $currentTenant?->getGcashQrUrl();
+    @endphp
     <div class="wrapper">
         <div class="header">
             <h1><i class="fas fa-credit-card"></i> Checkout Payment</h1>
@@ -227,13 +200,15 @@
                     <strong>{{ ucfirst($booking->status) }}</strong>
                 </div>
 
+                @if($booking->status === 'pending')
+                    <div class="notice">
+                        Client payment must be submitted first. Tenant admin reviews the payment and then approves the booking.
+                    </div>
+                @endif
+
                 <div class="summary-total">
                     <span>Total Amount</span>
                     <span>₱{{ number_format((float) $booking->total_price, 2) }}</span>
-                </div>
-
-                <div class="notice">
-                    Mock payment mode is enabled for MVP. No real payment gateway is charged in this flow.
                 </div>
 
                 @if($booking->status === 'paid' || $booking->status === 'completed')
@@ -250,6 +225,12 @@
             <section class="card">
                 <h2><i class="fas fa-lock"></i> Payment Details</h2>
 
+                @if(session('error'))
+                    <div class="error-list" style="margin-bottom:12px;">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
                 @if($errors->any())
                     <div class="error-list">
                         <ul>
@@ -263,36 +244,49 @@
                 <form action="{{ route('bookings.payment.confirm', $booking) }}" method="POST">
                     @csrf
 
-                    <div class="form-group">
-                        <label for="card_name">Cardholder Name</label>
-                        <input id="card_name" type="text" name="card_name" value="{{ old('card_name', auth()->user()->name ?? '') }}" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="card_number">Card Number</label>
-                        <input id="card_number" type="text" name="card_number" value="{{ old('card_number') }}" placeholder="4242 4242 4242 4242" required>
-                    </div>
-
-                    <div class="row-2">
-                        <div class="form-group">
-                            <label for="expiry">Expiry (MM/YY)</label>
-                            <input id="expiry" type="text" name="expiry" value="{{ old('expiry') }}" placeholder="12/29" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="cvv">CVV</label>
-                            <input id="cvv" type="password" name="cvv" value="{{ old('cvv') }}" placeholder="123" required>
-                        </div>
-                    </div>
-
                     <div class="actions">
-                        <button type="submit" class="btn btn-primary" @disabled(in_array($booking->status, ['paid', 'completed', 'cancelled']))>
-                            <i class="fas fa-check-circle"></i> Confirm Mock Payment
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            @disabled(! $stripeConfigured || in_array($booking->status, ['paid', 'completed', 'cancelled']))
+                        >
+                            <i class="fab fa-stripe"></i> Pay with Stripe
                         </button>
                         <a href="{{ route('bookings.show', $booking) }}" class="btn btn-secondary">
                             Back
                         </a>
                     </div>
                 </form>
+
+                <div class="notice" style="margin-top: 14px;">
+                    <strong>GCash (manual review)</strong>
+                    @if($gcashQrUrl)
+                        <div style="margin-top:10px;">
+                            <a href="{{ $gcashQrUrl }}" target="_blank">
+                                <img src="{{ $gcashQrUrl }}" alt="GCash QR" style="max-width:180px; width:100%; border-radius:10px; border:1px solid var(--gray-200);">
+                            </a>
+                        </div>
+                    @else
+                        <p style="margin-top:8px;">Tenant admin has not uploaded a GCash QR photo yet.</p>
+                    @endif
+
+                    <form action="{{ route('bookings.payment-proof.upload', $booking) }}" method="POST" enctype="multipart/form-data" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        @csrf
+                        <input type="file" name="gcash_payment_proof" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                        <button type="submit" class="btn btn-secondary">Upload Proof Screenshot</button>
+                    </form>
+
+                    @if($booking->gcash_payment_proof_url)
+                        <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <a href="{{ $booking->gcash_payment_proof_url }}" target="_blank" class="btn btn-secondary">View Uploaded Proof</a>
+                            <form action="{{ route('bookings.payment-proof.remove', $booking) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-secondary">Remove Proof</button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
             </section>
         </div>
     </div>

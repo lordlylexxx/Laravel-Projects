@@ -89,6 +89,10 @@
         .booking-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         .booking-id { font-size: 0.9rem; opacity: 0.8; }
         .status-badge { display: inline-block; padding: 8px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; background: white; color: var(--green-dark); }
+        .payment-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; margin-top: 8px; }
+        .payment-badge.neutral { background: #F3F4F6; color: #374151; }
+        .payment-badge.pending-review { background: #FFF7ED; color: #9A3412; }
+        .payment-badge.paid { background: #ECFDF5; color: #166534; }
         .booking-title { font-size: 1.8rem; margin-bottom: 5px; }
         .booking-date { opacity: 0.9; }
         
@@ -123,8 +127,8 @@
         .message-content { color: var(--gray-700); line-height: 1.6; }
         
         /* Action Buttons */
-        .action-btns { display: flex; gap: 15px; margin-top: 30px; }
-        .btn { padding: 14px 28px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .action-btns { display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap; align-items: center; }
+        .btn { padding: 14px 28px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
         .btn-primary { background: var(--green-primary); color: white; }
         .btn-primary:hover { background: var(--green-dark); transform: translateY(-2px); }
         .btn-outline { background: transparent; border: 2px solid var(--green-primary); color: var(--green-primary); }
@@ -215,6 +219,30 @@
         @endif
 
         <a href="{{ route($bookingsIndexRoute) }}" class="back-link">← Back to My Bookings</a>
+
+        @if(Auth::check() && $isTenantManager)
+            <div style="background: var(--white); border: 1px solid var(--green-soft); border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);">
+                <h3 style="color: var(--green-dark); margin-bottom: 10px; font-size: 1rem;">GCash QR Code</h3>
+                @if($currentTenant?->getGcashQrUrl())
+                    <div style="display:flex;align-items:center;gap:12px; margin-bottom:10px;">
+                        <img src="{{ $currentTenant->getGcashQrUrl() }}" alt="GCash QR" style="width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--gray-200);">
+                        <form method="POST" action="/owner/bookings/payment-settings/gcash-qr">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Remove QR</button>
+                        </form>
+                    </div>
+                @endif
+                <form method="POST" action="/owner/bookings/payment-settings/gcash-qr" enctype="multipart/form-data" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    @csrf
+                    <input type="file" name="gcash_qr" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                    <button type="submit" class="btn btn-primary">{{ $currentTenant?->getGcashQrUrl() ? 'Replace' : 'Upload' }} GCash QR Photo</button>
+                </form>
+                @error('gcash_qr')
+                    <p style="font-size:0.82rem;color:#C62828;margin-top:8px;">{{ $message }}</p>
+                @enderror
+            </div>
+        @endif
         
         @if(isset($booking))
             <div class="booking-card">
@@ -225,7 +253,14 @@
                             <h1 class="booking-title">{{ $booking->accommodation->name ?? 'N/A' }}</h1>
                             <p class="booking-date">Booked on {{ $booking->created_at->format('F d, Y') }}</p>
                         </div>
-                        <span class="status-badge">{{ ucfirst($booking->status) }}</span>
+                        @php
+                            $paymentUi = $booking->payment_ui_state;
+                            $paymentToneClass = $paymentUi['tone'] === 'pending_review' ? 'pending-review' : $paymentUi['tone'];
+                        @endphp
+                        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                            <span class="status-badge">{{ ucfirst($booking->status) }}</span>
+                            <span class="payment-badge {{ $paymentToneClass }}">{{ $paymentUi['label'] }}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -284,6 +319,50 @@
                             </div>
                         </div>
                     </div>
+
+                    <div style="margin-top:18px; background:#F8FAFC; border:1px solid var(--gray-200); border-radius:12px; padding:14px;">
+                        <div style="font-size:0.85rem; color:var(--gray-500); margin-bottom:8px;">Payment Summary</div>
+                        <div style="font-weight:700; color:var(--gray-800); margin-bottom:8px;">{{ $paymentUi['label'] }}</div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Channel</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['channel'] }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Method</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['method'] }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Reference</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['reference'] }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Paid At</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['paid_at'] ? $paymentUi['paid_at']->format('M d, Y h:i A') : 'N/A' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Proof Submitted At</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['submitted_at'] ? $paymentUi['submitted_at']->format('M d, Y h:i A') : 'N/A' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.78rem; color:var(--gray-500);">Reviewed At</div>
+                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['reviewed_at'] ? $paymentUi['reviewed_at']->format('M d, Y h:i A') : 'N/A' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if(Auth::check() && $isTenantManager)
+                        <div style="margin-top:18px;">
+                            <h3 class="section-title">Client Payment Proof</h3>
+                            @if($booking->gcash_payment_proof_url)
+                                <a href="{{ $booking->gcash_payment_proof_url }}" target="_blank">
+                                    <img src="{{ $booking->gcash_payment_proof_url }}" alt="Payment proof" style="max-width:220px; width:100%; border-radius:10px; border:1px solid var(--gray-200);">
+                                </a>
+                            @else
+                                <p style="color:var(--gray-500); font-size:0.92rem;">No proof screenshot uploaded yet.</p>
+                            @endif
+                        </div>
+                    @endif
                     
                     <!-- Messages Thread -->
                     @if(isset($booking->messages) && count($booking->messages) > 0)
@@ -323,12 +402,15 @@
                         <div class="action-btns">
                             @if($booking->status === 'pending')
                                 <p style="width: 100%; color: var(--gray-600); font-size: 0.95rem; margin-bottom: 8px;">
-                                    Waiting for the host to approve this request. You will be able to pay after approval.
+                                    Please pay first (Stripe or GCash proof upload), then the host will review and approve.
                                 </p>
+                                <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
+                                    Pay / Upload Proof
+                                </a>
                             @endif
                             @if($booking->status === 'confirmed')
                                 <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
-                                    Complete Payment
+                                    Pay via Stripe
                                 </a>
                             @endif
                             <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">

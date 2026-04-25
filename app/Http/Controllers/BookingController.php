@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\StripeRefundService;
 use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Message;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Stripe\Exception\AuthenticationException;
+use Stripe\StripeClient;
 
 class BookingController extends Controller
 {
@@ -160,7 +165,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Display mock payment page for a booking.
+     * Display Stripe checkout page for a booking.
      */
     public function payment(Request $request, Booking $booking)
     {
@@ -175,9 +180,9 @@ class BookingController extends Controller
             abort(403);
         }
 
-        if ($booking->status !== Booking::STATUS_CONFIRMED) {
+        if (! in_array($booking->status, [Booking::STATUS_PENDING, Booking::STATUS_CONFIRMED], true)) {
             return redirect()->route('bookings.show', $booking)
-                ->with('error', 'Payment is available after your booking has been approved.');
+                ->with('error', 'Payment page is only available for pending or confirmed bookings.');
         }
 
         $booking->load(['accommodation', 'accommodation.owner']);
@@ -186,7 +191,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Confirm mock payment and mark booking as paid.
+     * Create Stripe Checkout session for a booking payment.
      */
     public function confirmPayment(Request $request, Booking $booking)
     {
@@ -201,11 +206,6 @@ class BookingController extends Controller
             abort(403);
         }
 
-        if ($booking->status === Booking::STATUS_PENDING) {
-            return redirect()->route('bookings.show', $booking)
-                ->with('error', 'Please wait for the host to approve your booking before paying.');
-        }
-
         if ($booking->status === Booking::STATUS_PAID || $booking->status === Booking::STATUS_COMPLETED) {
             return redirect()->route('bookings.show', $booking)
                 ->with('success', 'Booking is already paid.');
@@ -216,29 +216,235 @@ class BookingController extends Controller
                 ->with('error', 'Cancelled bookings cannot be paid.');
         }
 
+        $amountInCentavos = (int) round(((float) $booking->total_price) * 100);
+        if ($amountInCentavos < 100) {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Booking amount is too low for Stripe checkout.');
+        }
+
+        $stripeSecret = (string) config('services.stripe.secret');
+        if ($stripeSecret === '') {
+            Log::error('Stripe secret key is missing while creating booking checkout.', [
+                'booking_id' => $booking->id,
+            ]);
+
+            return back()->with('error', 'Stripe is not configured. Please contact support.');
+        }
+
+        try {
+            $booking->loadMissing(['accommodation']);
+            if ($booking->payment_channel !== 'stripe') {
+                $booking->update(['payment_channel' => 'stripe']);
+            }
+            $stripe = new StripeClient($stripeSecret);
+
+            $session = $stripe->checkout->sessions->create([
+                'mode' => 'payment',
+                'success_url' => route('bookings.payment.success', $booking).'?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => route('bookings.payment.cancel', $booking),
+                'line_items' => [[
+                    'price_data' => [
+                        'currency' => 'php',
+                        'product_data' => [
+                            'name' => ($booking->accommodation->name ?? 'Booking').' (#'.$booking->id.')',
+                        ],
+                        'unit_amount' => $amountInCentavos,
+                    ],
+                    'quantity' => 1,
+                ]],
+                'client_reference_id' => (string) $booking->id,
+                'metadata' => [
+                    'payment_type' => 'booking',
+                    'booking_id' => (string) $booking->id,
+                    'tenant_id' => (string) ($booking->tenant_id ?? ''),
+                    'client_id' => (string) $booking->client_id,
+                ],
+            ]);
+
+            return redirect()->away((string) $session->url);
+        } catch (\Throwable $exception) {
+            Log::error('Failed to create Stripe checkout for booking.', [
+                'booking_id' => $booking->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            if ($exception instanceof AuthenticationException) {
+                return back()->with('error', 'Stripe authentication failed. Please re-check STRIPE_SECRET in .env.');
+            }
+
+            return back()->with('error', 'Unable to start Stripe checkout at the moment.');
+        }
+    }
+
+    public function paymentSuccess(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
         $validated = $request->validate([
-            'card_number' => ['required', 'string', 'min:12', 'max:25'],
-            'card_name' => ['required', 'string', 'max:120'],
-            'expiry' => ['required', 'string', 'max:10'],
-            'cvv' => ['required', 'digits_between:3,4'],
+            'session_id' => ['required', 'string'],
         ]);
 
-        $last4 = substr(preg_replace('/\D+/', '', $validated['card_number']) ?: '0000', -4);
+        $stripeSecret = (string) config('services.stripe.secret');
+        if ($stripeSecret === '') {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Stripe is not configured. Webhook confirmation could not be checked.');
+        }
 
-        $booking->markAsPaid('mock_card', 'MOCK-'.now()->format('YmdHis').'-'.$last4);
+        try {
+            $stripe = new StripeClient($stripeSecret);
+            $session = $stripe->checkout->sessions->retrieve($validated['session_id']);
 
-        Message::create([
-            'sender_id' => $request->user()->id,
-            'receiver_id' => $booking->accommodation->owner_id,
-            'booking_id' => $booking->id,
-            'tenant_id' => $booking->tenant_id,
-            'subject' => 'Payment Completed: '.($booking->accommodation->name ?? 'Booking #'.$booking->id),
-            'content' => 'Client payment has been completed for booking #'.$booking->id.'.',
-            'type' => Message::TYPE_BOOKING_RESPONSE,
-        ]);
+            $sessionBookingId = (string) ($session->metadata->booking_id ?? '');
+            if ($sessionBookingId !== (string) $booking->id) {
+                Log::warning('Stripe session booking mismatch on success redirect.', [
+                    'booking_id' => $booking->id,
+                    'session_id' => $validated['session_id'],
+                    'session_booking_id' => $sessionBookingId,
+                ]);
+
+                return redirect()->route('bookings.show', $booking)
+                    ->with('error', 'Payment session does not match this booking.');
+            }
+        } catch (\Throwable $exception) {
+            Log::error('Failed to retrieve Stripe session on booking success redirect.', [
+                'booking_id' => $booking->id,
+                'session_id' => $validated['session_id'],
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Payment completed but verification failed. Please check again shortly.');
+        }
+
+        return redirect()->route('bookings.show', $booking)->with(
+            'success',
+            'Stripe checkout completed. Payment is recorded via webhook and now waits for tenant admin approval.'
+        );
+    }
+
+    public function paymentCancel(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
 
         return redirect()->route('bookings.show', $booking)
-            ->with('success', 'Mock payment successful! Your booking is now marked as paid.');
+            ->with('error', 'Stripe checkout was canceled.');
+    }
+
+    public function uploadTenantGcashQr(Request $request)
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if (! $user || ! $currentTenant || ! ($user->isOwner() || $user->isAdmin())) {
+            abort(403);
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'gcash_qr' => ['required', 'image', 'max:5120', 'mimes:jpeg,jpg,png,webp'],
+        ]);
+
+        if ($currentTenant->gcash_qr_path) {
+            Storage::disk('public')->delete($currentTenant->gcash_qr_path);
+        }
+
+        $currentTenant->gcash_qr_path = $request->file('gcash_qr')->store('tenant-gcash-qr', 'public');
+        $currentTenant->save();
+
+        return back()->with('success', 'GCash QR code photo uploaded.');
+    }
+
+    public function removeTenantGcashQr(Request $request)
+    {
+        $user = $request->user();
+        $currentTenant = Tenant::current();
+
+        if (! $user || ! $currentTenant || ! ($user->isOwner() || $user->isAdmin())) {
+            abort(403);
+        }
+
+        if ((int) ($user->tenant_id ?? 0) !== (int) $currentTenant->id) {
+            abort(403);
+        }
+
+        if ($currentTenant->gcash_qr_path) {
+            Storage::disk('public')->delete($currentTenant->gcash_qr_path);
+            $currentTenant->gcash_qr_path = null;
+            $currentTenant->save();
+        }
+
+        return back()->with('success', 'GCash QR code photo removed.');
+    }
+
+    public function uploadPaymentProof(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $currentTenant = Tenant::current();
+        if ($currentTenant && (int) $booking->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        if (! $user || ! $user->isClient() || (int) $booking->client_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if (! in_array($booking->status, [Booking::STATUS_PENDING, Booking::STATUS_CONFIRMED], true)) {
+            return back()->with('error', 'Payment proof can only be uploaded for pending or confirmed bookings.');
+        }
+
+        $request->validate([
+            'gcash_payment_proof' => ['required', 'image', 'max:5120', 'mimes:jpeg,jpg,png,webp'],
+        ]);
+
+        if ($booking->gcash_payment_proof_path) {
+            Storage::disk('public')->delete($booking->gcash_payment_proof_path);
+        }
+
+        $booking->update([
+            'payment_channel' => 'gcash',
+            'gcash_payment_proof_path' => $request->file('gcash_payment_proof')->store('booking-payment-proofs', 'public'),
+            'gcash_payment_submitted_at' => now(),
+            'gcash_payment_reviewed_at' => null,
+        ]);
+
+        return back()->with('success', 'Payment proof screenshot uploaded. Waiting for host review.');
+    }
+
+    public function removePaymentProof(Request $request, Booking $booking)
+    {
+        $this->authorize('view', $booking);
+
+        $currentTenant = Tenant::current();
+        if ($currentTenant && (int) $booking->tenant_id !== (int) $currentTenant->id) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        if (! $user || ! $user->isClient() || (int) $booking->client_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if ($booking->status !== Booking::STATUS_PENDING) {
+            return back()->with('error', 'Payment proof can only be removed while booking is pending.');
+        }
+
+        if ($booking->gcash_payment_proof_path) {
+            Storage::disk('public')->delete($booking->gcash_payment_proof_path);
+        }
+
+        $booking->update([
+            'gcash_payment_proof_path' => null,
+            'gcash_payment_submitted_at' => null,
+            'gcash_payment_reviewed_at' => null,
+            'payment_channel' => null,
+        ]);
+
+        return back()->with('success', 'Payment proof removed.');
     }
 
     /**
@@ -254,8 +460,30 @@ class BookingController extends Controller
         ]);
 
         if ($validated['status'] === 'confirmed') {
+            $hasStripePayment = $booking->payment_channel === 'stripe'
+                && $booking->paid_at !== null
+                && in_array((string) $booking->payment_method, ['stripe_checkout'], true);
+            $hasGcashProof = ! empty($booking->gcash_payment_proof_path);
+
+            if (! $hasStripePayment && ! $hasGcashProof) {
+                return back()->with('error', 'Cannot approve this booking yet. Client must submit payment first (Stripe or GCash proof).');
+            }
+
             $booking->confirm();
+
+            if ($hasGcashProof) {
+                $booking->update([
+                    'gcash_payment_reviewed_at' => now(),
+                    'payment_channel' => $booking->payment_channel ?: 'gcash',
+                    'paid_at' => $booking->paid_at ?: now(),
+                ]);
+            }
         } elseif ($validated['status'] === 'cancelled') {
+            $refundResult = $this->refundStripePaymentIfNeeded($booking);
+            if (! $refundResult['ok']) {
+                return back()->with('error', (string) ($refundResult['message'] ?? 'Unable to process Stripe refund.'));
+            }
+
             $booking->cancel();
         }
 
@@ -275,6 +503,41 @@ class BookingController extends Controller
         }
 
         return back()->with('success', 'Booking status updated successfully!');
+    }
+
+    private function refundStripePaymentIfNeeded(Booking $booking): array
+    {
+        $isStripePayment = $booking->payment_channel === 'stripe'
+            && in_array((string) $booking->payment_method, ['stripe_checkout'], true)
+            && $booking->paid_at !== null;
+
+        if (! $isStripePayment) {
+            return ['ok' => true];
+        }
+
+        $paymentIntentId = trim((string) ($booking->payment_reference ?? ''));
+        if ($paymentIntentId === '') {
+            return ['ok' => false, 'message' => 'Cannot reject this booking yet because Stripe payment reference is missing.'];
+        }
+
+        $stripeSecret = (string) config('services.stripe.secret');
+        if ($stripeSecret === '') {
+            return ['ok' => false, 'message' => 'Stripe refund failed because Stripe is not configured.'];
+        }
+
+        try {
+            app(StripeRefundService::class)->refundBookingPaymentIntent($stripeSecret, $booking, $paymentIntentId);
+
+            return ['ok' => true];
+        } catch (\Throwable $exception) {
+            Log::error('Stripe refund failed after booking rejection.', [
+                'booking_id' => $booking->id,
+                'payment_reference' => $paymentIntentId,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return ['ok' => false, 'message' => 'Stripe refund failed. Booking was not rejected. Please try again.'];
+        }
     }
 
     /**

@@ -11,6 +11,63 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Artisan::command('tenants:migrate {tenantId?}', function (?string $tenantId = null) {
+    $id = ($tenantId !== null && $tenantId !== '') ? (int) $tenantId : null;
+
+    $query = Tenant::query()->where('database_provisioned', true)->orderBy('id');
+
+    if ($id !== null) {
+        $query->whereKey($id);
+    }
+
+    $tenants = $query->get();
+
+    if ($tenants->isEmpty()) {
+        $this->error($id !== null ? 'No provisioned tenant found for that id.' : 'No provisioned tenants to migrate.');
+
+        return 1;
+    }
+
+    $connection = config('multitenancy.tenant_database_connection_name', 'tenant');
+
+    foreach ($tenants as $tenant) {
+        if (! $tenant->database) {
+            $this->warn("Skipping tenant {$tenant->id}: no database configured.");
+
+            continue;
+        }
+
+        $this->line("Migrating tenant schema for {$tenant->id} ({$tenant->name})...");
+
+        $tenant->makeCurrent();
+
+        try {
+            $migrateExit = Artisan::call('migrate', [
+                '--database' => $connection,
+                '--path' => 'database/migrations/tenant',
+                '--force' => true,
+            ]);
+            $this->line(Artisan::output());
+
+            if ($migrateExit !== 0) {
+                $this->error("Tenant migrations failed for tenant {$tenant->id} (exit {$migrateExit}).");
+
+                return 1;
+            }
+        } catch (\Throwable $e) {
+            $this->error("Failed for tenant {$tenant->id}: ".$e->getMessage());
+
+            return 1;
+        } finally {
+            Tenant::forgetCurrent();
+        }
+    }
+
+    $this->info('Done.');
+
+    return 0;
+})->purpose('Run database/migrations/tenant against one or all provisioned tenant databases');
+
 Artisan::command('tenants:provision-db {tenantId}', function (int $tenantId) {
     /** @var Tenant|null $tenant */
     $tenant = Tenant::find($tenantId);

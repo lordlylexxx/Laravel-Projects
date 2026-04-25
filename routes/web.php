@@ -17,6 +17,7 @@ use App\Http\Controllers\Client\DashboardController as ClientDashboardController
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\OnboardingPaymentController;
 use App\Http\Controllers\Owner\TenantUserController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SystemUpdatePageController;
 use App\Http\Controllers\TenantLandingController;
@@ -24,6 +25,12 @@ use App\Http\Controllers\UpdateTicketController;
 use App\Models\CentralLandingPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/checkout', [PaymentController::class, 'showCheckoutForm'])->name('payments.form');
+Route::post('/checkout', [PaymentController::class, 'checkout'])->name('payments.checkout');
+Route::get('/success', [PaymentController::class, 'success'])->name('payments.success');
+Route::get('/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
+Route::post('/stripe/webhook', [PaymentController::class, 'webhook'])->name('payments.webhook');
 
 $centralDomain = env('CENTRAL_DOMAIN', parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
 $registerCentralRoutes = function () {
@@ -187,6 +194,8 @@ $registerCentralRoutes = function () {
                 Route::put('/{booking}/mark-paid', [\App\Http\Controllers\BookingController::class, 'markAsPaid'])->name('mark-paid');
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+                Route::post('/payment-settings/gcash-qr', [\App\Http\Controllers\BookingController::class, 'uploadTenantGcashQr'])->name('payment-settings.gcash-qr.upload');
+                Route::delete('/payment-settings/gcash-qr', [\App\Http\Controllers\BookingController::class, 'removeTenantGcashQr'])->name('payment-settings.gcash-qr.remove');
             });
 
             Route::get('/users', [TenantUserController::class, 'index'])->name('users.index');
@@ -318,6 +327,10 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
                 Route::get('/{booking}/payment', [\App\Http\Controllers\BookingController::class, 'payment'])->name('payment');
                 Route::post('/{booking}/payment/confirm', [\App\Http\Controllers\BookingController::class, 'confirmPayment'])->name('payment.confirm');
+                Route::get('/{booking}/payment/success', [\App\Http\Controllers\BookingController::class, 'paymentSuccess'])->name('payment.success');
+                Route::get('/{booking}/payment/cancel', [\App\Http\Controllers\BookingController::class, 'paymentCancel'])->name('payment.cancel');
+                Route::post('/{booking}/payment-proof', [\App\Http\Controllers\BookingController::class, 'uploadPaymentProof'])->name('payment-proof.upload');
+                Route::delete('/{booking}/payment-proof', [\App\Http\Controllers\BookingController::class, 'removePaymentProof'])->name('payment-proof.remove');
             });
 
             Route::get('/home', function () {
@@ -359,6 +372,8 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
                 Route::put('/{booking}/mark-paid', [\App\Http\Controllers\BookingController::class, 'markAsPaid'])->name('mark-paid');
                 Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
                 Route::post('/{booking}/message', [\App\Http\Controllers\BookingController::class, 'sendMessage'])->name('message');
+                Route::post('/payment-settings/gcash-qr', [\App\Http\Controllers\BookingController::class, 'uploadTenantGcashQr'])->name('payment-settings.gcash-qr.upload');
+                Route::delete('/payment-settings/gcash-qr', [\App\Http\Controllers\BookingController::class, 'removeTenantGcashQr'])->name('payment-settings.gcash-qr.remove');
             });
 
             Route::get('/users', [TenantUserController::class, 'index'])->name('users.index');

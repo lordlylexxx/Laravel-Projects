@@ -33,7 +33,11 @@ class Booking extends Model
         'cancelled_at',
         'payment_method',
         'payment_reference',
-        'paid_at'
+        'paid_at',
+        'payment_channel',
+        'gcash_payment_proof_path',
+        'gcash_payment_submitted_at',
+        'gcash_payment_reviewed_at',
     ];
 
     protected $casts = [
@@ -44,14 +48,20 @@ class Booking extends Model
         'total_price' => 'decimal:2',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
-        'paid_at' => 'datetime'
+        'paid_at' => 'datetime',
+        'gcash_payment_submitted_at' => 'datetime',
+        'gcash_payment_reviewed_at' => 'datetime',
     ];
 
     // Status constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_CONFIRMED = 'confirmed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_PAID = 'paid';
 
     // Relationships
@@ -99,7 +109,7 @@ class Booking extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('check_in_date', '>=', now()->toDateString())
-                    ->whereIn('status', [self::STATUS_CONFIRMED, self::STATUS_PAID]);
+            ->whereIn('status', [self::STATUS_CONFIRMED, self::STATUS_PAID]);
     }
 
     public function scopeForOwner($query, $ownerId)
@@ -127,20 +137,66 @@ class Booking extends Model
             self::STATUS_CONFIRMED => 'Confirmed',
             self::STATUS_CANCELLED => 'Cancelled',
             self::STATUS_COMPLETED => 'Completed',
-            self::STATUS_PAID => 'Paid'
+            self::STATUS_PAID => 'Paid',
         ];
-        
+
         return $labels[$this->status] ?? $this->status;
     }
 
     public function getFormattedPriceAttribute()
     {
-        return '₱' . number_format($this->total_price, 0, '.', ',');
+        return '₱'.number_format($this->total_price, 0, '.', ',');
     }
 
     public function getNumberOfNightsAttribute()
     {
         return $this->check_in_date->diffInDays($this->check_out_date);
+    }
+
+    public function getGcashPaymentProofUrlAttribute(): ?string
+    {
+        if (! $this->gcash_payment_proof_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->gcash_payment_proof_path);
+    }
+
+    public function getPaymentUiStateAttribute(): array
+    {
+        $status = (string) $this->status;
+        $channel = (string) ($this->payment_channel ?? '');
+        $method = (string) ($this->payment_method ?? '');
+        $hasPaidAt = $this->paid_at !== null;
+
+        $isStripePaid = (in_array($method, ['stripe_checkout'], true) || $channel === 'stripe') && $hasPaidAt;
+        $isManualPaid = $channel === 'gcash' && $this->gcash_payment_reviewed_at !== null && $hasPaidAt;
+        $hasProofPendingReview = $this->gcash_payment_proof_path !== null && $this->gcash_payment_reviewed_at === null;
+
+        $label = 'Unpaid';
+        $tone = 'neutral';
+
+        if ($isStripePaid) {
+            $label = 'Paid via Stripe';
+            $tone = 'paid';
+        } elseif ($isManualPaid) {
+            $label = 'Paid (Manual Review)';
+            $tone = 'paid';
+        } elseif ($hasProofPendingReview) {
+            $label = 'Proof Submitted (Needs Review)';
+            $tone = 'pending_review';
+        }
+
+        return [
+            'label' => $label,
+            'tone' => $tone,
+            'channel' => $channel !== '' ? strtoupper($channel) : 'N/A',
+            'method' => $method !== '' ? $method : 'N/A',
+            'paid_at' => $this->paid_at,
+            'submitted_at' => $this->gcash_payment_submitted_at,
+            'reviewed_at' => $this->gcash_payment_reviewed_at,
+            'reference' => (string) ($this->payment_reference ?? 'N/A'),
+        ];
     }
 
     // Methods
@@ -154,7 +210,7 @@ class Booking extends Model
     {
         $this->update([
             'status' => self::STATUS_CONFIRMED,
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
     }
 
@@ -162,7 +218,7 @@ class Booking extends Model
     {
         $this->update([
             'status' => self::STATUS_CANCELLED,
-            'cancelled_at' => now()
+            'cancelled_at' => now(),
         ]);
     }
 
@@ -172,7 +228,7 @@ class Booking extends Model
             'status' => self::STATUS_PAID,
             'payment_method' => $paymentMethod,
             'payment_reference' => $reference,
-            'paid_at' => now()
+            'paid_at' => now(),
         ]);
     }
 
@@ -181,4 +237,3 @@ class Booking extends Model
         $this->update(['status' => self::STATUS_COMPLETED]);
     }
 }
-
