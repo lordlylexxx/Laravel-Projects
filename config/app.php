@@ -21,8 +21,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Tracks the current installed release of the application. Used by the
-    | self-update system to compare against the latest available release.
-    | Kept in sync with APP_RELEASE_VERSION (.env) and config('updates.current_version').
+    | tenant update/adoption system to compare against latest synced releases.
+    | Kept in sync with APP_RELEASE_VERSION (.env).
     |
     */
 

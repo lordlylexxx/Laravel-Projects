@@ -49,7 +49,7 @@
     @include('owner.partials.top-navbar', ['active' => 'updates'])
 
     <main class="page-shell">
-        <p style="margin-bottom:12px;"><a href="{{ $backToUpdatesPath ?? '/owner/system-updates' }}" class="btn"><i class="fas fa-arrow-left"></i> System updates</a></p>
+        <p style="margin-bottom:12px;"><a href="{{ $backToUpdatesPath ?? '/settings/updates' }}" class="btn"><i class="fas fa-arrow-left"></i> System updates</a></p>
         <div class="card">
             <h1>{{ $ticket->subject }}</h1>
             <div class="status-row">

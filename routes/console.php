@@ -1,10 +1,15 @@
 <?php
 
 use App\Models\Tenant;
+use App\Models\AppRelease;
+use App\Services\ReleaseRegistryService;
+use App\Services\TenantSelfUpdateService;
+use App\Services\TenantUpdateService;
 use Database\Seeders\TenantRbacSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
@@ -284,3 +289,69 @@ Artisan::command('tenants:rename-domains {--dry-run}', function () {
 
     return 0;
 })->purpose('Rename existing tenant slugs/domains from Business/App Name');
+
+Artisan::command('releases:sync', function (ReleaseRegistryService $releaseRegistryService) {
+    $result = $releaseRegistryService->syncFromGitHub();
+    $this->info("Synced releases. New: {$result['synced']}, Updated: {$result['updated']}, Skipped: {$result['skipped']}");
+
+    return 0;
+})->purpose('Sync global release registry from GitHub releases');
+
+Artisan::command('tenants:backfill-updates {--tenant=} {--dry-run}', function (TenantUpdateService $tenantUpdateService, ReleaseRegistryService $releaseRegistryService) {
+    $tenantId = (int) ($this->option('tenant') ?? 0);
+    $dryRun = (bool) $this->option('dry-run');
+    $latest = $releaseRegistryService->getLatestStableRelease();
+
+    if (! $latest) {
+        $this->error('No stable release found in app_releases. Run releases:sync first.');
+        return 1;
+    }
+
+    $query = Tenant::query()->orderBy('id');
+    if ($tenantId > 0) {
+        $query->whereKey($tenantId);
+    }
+
+    $tenants = $query->get();
+    if ($tenants->isEmpty()) {
+        $this->warn('No tenants found to backfill.');
+        return 0;
+    }
+
+    $count = 0;
+    foreach ($tenants as $tenant) {
+        if ($dryRun) {
+            $this->line("[DRY RUN] Would backfill tenant {$tenant->id} to {$latest->tag}");
+            $count++;
+            continue;
+        }
+
+        $tenantUpdateService->backfillCurrentReleaseForTenant($tenant, $latest);
+        $this->line("Backfilled tenant {$tenant->id} to {$latest->tag}");
+        $count++;
+    }
+
+    $this->info("Backfill complete. Processed {$count} tenant(s).");
+    return 0;
+})->purpose('Backfill current release adoption records for tenants');
+
+Artisan::command('tenant:update {tenantId} {releaseId}', function (TenantSelfUpdateService $tenantSelfUpdateService) {
+    $tenantId = (int) $this->argument('tenantId');
+    $releaseId = (int) $this->argument('releaseId');
+
+    if (! AppRelease::query()->whereKey($releaseId)->exists()) {
+        $this->error('Release not found.');
+        return 1;
+    }
+
+    $result = $tenantSelfUpdateService->applyUpdate($tenantId, $releaseId);
+    if (! $result['ok']) {
+        $this->error($result['message']);
+        return 1;
+    }
+
+    $this->info($result['message']);
+    return 0;
+})->purpose('Apply a release to a tenant and record adoption state');
+
+Schedule::command('releases:sync')->dailyAt('02:00');

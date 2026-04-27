@@ -38,7 +38,7 @@ class UpdateTicketController extends Controller
         return view('update-tickets.show-staff', [
             'ticket' => $updateTicket,
             'tenant' => $this->resolveTenantForRequest($request),
-            'backToUpdatesPath' => $isAdminScopedPath ? '/admin/system-updates' : '/owner/system-updates',
+            'backToUpdatesPath' => $isAdminScopedPath ? '/admin/system-updates' : '/settings/updates',
         ]);
     }
 
@@ -156,7 +156,7 @@ class UpdateTicketController extends Controller
         abort_unless($tenant, 404);
         abort_unless((int) ($user->tenant_id ?? 0) === (int) $tenant->id, 403);
 
-        // Owners may always access update pages; tenant admins need reports.view (same as SystemUpdatePageController).
+        // Owners may always access update pages; tenant admins need reports.view.
         if (! $user->isAdmin()) {
             return;
         }

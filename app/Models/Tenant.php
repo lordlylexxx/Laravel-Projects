@@ -190,6 +190,11 @@ class Tenant extends BaseTenant
         return $this->hasMany(UpdateTicket::class, 'tenant_id');
     }
 
+    public function tenantUpdates(): HasMany
+    {
+        return $this->hasMany(TenantUpdate::class, 'tenant_id');
+    }
+
     public function hasActiveSubscription(): bool
     {
         return in_array($this->subscription_status, ['trialing', 'active'], true);

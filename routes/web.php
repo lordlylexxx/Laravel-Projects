@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\LandingPlanController;
+use App\Http\Controllers\Admin\ReleaseController as AdminReleaseController;
 use App\Http\Controllers\Admin\UpdateTicketController as CentralAdminUpdateTicketController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -12,14 +13,13 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
-use App\Http\Controllers\Central\UpdateController as CentralUpdateController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\OnboardingPaymentController;
 use App\Http\Controllers\Owner\TenantUserController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SystemUpdatePageController;
+use App\Http\Controllers\Tenant\SettingsController as TenantSettingsController;
 use App\Http\Controllers\TenantLandingController;
 use App\Http\Controllers\UpdateTicketController;
 use App\Models\CentralLandingPlan;
@@ -52,12 +52,6 @@ $registerCentralRoutes = function () {
         })->name('landing');
 
         Route::view('/about', 'about')->name('about');
-
-        Route::prefix('system-updates')->name('updates.')->group(function () {
-            Route::get('/check', [CentralUpdateController::class, 'check'])->name('check');
-            Route::get('/download', [CentralUpdateController::class, 'download'])->name('download');
-            Route::get('/checksum', [CentralUpdateController::class, 'checksum'])->name('checksum');
-        });
 
         // Public routes
         Route::middleware('guest')->group(function () {
@@ -164,17 +158,8 @@ $registerCentralRoutes = function () {
             Route::get('/reports/monthly', [OwnerDashboardController::class, 'monthlyReport'])->name('reports.monthly');
             Route::get('/reports/monthly/download-sales', [OwnerDashboardController::class, 'downloadMonthlySalesPdf'])->name('reports.monthly.download-sales');
             Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
-            Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
-            Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
-            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])
-                ->name('updates.mark-installed')
-                ->middleware('signed:relative');
-            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])
-                ->name('updates.install')
-                ->middleware('signed:relative');
-            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])
-                ->name('updates.restore')
-                ->middleware('signed:relative');
+            Route::get('/settings/updates', [TenantSettingsController::class, 'index'])->name('settings.updates.index');
+            Route::post('/settings/updates/apply', [TenantSettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
             Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
@@ -215,17 +200,11 @@ $registerCentralRoutes = function () {
         Route::middleware(['auth', 'tenant.context', 'admin'])->prefix('admin')->name('admin.')->group(function () {
             // Admin Dashboard with Sales Monitoring
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-            Route::get('/system-updates', [SystemUpdatePageController::class, 'adminIndex'])->name('updates.index');
-            Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
-            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])
-                ->name('updates.mark-installed')
-                ->middleware('signed:relative');
-            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'adminInstall'])
-                ->name('updates.install')
-                ->middleware('signed:relative');
-            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'adminRestore'])
-                ->name('updates.restore')
-                ->middleware('signed:relative');
+            Route::get('/system-updates', [AdminReleaseController::class, 'index'])->name('updates.index');
+            Route::post('/system-updates/sync', [AdminReleaseController::class, 'sync'])->name('releases.sync');
+            Route::post('/system-updates/{release}/required', [AdminReleaseController::class, 'markRequired'])->name('releases.required');
+            Route::post('/system-updates/{release}/notify-all', [AdminReleaseController::class, 'notifyAll'])->name('releases.notify-all');
+            Route::post('/system-updates/{release}/force-mark-all-updated', [AdminReleaseController::class, 'forceMarkAllUpdated'])->name('releases.force-mark-all-updated');
             Route::post('/system-updates/tickets/report', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/system-updates/tickets/report/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.staff-show');
 
@@ -294,7 +273,7 @@ foreach ($centralHosts as $host) {
     Route::domain($host)->group($registerCentralRoutes);
 }
 
-Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 'tenant.active', 'tenant.session', 'tenant.bandwidth'])
+Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 'tenant.active', 'tenant.session', 'tenant.bandwidth', 'tenant.required_update'])
     ->group(function () {
         Route::get('/', [TenantLandingController::class, 'showPublic'])
             ->name('landing');
@@ -352,10 +331,8 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
             Route::get('/reports/monthly', [OwnerDashboardController::class, 'monthlyReport'])->name('reports.monthly');
             Route::get('/reports/monthly/download-sales', [OwnerDashboardController::class, 'downloadMonthlySalesPdf'])->name('reports.monthly.download-sales');
             Route::get('/reports/monthly/download-guests', [OwnerDashboardController::class, 'downloadMonthlyGuestsPdf'])->name('reports.monthly.download-guests');
-            Route::get('/system-updates', [SystemUpdatePageController::class, 'ownerIndex'])->name('updates.index');
-            Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])->name('updates.mark-installed');
-            Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])->name('updates.install');
-            Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])->name('updates.restore');
+            Route::get('/settings/updates', [TenantSettingsController::class, 'index'])->name('settings.updates.index');
+            Route::post('/settings/updates/apply', [TenantSettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
             Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
@@ -386,6 +363,12 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
             Route::post('/users/custom-roles', [TenantUserController::class, 'storeCustomRole'])->name('users.custom-roles.store');
             Route::put('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'updateCustomRole'])->name('users.custom-roles.update');
             Route::delete('/users/custom-roles/{tenantCustomRole}', [TenantUserController::class, 'destroyCustomRole'])->name('users.custom-roles.destroy');
+        });
+
+        // Canonical tenant settings updates routes (per two-layer update spec).
+        Route::middleware(['auth', 'tenant.manager'])->group(function () {
+            Route::get('/settings/updates', [TenantSettingsController::class, 'index'])->name('settings.updates.index');
+            Route::post('/settings/updates/apply', [TenantSettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
         });
 
         Route::middleware(['auth', 'tenant.client_guest_rbac'])->group(function () {

@@ -14,7 +14,7 @@
     $unitsHref = $isTenantContext ? '/owner/accommodations' : '/admin/tenants';
     $bookingsHref = '/owner/bookings';
     $reportsHref = '/owner/reports/monthly';
-    $updatesHref = $isTenantContext ? '/owner/system-updates' : '/admin/system-updates';
+    $updatesHref = $isTenantContext ? '/settings/updates' : '/admin/system-updates';
     $updateTicketsHref = ! $isTenantContext ? '/admin/system-updates/tickets' : null;
     $landingPlansHref = '/admin/landing-plans';
     $messagesHref = $isTenantContext ? '/messages' : '/admin/messages';
@@ -55,13 +55,6 @@
     </ul>
 
     <div class="nav-actions">
-        @if(($tenantUpdate['has_update'] ?? false) && !empty($tenantUpdate['download_url']))
-            <a href="{{ $tenantUpdate['download_url'] }}" class="nav-btn" title="Update to v{{ $tenantUpdate['latest_version'] ?? '' }}">
-                <i class="fas fa-download"></i>
-                Update v{{ $tenantUpdate['latest_version'] }}
-            </a>
-        @endif
-
         <div class="user-display">
             @if(Auth::user()->avatar)
                 <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">

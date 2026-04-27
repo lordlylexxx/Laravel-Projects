@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.session' => \App\Http\Middleware\EnsureTenantSessionIsSynchronized::class,
             'tenant.active' => \App\Http\Middleware\EnsureTenantIsActive::class,
             'tenant.bandwidth' => \App\Http\Middleware\RecordTenantBandwidthUsage::class,
+            'tenant.required_update' => \App\Http\Middleware\RequiredUpdateMiddleware::class,
             'central.port' => \App\Http\Middleware\EnsureRequestUsesCentralPort::class,
             'tenant.port' => \App\Http\Middleware\EnsureRequestUsesTenantPort::class,
         ]);
