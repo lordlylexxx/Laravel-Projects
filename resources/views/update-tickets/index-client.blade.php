@@ -23,13 +23,18 @@
             --green-medium: #43A047;
             --green-soft: #C8E6C9;
             --green-white: #E8F5E9;
+            --cream: #F1F8E9;
             --white: #FFFFFF;
+            --gray-200: #E5E7EB;
+            --gray-500: #6B7280;
             --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
         }
         @include('client.partials.top-navbar-styles')
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-green-50 via-lime-50 to-white font-['Segoe_UI',Tahoma,Geneva,Verdana,sans-serif] text-gray-800">
+<body class="min-h-screen bg-gradient-to-br from-green-50 via-lime-50 to-white text-gray-800">
     @include('client.partials.top-navbar', ['active' => 'update-tickets'])
 
     <main class="mx-auto min-h-screen w-full max-w-[1800px] px-4 pb-10 sm:px-6 lg:px-10" style="padding-top: calc(var(--client-nav-offset, 108px) + 24px);">
