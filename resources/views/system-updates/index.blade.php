@@ -400,7 +400,7 @@
                 <h2>Support</h2>
                 <p class="sub" style="margin-bottom: 14px;">Report an issue with the update channel or installation. Central admin will respond and mark tickets resolved.</p>
 
-                <form method="POST" action="{{ $ownerUpdateTicketStoreRoute }}" style="margin-bottom: 20px;">
+                <form method="POST" action="{{ $ownerUpdateTicketStoreRoute }}" enctype="multipart/form-data" style="margin-bottom: 20px;">
                     @csrf
                     <div style="margin-bottom: 12px;">
                         <label for="ticket_subject" style="display:block; font-weight:600; margin-bottom:6px; color: var(--gray-700);">Subject</label>
@@ -411,6 +411,11 @@
                         <label for="ticket_body" style="display:block; font-weight:600; margin-bottom:6px; color: var(--gray-700);">Details</label>
                         <textarea id="ticket_body" name="body" rows="4" required maxlength="10000"
                             style="width:100%; max-width:720px; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px;">{{ old('body') }}</textarea>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label for="ticket_attachment" style="display:block; font-weight:600; margin-bottom:6px; color: var(--gray-700);">Photo attachment <span style="color: var(--gray-500); font-weight:400;">(optional, JPG/PNG/WEBP up to 5MB)</span></label>
+                        <input id="ticket_attachment" name="attachment" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            style="width:100%; max-width:520px; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; background:#fff;">
                     </div>
                     @if ($errors->any())
                         <div class="flash-error" style="margin-bottom:12px;">{{ $errors->first() }}</div>

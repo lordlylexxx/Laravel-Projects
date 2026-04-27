@@ -81,7 +81,8 @@ class UpdateTicketController extends Controller
             $message = 'Ticket marked as open.';
         }
 
-        return redirect()->route('admin.update-tickets.show', $updateTicket)->with('success', $message);
+        return redirect(route('admin.update-tickets.show', ['updateTicket' => $updateTicket->getKey()], false))
+            ->with('success', $message);
     }
 
     private function resolveLandlordActorId(Request $request): ?int

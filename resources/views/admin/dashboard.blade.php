@@ -294,7 +294,6 @@
         .delay-3 { animation-delay: 0.3s; }
         .delay-4 { animation-delay: 0.4s; }
 
-        @include('admin.partials.top-navbar-styles')
     </style>
 </head>
 <body>
@@ -319,7 +318,7 @@
 
             <div class="filter-card animate delay-1">
                 <h3 style="margin-bottom: 12px; display:flex; align-items:center; gap:8px;"><i class="fas fa-filter icon"></i>Demographics Filters & Reports</h3>
-                <form method="GET" action="{{ route('admin.dashboard') }}" class="filters-grid">
+                <form method="GET" action="{{ route('admin.dashboard', [], false) }}" class="filters-grid">
                     <div class="filter-field">
                         <label for="tenant_id">Tenant Scope</label>
                         <select id="tenant_id" name="tenant_id">
@@ -339,14 +338,14 @@
                     </div>
                     <div class="filter-field" style="display:flex; gap:8px;">
                         <button type="submit" class="btn-filter primary"><i class="fas fa-chart-line"></i> Apply</button>
-                        <a href="{{ route('admin.dashboard') }}" class="btn-filter secondary">Reset</a>
+                        <a href="{{ route('admin.dashboard', [], false) }}" class="btn-filter secondary">Reset</a>
                     </div>
                 </form>
                 <div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <a class="btn-filter secondary" href="{{ route('admin.reports.demographics', ['tenant_id' => $selectedTenantId, 'start_date' => optional($demographicsStartDate)->toDateString(), 'end_date' => optional($demographicsEndDate)->toDateString()]) }}">
+                    <a class="btn-filter secondary" href="{{ route('admin.reports.demographics', ['tenant_id' => $selectedTenantId, 'start_date' => optional($demographicsStartDate)->toDateString(), 'end_date' => optional($demographicsEndDate)->toDateString()], false) }}">
                         <i class="fas fa-eye"></i> View Demographics Report
                     </a>
-                    <form method="POST" action="{{ route('admin.reports.demographics.export') }}" style="display:inline;">
+                    <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="format" value="pdf">
                         <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
@@ -354,7 +353,7 @@
                         <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
                         <button type="submit" class="btn-filter secondary"><i class="fas fa-file-pdf"></i> Export PDF</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.reports.demographics.export') }}" style="display:inline;">
+                    <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="format" value="csv">
                         <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
@@ -571,7 +570,7 @@
                                     <td>{{ $booking->booking_count }}</td>
                                     <td><span style="background: linear-gradient(135deg, var(--green-soft), var(--green-pale)); padding: 6px 12px; border-radius: 50px; color: var(--green-dark); font-weight: 600;">{{ $booking->total_guests }} guests</span></td>
                                     <td>
-                                        <form action="{{ route('admin.monthly-booking-pdf') }}" method="POST" style="display: inline;">
+                                        <form action="{{ route('admin.monthly-booking-pdf', [], false) }}" method="POST" style="display: inline;">
                                             @csrf
                                             <input type="hidden" name="year" value="{{ now()->year }}">
                                             <input type="hidden" name="month" value="{{ now()->month }}">
@@ -723,48 +722,50 @@
                 });
             }
 
-            const guestsCtx = document.getElementById('guestsChart').getContext('2d');
-            new Chart(guestsCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'Guests',
-                        data: [
-                            {{ $monthlyGuestsData['jan'] ?? 0 }},
-                            {{ $monthlyGuestsData['feb'] ?? 0 }},
-                            {{ $monthlyGuestsData['mar'] ?? 0 }},
-                            {{ $monthlyGuestsData['apr'] ?? 0 }},
-                            {{ $monthlyGuestsData['may'] ?? 0 }},
-                            {{ $monthlyGuestsData['jun'] ?? 0 }},
-                            {{ $monthlyGuestsData['jul'] ?? 0 }},
-                            {{ $monthlyGuestsData['aug'] ?? 0 }},
-                            {{ $monthlyGuestsData['sep'] ?? 0 }},
-                            {{ $monthlyGuestsData['oct'] ?? 0 }},
-                            {{ $monthlyGuestsData['nov'] ?? 0 }},
-                            {{ $monthlyGuestsData['dec'] ?? 0 }}
-                        ],
-                        backgroundColor: 'rgba(59, 162, 246, 0.8)',
-                        borderColor: 'rgb(59, 162, 246)',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+            const guestsChartEl = document.getElementById('guestsChart');
+            if (guestsChartEl) {
+                new Chart(guestsChartEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        datasets: [{
+                            label: 'Guests',
+                            data: [
+                                {{ $monthlyGuestsData['jan'] ?? 0 }},
+                                {{ $monthlyGuestsData['feb'] ?? 0 }},
+                                {{ $monthlyGuestsData['mar'] ?? 0 }},
+                                {{ $monthlyGuestsData['apr'] ?? 0 }},
+                                {{ $monthlyGuestsData['may'] ?? 0 }},
+                                {{ $monthlyGuestsData['jun'] ?? 0 }},
+                                {{ $monthlyGuestsData['jul'] ?? 0 }},
+                                {{ $monthlyGuestsData['aug'] ?? 0 }},
+                                {{ $monthlyGuestsData['sep'] ?? 0 }},
+                                {{ $monthlyGuestsData['oct'] ?? 0 }},
+                                {{ $monthlyGuestsData['nov'] ?? 0 }},
+                                {{ $monthlyGuestsData['dec'] ?? 0 }}
+                            ],
+                            backgroundColor: 'rgba(59, 162, 246, 0.8)',
+                            borderColor: 'rgb(59, 162, 246)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
 
             const bookingsByTypeEl = document.getElementById('bookingsByTypeChart');
             if (bookingsByTypeEl) {

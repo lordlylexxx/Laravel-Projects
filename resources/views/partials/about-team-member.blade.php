@@ -6,7 +6,7 @@
         <img
             src="{{ $imageUrl }}"
             alt="{{ $displayName !== '—' ? $displayName : $role }}"
-            class="h-36 w-full object-cover sm:h-40 md:h-44"
+            class="h-36 w-full object-cover object-top sm:h-40 md:h-44"
             loading="lazy"
         >
     @else

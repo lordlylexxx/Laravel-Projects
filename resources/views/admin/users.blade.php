@@ -391,7 +391,7 @@
             .main-content { padding: 20px; }
         }
 
-        @include('admin.partials.top-navbar-styles')
+        @include('admin.partials.admin-shell-styles')
     </style>
 </head>
 <body>

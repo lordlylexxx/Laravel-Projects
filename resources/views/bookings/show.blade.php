@@ -400,15 +400,20 @@
                         </div>
                     @elseif(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
                         <div class="action-btns">
+                            @php
+                                $isPaymentRecorded = ($paymentUi['tone'] ?? 'neutral') === 'paid';
+                            @endphp
                             @if($booking->status === 'pending')
                                 <p style="width: 100%; color: var(--gray-600); font-size: 0.95rem; margin-bottom: 8px;">
                                     Please pay first (Stripe or GCash proof upload), then the host will review and approve.
                                 </p>
-                                <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
-                                    Pay / Upload Proof
-                                </a>
+                                @if(! $isPaymentRecorded)
+                                    <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
+                                        Pay / Upload Proof
+                                    </a>
+                                @endif
                             @endif
-                            @if($booking->status === 'confirmed')
+                            @if($booking->status === 'confirmed' && ! $isPaymentRecorded)
                                 <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
                                     Pay via Stripe
                                 </a>

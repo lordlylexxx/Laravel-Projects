@@ -65,12 +65,14 @@
 
         <section class="card">
             <h2 style="font-size:1.05rem; margin-bottom:12px; color:var(--gray-700);">New ticket</h2>
-            <form method="POST" action="/update-tickets">
+            <form method="POST" action="/update-tickets" enctype="multipart/form-data">
                 @csrf
                 <label for="subject">Subject</label>
                 <input id="subject" name="subject" type="text" value="{{ old('subject') }}" required maxlength="255">
                 <label for="body">Details</label>
                 <textarea id="body" name="body" rows="4" required maxlength="10000">{{ old('body') }}</textarea>
+                <label for="attachment">Photo attachment <span style="font-weight:400;color:var(--gray-500);">(optional, JPG/PNG/WEBP up to 5MB)</span></label>
+                <input id="attachment" name="attachment" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                 @if ($errors->any())
                     <div class="flash-error">{{ $errors->first() }}</div>
                 @endif

@@ -15,9 +15,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
-use Spatie\Permission\PermissionRegistrar;
 use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
 use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
+use Spatie\Permission\PermissionRegistrar;
 
 class MessageController extends Controller
 {
@@ -242,7 +242,7 @@ class MessageController extends Controller
         if ($request->filled('recipient_key')) {
             abort_unless($currentTenant, 404);
             if ($this->userIsTenantManager($user, $currentTenant)) {
-            return $this->storeTenantManagerOutbound($request, $user, $currentTenant);
+                return $this->storeTenantManagerOutbound($request, $user, $currentTenant);
             }
             if ($user->isClient()
                 && (int) ($user->tenant_id ?? 0) === (int) $currentTenant->id) {
@@ -915,32 +915,28 @@ class MessageController extends Controller
 
         $validated = $request->validate([
             'tenant_id' => 'required|integer',
-            'recipient_email' => 'required|email',
             'subject' => 'nullable|string|max:255',
             'content' => 'required|string',
         ]);
 
-        $tenant = Tenant::query()
-            ->whereKey($validated['tenant_id'])
-            ->where('database_provisioned', true)
-            ->firstOrFail();
+        $resolved = $this->resolveTenantAndRecipientForCentralSupportContact(
+            selectedTenantId: (int) $validated['tenant_id']
+        );
+
+        if (! $resolved['ok']) {
+            return back()
+                ->withErrors($resolved['errors'])
+                ->withInput();
+        }
+
+        /** @var Tenant $tenant */
+        $tenant = $resolved['tenant'];
+        /** @var User $recipient */
+        $recipient = $resolved['recipient'];
 
         app(MakeTenantCurrentAction::class)->execute($tenant);
 
         try {
-            $recipient = User::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('email', $validated['recipient_email'])
-                ->first();
-
-            if (! $recipient) {
-                return back()
-                    ->withErrors(['recipient_email' => 'No user with that email exists for this tulogan.'])
-                    ->withInput();
-            }
-
-            abort_if(TenantCentralSupportProxyUser::isProxy($recipient), 422);
-
             $proxy = TenantCentralSupportProxyUser::ensure($tenant);
 
             $message = Message::create([
@@ -952,13 +948,65 @@ class MessageController extends Controller
                 'type' => Message::TYPE_GENERAL,
             ]);
 
-            return redirect()->route('admin.messages.thread', [
+            return redirect(route('admin.messages.thread', [
                 'tenant' => $tenant->getKey(),
                 'message' => $message->getKey(),
-            ])->with('success', 'Message sent to '.$recipient->name.'.');
+            ], false))->with('success', 'Message sent to '.$recipient->name.' ('.$tenant->name.').');
         } finally {
             app(ForgetCurrentTenantAction::class)->execute($tenant);
         }
+    }
+
+    /**
+     * @return array{ok: bool, tenant?: Tenant, recipient?: User, errors?: array<string, string>}
+     */
+    private function resolveTenantAndRecipientForCentralSupportContact(int $selectedTenantId): array
+    {
+        $tenant = Tenant::query()
+            ->whereKey($selectedTenantId)
+            ->where('database_provisioned', true)
+            ->first();
+
+        if (! $tenant) {
+            return [
+                'ok' => false,
+                'errors' => ['tenant_id' => 'Selected tulogan is unavailable or not provisioned.'],
+            ];
+        }
+
+        app(MakeTenantCurrentAction::class)->execute($tenant);
+        try {
+            $proxy = TenantCentralSupportProxyUser::ensure($tenant);
+
+            $candidates = User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('is_active', true)
+                ->where('id', '!=', $proxy->id)
+                ->get();
+        } finally {
+            app(ForgetCurrentTenantAction::class)->execute($tenant);
+        }
+
+        if ($candidates->isEmpty()) {
+            return [
+                'ok' => false,
+                'errors' => ['tenant_id' => 'No active recipient was found for the selected tulogan.'],
+            ];
+        }
+
+        $recipient = $candidates
+            ->sortBy(fn (User $user) => match ((string) $user->role) {
+                User::ROLE_OWNER => 0,
+                User::ROLE_ADMIN => 1,
+                default => 2,
+            })
+            ->first();
+
+        return [
+            'ok' => true,
+            'tenant' => $tenant,
+            'recipient' => $recipient,
+        ];
     }
 
     private function assertLandlordCentralMessagingAdmin(Request $request): void

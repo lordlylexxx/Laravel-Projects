@@ -66,16 +66,16 @@
                             style="-webkit-overflow-scrolling: touch;"
                         >
                 @else
-                    <div class="mx-auto grid max-w-[1200px] grid-cols-1 items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    <div class="mx-auto grid max-w-[1200px] grid-cols-1 auto-rows-[minmax(0,1fr)] items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
                 @endif
             @endif
 
             @if($useCarousel)
-                <div class="plan-pricing-slide flex h-full min-h-0 shrink-0 snap-start w-[min(100%,300px)] flex-col sm:w-[308px] {{ $anim[$loop->index] ?? 'opacity-0 animate-fade-in-up' }}">
+                <div class="plan-pricing-slide flex h-full min-h-0 w-[min(100%,300px)] shrink-0 snap-start flex-col sm:w-[308px] {{ $anim[$loop->index] ?? 'opacity-0 animate-fade-in-up' }}">
                     @include('partials.central-landing-plan-card', ['plan' => $plan])
                 </div>
             @else
-                <div class="flex h-full min-h-0 flex-col {{ $anim[$loop->index] ?? 'opacity-0 animate-fade-in-up' }}">
+                <div class="flex h-full min-h-0 w-full flex-col {{ $anim[$loop->index] ?? 'opacity-0 animate-fade-in-up' }}">
                     @include('partials.central-landing-plan-card', ['plan' => $plan])
                 </div>
             @endif

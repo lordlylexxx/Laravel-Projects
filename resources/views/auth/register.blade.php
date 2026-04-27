@@ -5,473 +5,383 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Impasugong Accommodations</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
             --green-dark: #1B5E20;
             --green-primary: #2E7D32;
             --green-medium: #43A047;
-            --green-light: #66BB6A;
-            --green-pale: #81C784;
             --green-soft: #C8E6C9;
             --green-white: #E8F5E9;
             --white: #FFFFFF;
+            --gray-50: #F9FAFB;
+            --gray-200: #E5E7EB;
+            --gray-500: #6B7280;
+            --gray-700: #374151;
+            --danger: #DC2626;
         }
 
-        html,
         body {
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
             display: flex;
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--white) 50%, var(--green-soft) 100%);
+            background: linear-gradient(135deg, var(--green-white) 0%, var(--white) 45%, #EAF7EA 100%);
+            color: var(--gray-700);
         }
-        
-        /* Left Side - Branding */
-        .branding-section {
+
+        .branding {
             flex: 1;
             background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-primary) 100%);
+            color: #fff;
+            padding: 44px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-            color: var(--white);
             position: relative;
             overflow: hidden;
         }
-        
-        .branding-section::before {
-            content: '';
+
+        .branding::before {
+            content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('/COMMUNAL.jpg') no-repeat center center/cover;
-            opacity: 0.15;
+            inset: 0;
+            background: url('/COMMUNAL.jpg') no-repeat center center / cover;
+            opacity: 0.14;
         }
-        
-        .branding-content {
-            text-align: center;
+
+        .branding-inner {
+            position: relative;
             z-index: 1;
+            width: min(100%, 560px);
         }
-        
-        .logo-container {
+
+        .logo-row {
             display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
             align-items: center;
             justify-content: center;
-            gap: clamp(12px, 3vw, 28px);
-            margin-bottom: 28px;
-            max-width: min(100%, 920px);
-            margin-left: auto;
-            margin-right: auto;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 26px;
         }
-        
-        .branding-logo {
-            width: 160px;
-            height: 160px;
+
+        .brand-logo {
+            width: 112px;
+            height: 112px;
             object-fit: contain;
-            flex-shrink: 0;
-            border: none;
-            border-radius: 12px;
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+            border-radius: 10px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25));
         }
-        
-        .branding-content h1 {
-            font-size: 2.5rem;
+
+        .branding h1 {
+            font-size: 2.1rem;
+            line-height: 1.2;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.35);
         }
-        
-        .branding-content p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 30px;
+
+        .branding p {
+            text-align: center;
+            font-size: 1.03rem;
+            opacity: 0.95;
+            margin-bottom: 22px;
         }
-        
-        .benefits-list {
-            text-align: left;
-            max-width: 350px;
-        }
-        
-        .benefits-list li {
-            list-style: none;
-            padding: 12px 0;
+
+        .benefits { list-style: none; display: grid; gap: 10px; }
+        .benefits li {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            font-size: 1rem;
+            gap: 10px;
+            font-size: 0.95rem;
         }
-        
-        .benefits-list li::before {
-            content: '✓';
-            background: rgba(255, 255, 255, 0.2);
-            min-width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
+        .benefits li::before {
+            content: "✓";
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.2);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
-            margin-top: 2px;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 1px;
         }
-        
-        /* Right Side - Form */
-        .form-section {
+
+        .auth-pane {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px;
-            max-height: 100vh;
-            overflow-y: auto;
+            padding: 36px;
         }
-        
-        .form-container {
-            background: var(--white);
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(27, 94, 32, 0.15);
+
+        .auth-card {
             width: 100%;
-            max-width: 500px;
-            max-height: calc(100vh - 80px);
-            overflow-y: auto;
+            max-width: 520px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: 18px;
+            box-shadow: 0 14px 36px rgba(27, 94, 32, 0.14);
+            padding: 34px 30px;
         }
-        
-        .form-header {
+
+        .auth-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 22px;
         }
-        
-        .form-header h2 {
-            font-size: 2rem;
+
+        .auth-header h2 {
             color: var(--green-dark);
-            margin-bottom: 10px;
+            font-size: 1.8rem;
+            margin-bottom: 6px;
         }
-        
-        .form-header p {
-            color: var(--green-medium);
+
+        .auth-header p {
+            color: var(--gray-500);
+            font-size: 0.95rem;
         }
-        
-        /* Role Selection */
-        .role-selection {
-            margin-bottom: 30px;
-        }
-        
-        .role-selection label {
-            display: block;
-            margin-bottom: 12px;
-            font-weight: 600;
-            color: var(--green-dark);
-        }
-        
-        .role-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .role-option {
-            position: relative;
-        }
-        
-        .role-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .role-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            border: 2px solid var(--green-soft);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+
+        .role-hint {
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 18px;
+            color: #166534;
+            font-size: 0.9rem;
             text-align: center;
         }
-        
-        .role-card .icon {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+
+        .global-errors {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
         }
-        
-        .role-card .title {
-            font-weight: 600;
-            color: var(--green-dark);
-            margin-bottom: 5px;
-        }
-        
-        .role-card .description {
-            font-size: 0.85rem;
-            color: var(--green-medium);
-        }
-        
-        .role-option input[type="radio"]:checked + .role-card {
-            border-color: var(--green-primary);
-            background: var(--green-soft);
-        }
-        
-        .role-option:hover .role-card {
-            border-color: var(--green-light);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
+
+        .global-errors ul { margin-left: 18px; }
+
+        .form-group { margin-bottom: 14px; }
+
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+            margin-bottom: 6px;
             color: var(--green-dark);
+            font-weight: 600;
+            font-size: 0.92rem;
         }
-        
+
         .form-group input {
             width: 100%;
-            padding: 15px 20px;
-            border: 2px solid var(--green-soft);
+            padding: 12px 14px;
+            border: 1px solid #CFE7CF;
             border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            background: #fff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        
+
         .form-group input:focus {
             outline: none;
             border-color: var(--green-primary);
-            box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.14);
         }
-        
-        .form-group input::placeholder {
-            color: #aaa;
-        }
-        
-        .form-group .error-message {
-            color: #dc3545;
-            font-size: 0.85rem;
+
+        .error-message {
             margin-top: 5px;
+            font-size: 0.82rem;
+            color: var(--danger);
         }
-        
+
         .submit-btn {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
-            color: var(--white);
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
+            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            margin-top: 6px;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
-        
+
         .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(46, 125, 50, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(46, 125, 50, 0.28);
         }
-        
-        .login-link {
+
+        .auth-links {
             text-align: center;
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 1px solid var(--green-soft);
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+            color: var(--gray-500);
+            font-size: 0.92rem;
         }
-        
-        .login-link p {
-            color: var(--green-medium);
-        }
-        
-        .login-link a {
+
+        .auth-links a {
             color: var(--green-primary);
             font-weight: 600;
             text-decoration: none;
         }
-        
-        .login-link a:hover {
-            text-decoration: underline;
+
+        .auth-links a:hover { text-decoration: underline; }
+
+        @media (max-width: 992px) {
+            .branding { display: none; }
+            .auth-pane { padding: 18px; }
+            .auth-card { max-width: 620px; }
         }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: row;
-            }
-            
-            .branding-section {
-                display: none;
-            }
-            
-            .role-options {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-section {
-                flex: 1;
-                padding: 16px;
-                max-height: 100vh;
-            }
-            
-            .form-container {
-                padding: 24px;
-                max-height: calc(100vh - 32px);
-            }
+
+        @media (max-width: 640px) {
+            .auth-card { padding: 24px 18px; border-radius: 14px; }
+            .auth-header h2 { font-size: 1.55rem; }
         }
     </style>
 </head>
 <body>
-    <!-- Branding Section -->
-    <div class="branding-section">
-        <div class="branding-content">
-            <div class="logo-container">
-                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong" class="branding-logo" width="160" height="160">
-                <img src="{{ asset('SYSTEMLOGO.png') }}" alt="ImpaStay Logo" class="branding-logo" width="160" height="160">
-                <img src="{{ asset('Lgu Socmed Template-02.png') }}" alt="LGU Impasugong" class="branding-logo" width="160" height="160">
+    <section class="branding" aria-hidden="true">
+        <div class="branding-inner">
+            <div class="logo-row">
+                <img src="{{ asset('Love Impasugong.png') }}" alt="Love Impasugong" class="brand-logo" width="112" height="112">
+                <img src="{{ asset('SYSTEMLOGO.png') }}" alt="ImpaStay Logo" class="brand-logo" width="112" height="112">
+                <img src="{{ asset('Lgu Socmed Template-02.png') }}" alt="LGU Impasugong" class="brand-logo" width="112" height="112">
             </div>
-            
+
             <h1>Join Impasugong Accommodations</h1>
-            <p>Create your account today</p>
-            
-            <ul class="benefits-list">
-                <li>Access to unique accommodations</li>
-                <li>Easy booking management</li>
-                <li>Direct communication with hosts</li>
-                <li>Secure payment processing</li>
-                <li>Verified listings only</li>
+            <p>Create your host account and start listing your property.</p>
+
+            <ul class="benefits">
+                <li>List accommodations with photos and complete details</li>
+                <li>Receive booking requests and manage availability</li>
+                <li>Coordinate directly with guests through messaging</li>
+                <li>Track bookings and guest activity in one dashboard</li>
             </ul>
         </div>
-    </div>
-    
-    <!-- Form Section -->
-    <div class="form-section">
-        <div class="form-container">
-            <div class="form-header">
+    </section>
+
+    <main class="auth-pane">
+        <div class="auth-card">
+            <div class="auth-header">
                 <h2>Create Account</h2>
-                <p>Select your account type and fill in the details</p>
+                <p>Fill in your details to continue.</p>
             </div>
-            
+
+            <div class="role-hint">
+                Account type: <strong>Property Owner</strong>
+            </div>
+
+            @if ($errors->any())
+                <div class="global-errors">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('register') }}">
                 @csrf
-                
-                <!-- Role Selection -->
-                <div class="role-selection">
-                    <label>Account Type:</label>
-                    <div class="role-options">
-                        <div class="role-option">
-                            <input type="radio" id="role_owner" name="role" value="owner" checked>
-                            <label for="role_owner" class="role-card">
-                                <span class="icon">🏨</span>
-                                <span class="title">List My Property</span>
-                                <span class="description">Manage accommodations</span>
-                            </label>
-                        </div>
-                    </div>
-                    @error('role')
-                        <p class="error-message">{{ $message }}</p>
-                    @enderror
-                </div>
-                
-                <!-- Name -->
+                <input type="hidden" name="role" value="owner">
+
                 <div class="form-group">
                     <label for="name">Full Name</label>
-                    <input type="text" 
-                           id="name" 
-                           name="name" 
-                           value="{{ old('name') }}" 
-                           required 
-                           autofocus 
-                           autocomplete="name"
-                           placeholder="Enter your full name">
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value="{{ old('name') }}"
+                        required
+                        autofocus
+                        autocomplete="name"
+                        placeholder="Enter your full name"
+                    >
                     @error('name')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
-                
-                <!-- Email Address -->
+
                 <div class="form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           value="{{ old('email') }}" 
-                           required 
-                           autocomplete="username"
-                           placeholder="Enter your email">
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ old('email') }}"
+                        required
+                        autocomplete="username"
+                        placeholder="Enter your email"
+                    >
                     @error('email')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
-                
-                <!-- Phone -->
+
                 <div class="form-group">
                     <label for="phone">Phone Number (Optional)</label>
-                    <input type="tel" 
-                           id="phone" 
-                           name="phone" 
-                           value="{{ old('phone') }}" 
-                           autocomplete="tel"
-                           placeholder="Enter your phone number">
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value="{{ old('phone') }}"
+                        autocomplete="tel"
+                        placeholder="Enter your phone number"
+                    >
                     @error('phone')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
-                
-                <!-- Password -->
+
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" 
-                           id="password" 
-                           name="password" 
-                           required 
-                           autocomplete="new-password"
-                           placeholder="Create a password">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        autocomplete="new-password"
+                        placeholder="Create a password"
+                    >
                     @error('password')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
-                
-                <!-- Confirm Password -->
+
                 <div class="form-group">
                     <label for="password_confirmation">Confirm Password</label>
-                    <input type="password" 
-                           id="password_confirmation" 
-                           name="password_confirmation" 
-                           required 
-                           autocomplete="new-password"
-                           placeholder="Confirm your password">
+                    <input
+                        type="password"
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        required
+                        autocomplete="new-password"
+                        placeholder="Confirm your password"
+                    >
                     @error('password_confirmation')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
-                
-                <!-- Submit Button -->
-                <button type="submit" class="submit-btn">
-                    Create Account
-                </button>
-                
-                <!-- Login Link -->
-                <div class="login-link">
+
+                @error('role')
+                    <p class="error-message" style="margin-bottom: 10px;">{{ $message }}</p>
+                @enderror
+
+                <button type="submit" class="submit-btn">Create Account</button>
+
+                <div class="auth-links">
                     <p>Already have an account? <a href="{{ route('login') }}">Sign In</a></p>
-                    <p style="margin-top: 10px;">
-                        <a href="{{ route('landing') }}">← Back to Home</a>
-                    </p>
+                    <p style="margin-top: 8px;"><a href="{{ route('landing') }}">← Back to Home</a></p>
                 </div>
             </form>
         </div>
-    </div>
+    </main>
 </body>
 </html>
 

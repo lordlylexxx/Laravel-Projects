@@ -72,7 +72,7 @@
                 <h1><i class="fas fa-envelope"></i> Tulogan messaging</h1>
                 <p>
                     Conversations where a tulogan messaged <strong>ImpaStay (Central Admin)</strong>, or you started a thread from here.
-                    The inbox shows <strong>one row per person</strong> per tulogan (latest message in that thread). Messages are stored in each tulogan’s database; use the recipient’s <strong>email</strong> exactly as on their account.
+                    The inbox shows <strong>one row per person</strong> per tulogan (latest message in that thread). Messages are stored in each tulogan’s database.
                 </p>
             </div>
 
@@ -95,12 +95,6 @@
                             @endforeach
                         </select>
 
-                        <label for="recipient_email">Recipient email</label>
-                        <input type="email" name="recipient_email" id="recipient_email" value="{{ old('recipient_email') }}" required placeholder="owner@example.com">
-                        @error('recipient_email')
-                            <div class="error">{{ $message }}</div>
-                        @enderror
-
                         <label for="subject">Subject <span class="muted">(optional)</span></label>
                         <input type="text" name="subject" id="subject" value="{{ old('subject') }}" maxlength="255">
 
@@ -109,6 +103,9 @@
                         @error('content')
                             <div class="error">{{ $message }}</div>
                         @enderror
+                        <p class="muted" style="margin-top:-6px; margin-bottom: 12px; max-width: 760px;">
+                            Recipient is auto-selected from the tulogan's active contacts (owner/admin first), so no email entry is required.
+                        </p>
 
                         <button type="submit" class="btn"><i class="fas fa-paper-plane"></i> Send</button>
                     </form>

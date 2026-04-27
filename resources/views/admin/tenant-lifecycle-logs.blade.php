@@ -88,7 +88,7 @@
             font-size: 0.78rem;
         }
         .pagination { padding: 14px 20px; }
-        @include('admin.partials.top-navbar-styles')
+        @include('admin.partials.admin-shell-styles')
     </style>
 </head>
 <body>

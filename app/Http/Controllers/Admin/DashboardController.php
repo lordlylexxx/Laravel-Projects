@@ -944,7 +944,7 @@ class DashboardController extends Controller
 
         $pdf = \PDF::loadView('admin.reports.demographics-pdf', [
             'demographics' => $demographics,
-        ]);
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->download($baseFileName.'.pdf');
     }
@@ -1198,15 +1198,9 @@ class DashboardController extends Controller
     private function demographicsBaseQuery(?int $tenantId, Carbon $startDate, Carbon $endDate)
     {
         return Booking::query()
-            ->whereIn('bookings.status', ['confirmed', 'completed', 'paid'])
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('bookings.check_in_date', [$startDate->toDateString(), $endDate->toDateString()])
-                    ->orWhereBetween('bookings.check_out_date', [$startDate->toDateString(), $endDate->toDateString()])
-                    ->orWhere(function ($rangeQuery) use ($startDate, $endDate) {
-                        $rangeQuery->whereDate('bookings.check_in_date', '<', $startDate->toDateString())
-                            ->whereDate('bookings.check_out_date', '>', $endDate->toDateString());
-                    });
-            })
+            ->whereIn('bookings.status', ['pending', 'confirmed', 'completed', 'paid'])
+            // Demographics report tracks booking activity by when bookings were made.
+            ->whereBetween('bookings.created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
             ->when($tenantId, fn ($query) => $query->where('bookings.tenant_id', $tenantId));
     }
 
@@ -1299,7 +1293,8 @@ class DashboardController extends Controller
 
         $data = $this->monthlyBookingReportPayload($year, $month);
 
-        $pdf = \PDF::loadView('admin.reports.monthly-booking-pdf', $data);
+        $pdf = \PDF::loadView('admin.reports.monthly-booking-pdf', $data)
+            ->setPaper('a4', 'landscape');
         $filename = "booking-report-{$year}-{$month}-".now()->timestamp.'.pdf';
 
         return $pdf->download($filename);

@@ -18,6 +18,24 @@
         textarea { width: 100%; max-width: 720px; padding: 10px 12px; border-radius: 8px; border: 1px solid #E5E7EB; margin-top: 6px; min-height: 100px; }
         label { font-weight: 600; color: #374151; display: block; margin-top: 12px; }
         .flash-error { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; font-weight: 600; }
+        .ticket-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+        .media-card { border: 1px solid #E5E7EB; border-radius: 10px; background: #F9FAFB; padding: 12px; }
+        .media-preview {
+            width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+            display: block;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .meta-grid { display:grid; grid-template-columns: 110px 1fr; gap: 8px 10px; font-size: 0.9rem; }
+        .meta-key { color:#6B7280; }
+        .meta-value { color:#111827; font-weight:600; word-break:break-word; }
+        @media (max-width: 980px) {
+            .ticket-layout { grid-template-columns: 1fr; }
+            .media-preview { max-height: 260px; }
+        }
     </style>
 </head>
 <body>
@@ -29,16 +47,11 @@
                 <div class="flash">{{ session('success') }}</div>
             @endif
 
-            <p style="margin-bottom:12px;"><a href="{{ route('admin.update-tickets.index') }}" class="btn"><i class="fas fa-arrow-left"></i> All tickets</a></p>
+            <p style="margin-bottom:12px;"><a href="{{ route('admin.update-tickets.index', [], false) }}" class="btn"><i class="fas fa-arrow-left"></i> All tickets</a></p>
 
             <div class="card">
                 <div class="card-inner">
                     <h1 style="font-size:1.2rem;color:#1B5E20;margin-bottom:8px;">{{ $ticket->subject }}</h1>
-                    <p style="color:#6B7280;font-size:0.9rem;">
-                        Tulogan: <strong>{{ $ticket->tenant?->name ?? '—' }}</strong>
-                        · Reporter: {{ $ticket->reporter_name }} ({{ $ticket->reporter_role }}) · {{ $ticket->reporter_email }}
-                        · {{ $ticket->created_at?->format('M j, Y g:i A') }}
-                    </p>
                     <p style="margin:10px 0;">
                         @if($ticket->status === \App\Models\UpdateTicket::STATUS_RESOLVED)
                             <span style="background:#DBEAFE;color:#1D4ED8;padding:4px 12px;border-radius:999px;font-weight:600;font-size:0.85rem;">Fixed</span>
@@ -46,7 +59,41 @@
                             <span style="background:#DCFCE7;color:#166534;padding:4px 12px;border-radius:999px;font-weight:600;font-size:0.85rem;">Pending</span>
                         @endif
                     </p>
-                    <div class="body">{{ $ticket->body }}</div>
+
+                    <div class="ticket-layout">
+                        <div>
+                            <div class="meta-grid" style="margin-bottom: 12px;">
+                                <div class="meta-key">Tulogan</div>
+                                <div class="meta-value">{{ $ticket->tenant?->name ?? '—' }}</div>
+                                <div class="meta-key">Reporter</div>
+                                <div class="meta-value">{{ $ticket->reporter_name }} ({{ $ticket->reporter_role }})</div>
+                                <div class="meta-key">Email</div>
+                                <div class="meta-value">{{ $ticket->reporter_email }}</div>
+                                <div class="meta-key">Created</div>
+                                <div class="meta-value">{{ $ticket->created_at?->format('M j, Y g:i A') }}</div>
+                            </div>
+
+                            <div class="body">{{ $ticket->body }}</div>
+                        </div>
+
+                        <div>
+                            @if($ticket->attachment_url)
+                                <div class="media-card">
+                                    <p style="font-weight:600; color:#374151; margin-bottom:8px;">Attachment</p>
+                                    <img src="{{ $ticket->attachment_url }}" alt="Ticket attachment" class="media-preview">
+                                    <p style="margin-top:10px;">
+                                        <a href="{{ $ticket->attachment_url }}" target="_blank" rel="noopener" class="btn">
+                                            <i class="fas fa-up-right-from-square"></i> Open full image
+                                        </a>
+                                    </p>
+                                </div>
+                            @else
+                                <div class="media-card" style="color:#6B7280;">
+                                    <i class="fas fa-image"></i> No attachment
+                                </div>
+                            @endif
+                        </div>
+                    </div>
 
                     @if($ticket->resolution_notes)
                         <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;margin-top:12px;">
@@ -72,7 +119,7 @@
                     @endif
 
                     @if($ticket->status === \App\Models\UpdateTicket::STATUS_OPEN)
-                        <form method="POST" action="{{ route('admin.update-tickets.update', $ticket) }}">
+                        <form method="POST" action="{{ route('admin.update-tickets.update', ['updateTicket' => $ticket->getKey()], false) }}">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="action" value="resolve">
@@ -82,7 +129,7 @@
                                 <button type="submit" class="btn primary"><i class="fas fa-check"></i> Mark fixed</button>
                             </div>
                         </form>
-                        <form method="POST" action="{{ route('admin.update-tickets.update', $ticket) }}" style="margin-top:12px;">
+                        <form method="POST" action="{{ route('admin.update-tickets.update', ['updateTicket' => $ticket->getKey()], false) }}" style="margin-top:12px;">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="action" value="unresolve">
@@ -91,7 +138,7 @@
                             </div>
                         </form>
                     @else
-                        <form method="POST" action="{{ route('admin.update-tickets.update', $ticket) }}">
+                        <form method="POST" action="{{ route('admin.update-tickets.update', ['updateTicket' => $ticket->getKey()], false) }}">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="action" value="reopen">
@@ -101,7 +148,7 @@
                                 <button type="submit" class="btn warn"><i class="fas fa-undo"></i> Reopen ticket</button>
                             </div>
                         </form>
-                        <form method="POST" action="{{ route('admin.update-tickets.update', $ticket) }}" style="margin-top:12px;">
+                        <form method="POST" action="{{ route('admin.update-tickets.update', ['updateTicket' => $ticket->getKey()], false) }}" style="margin-top:12px;">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="action" value="unresolve">

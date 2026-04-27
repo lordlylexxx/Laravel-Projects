@@ -305,6 +305,22 @@ class BookingController extends Controller
                 return redirect()->route('bookings.show', $booking)
                     ->with('error', 'Payment session does not match this booking.');
             }
+
+            $paymentStatus = (string) ($session->payment_status ?? '');
+            $alreadyRecordedAsStripePaid = $booking->payment_channel === 'stripe'
+                && in_array((string) $booking->payment_method, ['stripe_checkout'], true)
+                && $booking->paid_at !== null;
+
+            // Fallback for environments where webhook is delayed/missed:
+            // trust a verified paid checkout session for this booking.
+            if ($paymentStatus === 'paid' && ! $alreadyRecordedAsStripePaid) {
+                $booking->update([
+                    'payment_channel' => 'stripe',
+                    'payment_method' => 'stripe_checkout',
+                    'payment_reference' => (string) ($session->payment_intent ?? $session->id ?? ''),
+                    'paid_at' => now(),
+                ]);
+            }
         } catch (\Throwable $exception) {
             Log::error('Failed to retrieve Stripe session on booking success redirect.', [
                 'booking_id' => $booking->id,
@@ -318,7 +334,7 @@ class BookingController extends Controller
 
         return redirect()->route('bookings.show', $booking)->with(
             'success',
-            'Stripe checkout completed. Payment is recorded via webhook and now waits for tenant admin approval.'
+            'Stripe checkout completed. Payment has been recorded and now waits for tenant admin approval.'
         );
     }
 

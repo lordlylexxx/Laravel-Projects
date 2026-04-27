@@ -68,7 +68,7 @@
             border: 2px solid #B91C1C; background: var(--white); color: #991B1B;
         }
         .btn-delete:hover { background: #FEE2E2; }
-        @include('admin.partials.top-navbar-styles')
+        @include('admin.partials.admin-shell-styles')
     </style>
 </head>
 <body>

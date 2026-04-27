@@ -12,28 +12,81 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Times New Roman", Times, serif;
             color: #333;
             line-height: 1.6;
+            font-size: 12px;
         }
         
         .container {
             padding: 20px;
-            max-width: 900px;
+            max-width: 1120px;
             margin: 0 auto;
         }
         
         /* Header */
         .header {
-            text-align: center;
-            margin-bottom: 12px;
+            margin-bottom: 3px;
             border-bottom: 2px solid #2E7D32;
-            padding-bottom: 8px;
+            padding-bottom: 0;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2px;
+        }
+        .header-table td {
+            border: none;
+            vertical-align: middle;
+        }
+        .header-left {
+            width: 90px;
+        }
+        .header-center {
+            text-align: center;
+        }
+        .header-right {
+            width: 90px;
+            text-align: right;
+        }
+        .header-side-logo {
+            width: 74px;
+            height: 74px;
+            display: inline-block;
+            object-fit: contain;
+        }
+        .header-right-logo { width: 170px; height: 150px; object-fit: cover; }
+
+        .header-topline {
+            font-size: 12px;
+            color: #4B5563;
+            margin-bottom: 3px;
+        }
+
+        .header-main {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1F2937;
+            letter-spacing: 0.2px;
+            margin-bottom: 2px;
+        }
+
+        .header-office {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 2px;
+        }
+
+        .header-report-line {
+            font-size: 12px;
+            color: #4B5563;
+            margin-bottom: 1px;
         }
         
         .header h1 {
             color: #1B5E20;
-            font-size: 20px;
+            font-size: 16px;
             margin-bottom: 3px;
         }
         
@@ -46,35 +99,35 @@
         .report-meta {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 8px 10px;
+            margin-bottom: 10px;
+            padding: 6px 8px;
             background: #E8F5E9;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 12px;
         }
         
         .meta-item {
-            font-size: 11px;
+            font-size: 12px;
         }
         
         .meta-item strong {
             color: #2E7D32;
             display: block;
             margin-bottom: 1px;
-            font-size: 10px;
+            font-size: 12px;
         }
         
         /* Summary Cards */
         .summary {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             page-break-inside: avoid;
         }
         
         .summary-card {
             flex: 1;
-            padding: 10px;
+            padding: 8px;
             background: #F1F8E9;
             border-left: 3px solid #2E7D32;
             border-radius: 4px;
@@ -83,7 +136,7 @@
         
         .summary-card h4 {
             color: #666;
-            font-size: 10px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.3px;
             margin-bottom: 4px;
@@ -91,7 +144,7 @@
         }
         
         .summary-card .value {
-            font-size: 20px;
+            font-size: 12px;
             color: #1B5E20;
             font-weight: 700;
         }
@@ -104,8 +157,8 @@
         
         .table-section h3 {
             color: #2E7D32;
-            font-size: 13px;
-            margin-bottom: 10px;
+            font-size: 12px;
+            margin-bottom: 8px;
             padding-bottom: 6px;
             border-bottom: 1px solid #E8F5E9;
         }
@@ -113,25 +166,25 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 11px;
+            margin-bottom: 12px;
+            font-size: 12px;
         }
         
         table th {
             background: #2E7D32;
             color: white;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
         
         table td {
-            padding: 8px;
+            padding: 6px;
             border-bottom: 1px solid #E0E0E0;
-            font-size: 11px;
+            font-size: 12px;
         }
         
         table tr:nth-child(even) {
@@ -164,45 +217,27 @@
         
         /* Footer */
         .footer {
-            margin-top: 20px;
-            padding-top: 12px;
-            border-top: 2px solid #2E7D32;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid #d1d5db;
+            font-size: 12px;
+            color: #374151;
         }
-        
-        .footer-detail {
-            margin: 3px 0;
-            line-height: 1.4;
+        .footer-row {
+            width: 100%;
+            border-collapse: collapse;
         }
-        
-        .footer-divider {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #E0E0E0;
-            font-size: 9px;
+        .footer-row td {
+            border: none;
+            font-size: 12px;
+            color: #374151;
+            padding: 2px 0;
         }
-        
-        .footer-item {
-            text-align: center;
-            flex: 1;
-        }
-        
-        .footer-item-label {
-            font-size: 8px;
-            color: #999;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-        
-        .footer-item-value {
-            font-size: 11px;
-            font-weight: 600;
-            color: #2E7D32;
-        }
+        .footer-left { text-align: left; }
+        .footer-center { text-align: center; }
+        .footer-right { text-align: right; }
+        .pagenum:before { content: counter(page); }
+        .pagecount:before { content: counter(pages); }
         
         /* Empty State */
         .empty-state {
@@ -230,9 +265,56 @@
 <body>
     <div class="container">
         <!-- Header -->
+        @php
+            $leftLogoCandidates = [
+                public_path('report-headers/ca-left-logo.png'),
+                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/logo-07b7d8b6-dfca-41f3-a0f6-cd597cd88a1e.png',
+            ];
+            $leftLogoData = null;
+            foreach ($leftLogoCandidates as $candidatePath) {
+                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
+                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
+                    $leftLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
+                    break;
+                }
+            }
+
+            $rightLogoCandidates = [
+                public_path('report-headers/ca-right-logo.png'),
+                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/515313979_729318819730861_9203702352099745495_n-d3bbf38f-364b-44b4-8ce0-e6c997db9063.png',
+            ];
+            $rightLogoData = null;
+            foreach ($rightLogoCandidates as $candidatePath) {
+                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
+                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
+                    $rightLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
+                    break;
+                }
+            }
+        @endphp
         <div class="header">
-            <h1>📊 Monthly Booking Report</h1>
-            <p>{{ $monthName }} - Tenant Guest Analytics</p>
+            <table class="header-table">
+                <tr>
+                    <td class="header-left">
+                        @if($leftLogoData)
+                            <img src="{{ $leftLogoData }}" alt="Municipality Logo" class="header-side-logo">
+                        @endif
+                    </td>
+                    <td class="header-center">
+                        <div class="header-topline">Republic of the Philippines</div>
+                        <div class="header-main">Municipality of Impasug-ong, Bukidnon</div>
+                        <div class="header-office">Tourism Management Office</div>
+                        <div class="header-report-line">Tulogan Monthly Report</div>
+                        <h1>Monthly Booking Report</h1>
+                        <p>{{ $monthName }} - Tenant Guest Analytics</p>
+                    </td>
+                    <td class="header-right">
+                        @if($rightLogoData)
+                            <img src="{{ $rightLogoData }}" alt="Impasug-ong Logo" class="header-side-logo header-right-logo">
+                        @endif
+                    </td>
+                </tr>
+            </table>
         </div>
         
         <!-- Report Meta - Compact -->
@@ -241,7 +323,7 @@
                 <strong>Period:</strong> {{ $startDate->format('M d') }} - {{ $endDate->format('M d, Y') }}
             </div>
             <div class="meta-item">
-                <strong>Generated:</strong> {{ now()->format('M d, Y') }}
+                <strong>Generated:</strong> {{ now('Asia/Manila')->format('M d, Y') }}
             </div>
             <div class="meta-item">
                 <strong>Tenants:</strong> {{ $tenantBookings->count() }}
@@ -309,28 +391,13 @@
         
         <!-- Footer -->
         <div class="footer">
-            <div class="footer-detail">
-                <strong>IMPASUGONG TOURISM Management System</strong> | Monthly Booking Report
-            </div>
-            
-            <div class="footer-divider">
-                <div class="footer-item">
-                    <div class="footer-item-label">Report Date</div>
-                    <div class="footer-item-value">{{ now()->format('M d, Y') }}</div>
-                </div>
-                <div class="footer-item">
-                    <div class="footer-item-label">Time Generated</div>
-                    <div class="footer-item-value">{{ now()->format('H:i A') }}</div>
-                </div>
-                <div class="footer-item">
-                    <div class="footer-item-label">Tracking Number</div>
-                    <div class="footer-item-value">BR-{{ $year }}{{ str_pad($month, 2, '0', STR_PAD_LEFT) }}-{{ strtoupper(substr(md5(now()->toString()), 0, 6)) }}</div>
-                </div>
-            </div>
-            
-            <div class="footer-detail" style="margin-top: 6px; font-size: 8px; color: #bbb;">
-                Confidential - For authorized personnel only
-            </div>
+            <table class="footer-row">
+                <tr>
+                    <td class="footer-left"><strong>Date:</strong> {{ now('Asia/Manila')->format('M d, Y h:i A') }}</td>
+                    <td class="footer-center"><strong>Doc Tracking:</strong> BR-{{ $year }}{{ str_pad($month, 2, '0', STR_PAD_LEFT) }}-{{ strtoupper(substr(md5(now('Asia/Manila')->toString()), 0, 6)) }}</td>
+                    <td class="footer-right"><strong>Page:</strong> <span class="pagenum"></span> / <span class="pagecount"></span></td>
+                </tr>
+            </table>
         </div>
     </div>
 </body>

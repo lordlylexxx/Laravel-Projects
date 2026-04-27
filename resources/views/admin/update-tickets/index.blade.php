@@ -49,7 +49,7 @@
                     <h3 class="support-title"><i class="fas fa-life-ring"></i> Support</h3>
                 </div>
                 <div style="padding: 16px 20px;">
-                    <form method="GET" action="{{ route('admin.update-tickets.index') }}" class="filters">
+                    <form method="GET" action="{{ route('admin.update-tickets.index', [], false) }}" class="filters">
                         <div>
                             <label for="f_status">Status</label>
                             <select id="f_status" name="status" onchange="this.form.submit()">
@@ -67,7 +67,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <a href="{{ route('admin.update-tickets.index') }}" class="btn">Reset</a>
+                        <a href="{{ route('admin.update-tickets.index', [], false) }}" class="btn">Reset</a>
                     </form>
 
                     <div class="support-table-wrap">
@@ -104,7 +104,7 @@
                                                 <span class="pill open">Pending</span>
                                             @endif
                                         </td>
-                                        <td><a href="{{ route('admin.update-tickets.show', $ticket) }}" class="btn primary">Open</a></td>
+                                        <td><a href="{{ route('admin.update-tickets.show', ['updateTicket' => $ticket->getKey()], false) }}" class="btn primary">Open</a></td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="6">No tickets found.</td></tr>

@@ -21,7 +21,7 @@
             <div class="page-header-row">
                 <div class="page-header">
                     <h1><i class="fas fa-tags" style="margin-right:8px;opacity:0.9;"></i>Plan management</h1>
-                    <p>Marketing cards on the central landing page. Price and features default from <code style="background:var(--green-white);padding:2px 6px;border-radius:6px;font-size:0.85em;">Tenant::getPlanDetails()</code> until you override.</p>
+                    <p>Marketing cards on the central landing page. Edit each plan to set titles, prices, and features; leave optional fields empty to use the standard defaults for that tier.</p>
                 </div>
                 <a href="{{ route('admin.landing-plans.create') }}" class="btn-admin-primary"><i class="fas fa-plus"></i> Add plan</a>
             </div>

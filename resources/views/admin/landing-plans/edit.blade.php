@@ -37,7 +37,7 @@
         <main class="main-content main-content-narrow">
             <div class="page-header">
                 <h1>{{ $isCreate ? 'Add plan' : 'Edit plan' }}</h1>
-                <p><a href="{{ route('admin.landing-plans.index') }}" style="color: var(--green-primary); font-weight: 600;">← Back to list</a></p>
+                <p><a href="{{ route('admin.landing-plans.index', [], false) }}" style="color: var(--green-primary); font-weight: 600;">← Back to list</a></p>
             </div>
 
             <div class="card card-padded">
@@ -61,7 +61,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ $isCreate ? route('admin.landing-plans.store') : route('admin.landing-plans.update', $plan) }}" class="space-y-0">
+                <form method="POST" action="{{ $isCreate ? route('admin.landing-plans.store', [], false) : route('admin.landing-plans.update', ['central_landing_plan' => $plan->getKey()], false) }}" class="space-y-0">
                     @csrf
                     @if(!$isCreate)
                         @method('PUT')
@@ -86,7 +86,7 @@
                         <span class="text-sm font-medium text-gray-600">{{ $plan->effectiveCurrency() }}</span>
                         <input type="number" id="price_amount" name="price_amount" value="{{ old('price_amount', $plan->price_amount) }}" min="0" max="999999.99" step="0.01" placeholder="Leave blank for catalog" class="{{ $twField }} min-w-[12rem] flex-1">
                     </div>
-                    <p class="mt-1 text-xs text-gray-500">Shown on the public card. Empty uses the price from <code class="rounded bg-emerald-50 px-1 font-mono text-[11px] text-emerald-900">Tenant::getPlanDetails()</code> for the tier above. Currency always matches that tier.</p>
+                    <p class="mt-1 text-xs text-gray-500">Shown on the public card. If you leave this blank, the card uses the standard catalog price for the selected tier. Currency always matches that tier.</p>
                     @error('price_amount')<div class="mt-1 text-sm text-red-700">{{ $message }}</div>@enderror
 
                     <label for="sort_order" class="mb-1.5 mt-4 block text-sm font-semibold" style="color: var(--green-dark);">Sort order</label>
@@ -107,7 +107,7 @@
                         <input type="radio" name="feature_mode" id="feature_mode_tier" value="tier_catalog" @checked($defaultFeatureMode === 'tier_catalog') class="mt-1 h-4 w-4 shrink-0 border-gray-300 text-emerald-600 focus:ring-emerald-500">
                         <label for="feature_mode_tier" class="m-0 cursor-pointer text-sm font-semibold leading-snug" style="color: var(--green-dark);">
                             This tier only
-                            <span class="mt-0.5 block text-xs font-normal text-gray-500">Same bullets as <code class="rounded bg-gray-100 px-1 font-mono">Tenant::getPlanDetails()</code> for the selected tier (e.g. Basic’s three lines).</span>
+                            <span class="mt-0.5 block text-xs font-normal text-gray-500">Same bullet list as the standard checklist for the selected tier (e.g. Basic’s three lines).</span>
                         </label>
                     </div>
                     <div class="mt-3 flex items-start gap-2.5">
@@ -157,7 +157,7 @@
 
                     <div class="mt-6 flex flex-wrap gap-3">
                         <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save</button>
-                        <a href="{{ route('admin.landing-plans.index') }}" class="btn-admin-secondary">Cancel</a>
+                        <a href="{{ route('admin.landing-plans.index', [], false) }}" class="btn-admin-secondary">Cancel</a>
                     </div>
                 </form>
             </div>

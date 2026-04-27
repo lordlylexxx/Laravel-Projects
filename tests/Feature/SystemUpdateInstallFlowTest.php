@@ -75,7 +75,7 @@ test('central admin can queue system update installation', function () {
             ]);
     });
 
-    $installUrl = URL::signedRoute('admin.updates.install');
+    $installUrl = URL::signedRoute('admin.updates.install', [], null, false);
 
     $this->actingAs($admin)
         ->post($installUrl)
@@ -111,7 +111,7 @@ test('central admin cannot queue install when no newer version exists', function
             ]);
     });
 
-    $installUrl = URL::signedRoute('admin.updates.install');
+    $installUrl = URL::signedRoute('admin.updates.install', [], null, false);
 
     $this->actingAs($admin)
         ->post($installUrl)
@@ -126,7 +126,7 @@ test('guest cannot queue central install update job', function () {
 
     Queue::fake();
 
-    $installUrl = URL::signedRoute('admin.updates.install');
+    $installUrl = URL::signedRoute('admin.updates.install', [], null, false);
 
     $this->post($installUrl)
         ->assertRedirect('/login');
@@ -144,7 +144,7 @@ test('restore endpoint is blocked when backup package does not exist', function 
         'tenant_id' => null,
     ]);
 
-    $restoreUrl = URL::signedRoute('admin.updates.restore');
+    $restoreUrl = URL::signedRoute('admin.updates.restore', [], null, false);
 
     $this->actingAs($admin)
         ->post($restoreUrl)
@@ -189,7 +189,7 @@ test('restore endpoint queues rollback job when backup exists', function () {
         if (str_contains($e->getMessage(), 'Lock wait timeout exceeded')) {
             // Environment contention fallback: prove route is reachable under auth
             // and avoid failing suite on non-deterministic DB lock outside test logic.
-            $restoreUrl = URL::signedRoute('admin.updates.restore');
+            $restoreUrl = URL::signedRoute('admin.updates.restore', [], null, false);
             $this->actingAs($admin)->post($restoreUrl)->assertStatus(302);
             expect(true)->toBeTrue();
 
@@ -199,7 +199,7 @@ test('restore endpoint queues rollback job when backup exists', function () {
         throw $e;
     }
 
-    $restoreUrl = URL::signedRoute('admin.updates.restore');
+    $restoreUrl = URL::signedRoute('admin.updates.restore', [], null, false);
 
     $this->actingAs($admin)
         ->post($restoreUrl)
@@ -240,7 +240,7 @@ test('tenant owner can queue system update installation', function () {
             ]);
     });
 
-    $installUrl = URL::signedRoute('owner.updates.install');
+    $installUrl = URL::signedRoute('owner.updates.install', [], null, false);
     withLockRetry(function () use ($owner, $installUrl): void {
         $this->actingAs($owner)
             ->post($installUrl)

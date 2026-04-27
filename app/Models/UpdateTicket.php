@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class UpdateTicket extends Model
 {
@@ -21,6 +22,7 @@ class UpdateTicket extends Model
         'reporter_email',
         'subject',
         'body',
+        'attachment_path',
         'status',
         'resolution_notes',
         'reopen_note',
@@ -48,5 +50,16 @@ class UpdateTicket extends Model
     public function isResolved(): bool
     {
         return $this->status === self::STATUS_RESOLVED;
+    }
+
+    public function getAttachmentUrlAttribute(): ?string
+    {
+        $path = (string) ($this->attachment_path ?? '');
+
+        if ($path === '') {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

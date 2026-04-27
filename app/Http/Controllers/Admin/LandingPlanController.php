@@ -41,7 +41,7 @@ class LandingPlanController extends Controller
 
         CentralLandingPlan::query()->create($validated);
 
-        return redirect()->route('admin.landing-plans.index')->with('success', 'Landing plan created.');
+        return redirect('/admin/landing-plans')->with('success', 'Landing plan created.');
     }
 
     public function edit(CentralLandingPlan $central_landing_plan): View
@@ -67,14 +67,14 @@ class LandingPlanController extends Controller
 
         $central_landing_plan->update($validated);
 
-        return redirect()->route('admin.landing-plans.index')->with('success', 'Landing plan updated.');
+        return redirect('/admin/landing-plans')->with('success', 'Landing plan updated.');
     }
 
     public function destroy(CentralLandingPlan $central_landing_plan): RedirectResponse
     {
         $central_landing_plan->delete();
 
-        return redirect()->route('admin.landing-plans.index')->with('success', 'Landing plan removed.');
+        return redirect('/admin/landing-plans')->with('success', 'Landing plan removed.');
     }
 
     public function toggleVisibility(CentralLandingPlan $central_landing_plan): RedirectResponse
@@ -86,7 +86,7 @@ class LandingPlanController extends Controller
             ? 'Plan is now visible on the CA landing.'
             : 'Plan is hidden from the CA landing.';
 
-        return redirect()->route('admin.landing-plans.index')->with('success', $message);
+        return redirect('/admin/landing-plans')->with('success', $message);
     }
 
     /**

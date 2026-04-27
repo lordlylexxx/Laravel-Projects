@@ -99,6 +99,11 @@ class UpdateTicketController extends Controller
         abort_unless($user instanceof User, 403);
 
         $landlordId = $this->resolveLandlordUserId($user);
+        $attachmentPath = null;
+
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('update-tickets/'.$tenant->id, 'public');
+        }
 
         return UpdateTicket::query()->create([
             'tenant_id' => $tenant->id,
@@ -108,6 +113,7 @@ class UpdateTicketController extends Controller
             'reporter_email' => (string) $user->email,
             'subject' => $request->validated('subject'),
             'body' => $request->validated('body'),
+            'attachment_path' => $attachmentPath,
             'status' => UpdateTicket::STATUS_OPEN,
         ]);
     }

@@ -52,8 +52,8 @@
             $tourismHead = ['stem' => 'tourism-head', 'name' => null, 'role' => 'Municipal Tourism Officer (Impasugong)', 'bio' => 'Champions destinations, visitor experience, and local hospitality.'];
             // 3 programmers, 1 UX/UI designer, 1 documentor (5 people total).
             $developmentTeam = [
-                ['stem' => 'programmer-1', 'name' => null, 'role' => 'Programmer', 'bio' => 'Builds and maintains ImpaStay’s platform, features, and integrations.'],
-                ['stem' => 'programmer-2', 'name' => null, 'role' => 'Programmer', 'bio' => 'Builds and maintains ImpaStay’s platform, features, and integrations.'],
+                ['stem' => 'programmer-1', 'name' => null, 'role' => 'Lead Programmer', 'bio' => 'Builds and maintains ImpaStay’s platform, features, and integrations.'],
+                ['stem' => 'programmer-2', 'name' => null, 'role' => 'Project Manager', 'bio' => 'Builds and maintains ImpaStay’s platform, features, and integrations.'],
                 ['stem' => 'programmer-3', 'name' => null, 'role' => 'Programmer', 'bio' => 'Builds and maintains ImpaStay’s platform, features, and integrations.'],
                 ['stem' => 'ux-ui-designer', 'name' => null, 'role' => 'UX/UI Designer', 'bio' => 'Designs interfaces and user experiences for guests and property owners.'],
                 ['stem' => 'documentor', 'name' => null, 'role' => 'Documentor', 'bio' => 'Creates documentation, UX/UI notes, and user-facing guides for the platform.'],
@@ -108,22 +108,6 @@
             </div>
         </section>
 
-        <div class="rounded-xl border border-dashed border-brand-soft bg-white/70 px-4 py-4 text-sm text-brand-medium">
-            <p class="font-semibold text-brand-dark">Adding team photos</p>
-            <p class="mt-2">
-                Save images under <code class="rounded bg-brand-soft/80 px-1.5 py-0.5 text-xs text-brand-dark">public/team-photos/</code>
-                (not <code class="text-xs">public/about/</code>—that path conflicts with the <code class="text-xs">/about</code> page URL).
-                Use these base names (any of <code class="text-xs">.jpg</code>, <code class="text-xs">.jpeg</code>, <code class="text-xs">.png</code>, <code class="text-xs">.webp</code>):
-            </p>
-            <ul class="mt-2 list-inside list-disc text-xs leading-relaxed md:text-sm">
-                <li><code>mayor</code>, <code>tourism-head</code></li>
-                <li>Development team: <code>programmer-1</code>, <code>programmer-2</code>, <code>programmer-3</code>, <code>ux-ui-designer</code>, <code>documentor</code></li>
-            </ul>
-            <p class="mt-2">
-                Set each person’s display name in <code class="rounded bg-brand-soft/80 px-1 text-xs">resources/views/about.blade.php</code>
-                (<code class="text-xs">'name' => 'Full Name'</code> per entry).
-            </p>
-        </div>
     </main>
 
     @include('partials.central-public-footer')

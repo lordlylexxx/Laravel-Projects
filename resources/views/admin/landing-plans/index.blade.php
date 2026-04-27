@@ -21,9 +21,9 @@
             <div class="page-header-row">
                 <div class="page-header">
                     <h1><i class="fas fa-tags" style="margin-right:8px;opacity:0.9;"></i>Plan management</h1>
-                    <p>Marketing cards on the central landing page. Price and features default from <code style="background:var(--green-white);padding:2px 6px;border-radius:6px;font-size:0.85em;">Tenant::getPlanDetails()</code> until you override.</p>
+                    <p>Marketing cards on the central landing page. Edit each plan to set titles, prices, and features; leave optional fields empty to use the standard defaults for that tier.</p>
                 </div>
-                <a href="{{ route('admin.landing-plans.create') }}" class="btn-admin-primary"><i class="fas fa-plus"></i> Add plan</a>
+                <a href="{{ route('admin.landing-plans.create', [], false) }}" class="btn-admin-primary"><i class="fas fa-plus"></i> Add plan</a>
             </div>
 
             <div class="card">
@@ -76,14 +76,14 @@
                                         <div class="flex flex-col items-start gap-2">
                                             @if($plan->is_visible)
                                                 <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-900 ring-1 ring-inset ring-emerald-600/15">Visible</span>
-                                                <form action="{{ route('admin.landing-plans.toggle-visibility', $plan) }}" method="POST" class="m-0">
+                                                <form action="{{ route('admin.landing-plans.toggle-visibility', ['central_landing_plan' => $plan->getKey()], false) }}" method="POST" class="m-0">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" class="btn-admin-sm btn-admin-sm-amber" title="Remove this card from the public CA landing">Hide</button>
                                                 </form>
                                             @else
                                                 <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-600/15">Hidden</span>
-                                                <form action="{{ route('admin.landing-plans.toggle-visibility', $plan) }}" method="POST" class="m-0">
+                                                <form action="{{ route('admin.landing-plans.toggle-visibility', ['central_landing_plan' => $plan->getKey()], false) }}" method="POST" class="m-0">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" class="btn-admin-sm btn-admin-sm-mint" title="Show this card on the public CA landing">Unhide</button>
@@ -99,8 +99,8 @@
                                         @endif
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-4">
-                                        <a href="{{ route('admin.landing-plans.edit', $plan) }}" class="btn-admin-sm btn-admin-sm-outline" style="margin-right:6px;">Edit</a>
-                                        <form action="{{ route('admin.landing-plans.destroy', $plan) }}" method="POST" class="inline" onsubmit="return confirm('Delete this landing plan row?');">
+                                        <a href="{{ route('admin.landing-plans.edit', ['central_landing_plan' => $plan->getKey()], false) }}" class="btn-admin-sm btn-admin-sm-outline" style="margin-right:6px;">Edit</a>
+                                        <form action="{{ route('admin.landing-plans.destroy', ['central_landing_plan' => $plan->getKey()], false) }}" method="POST" class="inline" onsubmit="return confirm('Delete this landing plan row?');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn-admin-sm btn-admin-sm-danger">Delete</button>
