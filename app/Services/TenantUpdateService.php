@@ -24,6 +24,8 @@ class TenantUpdateService
         $current = $this->getCurrentRelease($tenantId);
         $currentPublishedAt = $current?->release?->published_at;
 
+        // Include prereleases: GitHub marks typical `-dev` releases as prerelease, which we store as
+        // is_stable=false. Tenants still need to see and apply those tags.
         return AppRelease::query()
             ->when($currentPublishedAt, fn ($query) => $query->where('published_at', '>', $currentPublishedAt))
             ->orderByDesc('is_stable')
