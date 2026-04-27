@@ -69,6 +69,10 @@ class Tenant extends BaseTenant
         'provisioning_error',
         'onboarding_status',
         'payment_reference',
+        'onboarding_payment_channel',
+        'onboarding_gcash_proof_path',
+        'onboarding_gcash_submitted_at',
+        'onboarding_stripe_session_id',
         'payment_submitted_at',
         'onboarding_approved_at',
         'onboarding_approved_by',
@@ -91,6 +95,7 @@ class Tenant extends BaseTenant
             'database_provisioned' => 'boolean',
             'database_provisioned_at' => 'datetime',
             'payment_submitted_at' => 'datetime',
+            'onboarding_gcash_submitted_at' => 'datetime',
             'onboarding_approved_at' => 'datetime',
             'metadata' => 'array',
             'feature_bookings' => 'boolean',
@@ -446,6 +451,11 @@ class Tenant extends BaseTenant
     public function getGcashQrUrl(): ?string
     {
         return $this->gcash_qr_path ? asset('storage/'.$this->gcash_qr_path) : null;
+    }
+
+    public function getOnboardingGcashProofUrlAttribute(): ?string
+    {
+        return $this->onboarding_gcash_proof_path ? asset('storage/'.$this->onboarding_gcash_proof_path) : null;
     }
 
     /**

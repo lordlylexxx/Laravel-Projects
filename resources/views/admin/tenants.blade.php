@@ -46,6 +46,71 @@
             font-weight: 600;
         }
 
+        .tenant-filters {
+            padding: 16px 20px;
+            border-bottom: 1px solid #E5E7EB;
+            background: #FAFAFA;
+        }
+
+        .tenant-filters-grid {
+            display: grid;
+            grid-template-columns: 1.5fr repeat(4, minmax(120px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+
+        @media (max-width: 1024px) {
+            .tenant-filters-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .tenant-filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tenant-filter-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: #6B7280;
+        }
+
+        .tenant-filter-input {
+            width: 100%;
+            border: 1px solid #D1D5DB;
+            border-radius: 10px;
+            padding: 9px 11px;
+            font-size: 13px;
+            color: #111827;
+            background: #fff;
+        }
+
+        .tenant-filter-input:focus {
+            border-color: #10B981;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        }
+
+        .tenant-filter-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tenant-filter-meta {
+            font-size: 12px;
+            color: #6B7280;
+        }
+
         [x-cloak] { display: none !important; }
     </style>
 </head>
@@ -98,6 +163,74 @@
                         Bandwidth is estimated HTTP transfer per tenant host (static assets skipped).
                         <a href="{{ route('admin.tenants.lifecycle-logs') }}" class="font-semibold text-emerald-700 hover:text-emerald-800">Lifecycle logs</a>
                     </p>
+                </div>
+
+                <div class="tenant-filters">
+                    <form method="GET" action="/admin/tenants">
+                        <div class="tenant-filters-grid">
+                            <div>
+                                <label class="tenant-filter-label" for="tenant-q">Search</label>
+                                <input
+                                    id="tenant-q"
+                                    class="tenant-filter-input"
+                                    type="text"
+                                    name="q"
+                                    value="{{ $tenantFilters['q'] ?? '' }}"
+                                    placeholder="Tenant, owner, email, domain, or slug"
+                                >
+                            </div>
+                            <div>
+                                <label class="tenant-filter-label" for="tenant-plan">Plan</label>
+                                <select id="tenant-plan" class="tenant-filter-input" name="plan">
+                                    <option value="">All plans</option>
+                                    <option value="basic" @selected(($tenantFilters['plan'] ?? '') === 'basic')>Basic</option>
+                                    <option value="plus" @selected(($tenantFilters['plan'] ?? '') === 'plus')>Standard</option>
+                                    <option value="pro" @selected(($tenantFilters['plan'] ?? '') === 'pro')>Premium</option>
+                                    <option value="promo" @selected(($tenantFilters['plan'] ?? '') === 'promo')>Promo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="tenant-filter-label" for="tenant-subscription">Billing status</label>
+                                <select id="tenant-subscription" class="tenant-filter-input" name="subscription_status">
+                                    <option value="">All billing</option>
+                                    <option value="trialing" @selected(($tenantFilters['subscription_status'] ?? '') === 'trialing')>Trialing</option>
+                                    <option value="active" @selected(($tenantFilters['subscription_status'] ?? '') === 'active')>Active</option>
+                                    <option value="past_due" @selected(($tenantFilters['subscription_status'] ?? '') === 'past_due')>Past Due</option>
+                                    <option value="cancelled" @selected(($tenantFilters['subscription_status'] ?? '') === 'cancelled')>Cancelled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="tenant-filter-label" for="tenant-onboarding">Onboarding</label>
+                                <select id="tenant-onboarding" class="tenant-filter-input" name="onboarding_status">
+                                    <option value="">All onboarding</option>
+                                    <option value="awaiting_payment" @selected(($tenantFilters['onboarding_status'] ?? '') === 'awaiting_payment')>Awaiting Payment</option>
+                                    <option value="pending_approval" @selected(($tenantFilters['onboarding_status'] ?? '') === 'pending_approval')>Pending Approval</option>
+                                    <option value="approved" @selected(($tenantFilters['onboarding_status'] ?? '') === 'approved')>Approved</option>
+                                    <option value="rejected" @selected(($tenantFilters['onboarding_status'] ?? '') === 'rejected')>Rejected</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="tenant-filter-label" for="tenant-per-page">Rows</label>
+                                <select id="tenant-per-page" class="tenant-filter-input" name="per_page">
+                                    @foreach([10, 15, 25, 50] as $size)
+                                        <option value="{{ $size }}" @selected((int)($tenantFilters['per_page'] ?? 15) === $size)>{{ $size }}/page</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="tenant-filter-actions">
+                            <div class="tenant-filter-meta">
+                                Showing {{ $tenants->firstItem() ?? 0 }}-{{ $tenants->lastItem() ?? 0 }} of {{ $tenants->total() }} tenants
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="/admin/tenants" class="{{ $btnN }}" style="width:auto; padding-inline: 12px;">Reset</a>
+                                <button type="submit" class="{{ $btnP }}" style="width:auto; padding-inline: 14px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Apply
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 @php
@@ -427,6 +560,12 @@
                                             </div>
                                             @if($tenant->payment_reference)
                                                 <p class="mb-2 shrink-0 font-mono text-[9px] text-gray-500">Ref {{ $tenant->payment_reference }}</p>
+                                            @endif
+                                            @if($tenant->onboarding_payment_channel)
+                                                <p class="mb-2 shrink-0 text-[10px] text-gray-600">Channel: <strong class="uppercase">{{ $tenant->onboarding_payment_channel }}</strong></p>
+                                            @endif
+                                            @if($tenant->onboarding_payment_channel === 'gcash' && $tenant->onboardingGcashProofUrl)
+                                                <p class="mb-2 shrink-0 text-[10px]"><a class="font-semibold text-emerald-700 underline" href="{{ $tenant->onboardingGcashProofUrl }}" target="_blank" rel="noopener">View GCash proof</a></p>
                                             @endif
                                             <div class="flex flex-col gap-2">
                                                 <form class="flex flex-col gap-1.5" action="{{ route('admin.tenants.approve-onboarding', $tenant) }}" method="POST">

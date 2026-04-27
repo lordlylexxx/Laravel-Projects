@@ -117,7 +117,7 @@ class RegisteredUserController extends Controller
                     'tenant_id' => $provisionedTenant->id,
                     'actor_user_id' => $user->id,
                     'action' => 'tenant.onboarding.started',
-                    'reason' => 'Owner registered; awaiting mock payment and admin approval.',
+                    'reason' => 'Owner registered; awaiting onboarding payment and admin approval.',
                     'before_state' => [
                         'owner_email' => $user->email,
                     ],
@@ -144,7 +144,7 @@ class RegisteredUserController extends Controller
 
             return redirect()
                 ->route('owner.onboarding.payment')
-                ->with('success', 'Account created. Complete mock payment to submit your space for approval.');
+                ->with('success', 'Account created. Complete payment to submit your space for approval.');
         }
 
         Auth::login($user);

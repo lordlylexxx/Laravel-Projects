@@ -54,8 +54,11 @@
 
         @if($state === 'pending')
             <h1>Under review</h1>
-            <p>Thank you. Your mock payment was submitted on {{ $tenant->payment_submitted_at?->format('M j, Y g:i A') ?? '—' }}. A central administrator will approve your space and you will receive tenant admin credentials by email.</p>
+            <p>Thank you. Your {{ strtoupper((string) ($tenant->onboarding_payment_channel ?? 'payment')) }} submission was received on {{ $tenant->payment_submitted_at?->format('M j, Y g:i A') ?? '—' }}. A central administrator will review and approve your space, then tenant admin credentials will be emailed.</p>
             <p>Reference: <strong>{{ $tenant->payment_reference ?? '—' }}</strong></p>
+            @if($tenant->onboarding_payment_channel === 'gcash' && $tenant->onboardingGcashProofUrl)
+                <p><a href="{{ $tenant->onboardingGcashProofUrl }}" target="_blank" rel="noopener">View uploaded GCash proof</a></p>
+            @endif
             <p><a href="{{ url('/logout') }}">Sign out</a></p>
         @elseif($state === 'rejected')
             <h1>Not approved</h1>

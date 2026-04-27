@@ -128,14 +128,14 @@ class SystemUpdatePageController extends Controller
             : '/owner/system-updates/status';
 
         $installRoute = $navType === 'admin'
-            ? URL::signedRoute('admin.updates.install')
-            : URL::signedRoute('owner.updates.install');
+            ? URL::signedRoute('admin.updates.install', [], null, false)
+            : URL::signedRoute('owner.updates.install', [], null, false);
         $restoreRoute = $navType === 'admin'
-            ? URL::signedRoute('admin.updates.restore')
-            : URL::signedRoute('owner.updates.restore');
+            ? URL::signedRoute('admin.updates.restore', [], null, false)
+            : URL::signedRoute('owner.updates.restore', [], null, false);
         $markInstalledRoute = $navType === 'admin'
-            ? URL::signedRoute('admin.updates.mark-installed')
-            : URL::signedRoute('owner.updates.mark-installed');
+            ? URL::signedRoute('admin.updates.mark-installed', [], null, false)
+            : URL::signedRoute('owner.updates.mark-installed', [], null, false);
 
         if ($navType === 'admin' && $isTenantContext) {
             $ownerUpdateTicketStoreRoute = '/admin/system-updates/tickets/report';

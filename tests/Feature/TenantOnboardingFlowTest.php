@@ -4,6 +4,8 @@ use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
 use App\Services\TenantOnboardingService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Requires MySQL and database `laravel_testing` (see phpunit.xml).
@@ -32,7 +34,9 @@ it('creates tenant in awaiting_payment without provisioning on owner registratio
     expect((bool) $tenant->database_provisioned)->toBeFalse();
 });
 
-it('submits mock payment and moves tenant to pending approval', function () {
+it('submits gcash onboarding proof and moves tenant to pending approval', function () {
+    Storage::fake('public');
+
     $owner = User::factory()->create([
         'role' => User::ROLE_OWNER,
         'email' => 'pay-submit@example.com',
@@ -59,13 +63,18 @@ it('submits mock payment and moves tenant to pending approval', function () {
 
     $owner->update(['tenant_id' => $tenant->id]);
 
-    $response = $this->actingAs($owner)->post(route('owner.onboarding.payment.submit'));
+    $response = $this->actingAs($owner)->post(route('owner.onboarding.payment.submit'), [
+        'gcash_payment_proof' => UploadedFile::fake()->image('onboarding-proof.png'),
+    ]);
 
     $response->assertRedirect(route('owner.onboarding.status'));
 
     $tenant->refresh();
     expect($tenant->onboarding_status)->toBe(Tenant::ONBOARDING_PENDING_APPROVAL);
     expect($tenant->payment_submitted_at)->not->toBeNull();
+    expect($tenant->onboarding_payment_channel)->toBe('gcash');
+    expect($tenant->onboarding_gcash_proof_path)->not->toBeNull();
+    Storage::disk('public')->assertExists($tenant->onboarding_gcash_proof_path);
 
     $log = TenantLifecycleLog::query()
         ->where('tenant_id', $tenant->id)

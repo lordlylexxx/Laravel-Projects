@@ -311,12 +311,38 @@ class DashboardController extends Controller
     /**
      * Display all tenants (admin).
      */
-    public function tenants()
+    public function tenants(Request $request)
     {
-        $tenants = Tenant::query()
+        $search = trim((string) $request->query('q', ''));
+        $plan = trim((string) $request->query('plan', ''));
+        $subscriptionStatus = trim((string) $request->query('subscription_status', ''));
+        $onboardingStatus = trim((string) $request->query('onboarding_status', ''));
+        $perPage = (int) $request->query('per_page', 15);
+        if (! in_array($perPage, [10, 15, 25, 50], true)) {
+            $perPage = 15;
+        }
+
+        $query = Tenant::query()
             ->with('owner:id,name,email')
-            ->orderBy('name')
-            ->paginate(15);
+            ->when($search !== '', function ($builder) use ($search) {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('domain', 'like', "%{$search}%")
+                        ->orWhereHas('owner', function ($ownerQuery) use ($search): void {
+                            $ownerQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($plan !== '', fn ($builder) => $builder->where('plan', $plan))
+            ->when($subscriptionStatus !== '', fn ($builder) => $builder->where('subscription_status', $subscriptionStatus))
+            ->when($onboardingStatus !== '', fn ($builder) => $builder->where('onboarding_status', $onboardingStatus))
+            ->orderBy('name');
+
+        $tenants = $query
+            ->paginate($perPage)
+            ->withQueryString();
 
         $tenantIds = $tenants->getCollection()->pluck('id')->all();
         $latestLifecycleByTenant = TenantLifecycleLog::query()
@@ -346,7 +372,15 @@ class DashboardController extends Controller
             }
         }
 
-        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant'));
+        $tenantFilters = [
+            'q' => $search,
+            'plan' => $plan,
+            'subscription_status' => $subscriptionStatus,
+            'onboarding_status' => $onboardingStatus,
+            'per_page' => $perPage,
+        ];
+
+        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant', 'tenantFilters'));
     }
 
     public function users(): RedirectResponse
@@ -722,11 +756,11 @@ class DashboardController extends Controller
 
         $tenant->refresh();
 
-                $this->logLifecycleAction(
-                    request: $request,
-                    tenant: $tenant,
+        $this->logLifecycleAction(
+            request: $request,
+            tenant: $tenant,
             action: 'tenant.onboarding.approved',
-                    reason: $validated['reason'],
+            reason: $validated['reason'],
             before: [
                 'onboarding_status' => Tenant::ONBOARDING_PENDING_APPROVAL,
             ],
@@ -819,11 +853,11 @@ class DashboardController extends Controller
             try {
                 DB::connection('landlord')->statement("DROP USER IF EXISTS '{$dbUserSanitized}'@'%'");
                 DB::connection('landlord')->statement('FLUSH PRIVILEGES');
-        } catch (\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 Log::warning('Failed to drop tenant database user after tenant delete.', [
                     'db_username' => $dbUserSanitized,
-                'error' => $exception->getMessage(),
-            ]);
+                    'error' => $exception->getMessage(),
+                ]);
             }
         }
 
@@ -1092,6 +1126,7 @@ class DashboardController extends Controller
             $age = is_numeric($booking->guest_age) ? (int) $booking->guest_age : null;
             if ($age === null || $age < 0 || $age > 120) {
                 $ageRaw['Unspecified']++;
+
                 continue;
             }
 

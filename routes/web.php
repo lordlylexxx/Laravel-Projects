@@ -152,7 +152,9 @@ $registerCentralRoutes = function () {
         // ============ OWNER ROUTES ============
         Route::middleware(['auth', 'tenant.context', 'owner'])->prefix('owner')->group(function () {
             Route::get('/onboarding/payment', [OnboardingPaymentController::class, 'showPayment'])->name('owner.onboarding.payment');
-            Route::post('/onboarding/payment', [OnboardingPaymentController::class, 'submitPayment'])->name('owner.onboarding.payment.submit');
+            Route::post('/onboarding/payment', [OnboardingPaymentController::class, 'submitGcashProof'])->name('owner.onboarding.payment.submit');
+            Route::post('/onboarding/payment/stripe-checkout', [OnboardingPaymentController::class, 'startStripeCheckout'])->name('owner.onboarding.payment.stripe.checkout');
+            Route::get('/onboarding/payment/stripe-success', [OnboardingPaymentController::class, 'stripeSuccess'])->name('owner.onboarding.payment.stripe.success');
             Route::get('/onboarding/status', [OnboardingPaymentController::class, 'status'])->name('owner.onboarding.status');
         });
 
@@ -166,13 +168,13 @@ $registerCentralRoutes = function () {
             Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'ownerMarkInstalled'])
                 ->name('updates.mark-installed')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/system-updates/install', [SystemUpdatePageController::class, 'ownerInstall'])
                 ->name('updates.install')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'ownerRestore'])
                 ->name('updates.restore')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/update-tickets', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/update-tickets/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.show');
 
@@ -217,13 +219,13 @@ $registerCentralRoutes = function () {
             Route::get('/system-updates/status', [SystemUpdatePageController::class, 'installStatus'])->name('updates.status');
             Route::post('/system-updates/mark-installed', [SystemUpdatePageController::class, 'adminMarkInstalled'])
                 ->name('updates.mark-installed')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/system-updates/install', [SystemUpdatePageController::class, 'adminInstall'])
                 ->name('updates.install')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/system-updates/restore', [SystemUpdatePageController::class, 'adminRestore'])
                 ->name('updates.restore')
-                ->middleware('signed');
+                ->middleware('signed:relative');
             Route::post('/system-updates/tickets/report', [UpdateTicketController::class, 'ownerStore'])->name('update-tickets.store');
             Route::get('/system-updates/tickets/report/{updateTicket}', [UpdateTicketController::class, 'ownerShow'])->name('update-tickets.staff-show');
 

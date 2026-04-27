@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Tenant;
+use App\Models\TenantLifecycleLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Stripe\Checkout\Session;
@@ -153,6 +154,7 @@ class PaymentController extends Controller
             $paymentType = (string) ($session->metadata->payment_type ?? '');
             $bookingId = (int) ($session->metadata->booking_id ?? 0);
             $tenantId = (int) ($session->metadata->tenant_id ?? 0);
+            $ownerUserId = (int) ($session->metadata->owner_user_id ?? 0);
 
             if ($paymentType === 'booking' && $bookingId > 0 && $tenantId > 0) {
                 $tenant = Tenant::query()->find($tenantId);
@@ -203,6 +205,72 @@ class PaymentController extends Controller
                             'event_id' => $event->id,
                             'tenant_id' => $tenantId,
                             'booking_id' => $bookingId,
+                            'error' => $exception->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            if ($paymentType === 'tenant_onboarding' && $tenantId > 0) {
+                $tenant = Tenant::query()->find($tenantId);
+
+                if (! $tenant) {
+                    Log::warning('Stripe onboarding webhook tenant not found.', [
+                        'event_id' => $event->id,
+                        'tenant_id' => $tenantId,
+                    ]);
+                } else {
+                    try {
+                        $paymentStatus = (string) ($session->payment_status ?? '');
+                        if ($paymentStatus !== 'paid') {
+                            Log::warning('Stripe onboarding webhook received non-paid status.', [
+                                'tenant_id' => $tenantId,
+                                'session_id' => $session->id ?? null,
+                                'payment_status' => $paymentStatus,
+                            ]);
+                        } else {
+                            $currentStatus = (string) ($tenant->onboarding_status ?? '');
+                            $beforeState = [
+                                'onboarding_status' => $currentStatus,
+                                'payment_reference' => (string) ($tenant->payment_reference ?? ''),
+                                'onboarding_payment_channel' => (string) ($tenant->onboarding_payment_channel ?? ''),
+                            ];
+
+                            // Idempotent webhook handling: ignore duplicates once tenant is already pending/approved with stripe.
+                            $alreadyRecorded = in_array($currentStatus, [Tenant::ONBOARDING_PENDING_APPROVAL, Tenant::ONBOARDING_APPROVED], true)
+                                && (string) ($tenant->onboarding_payment_channel ?? '') === 'stripe'
+                                && (string) ($tenant->onboarding_stripe_session_id ?? '') === (string) ($session->id ?? '');
+
+                            if (! $alreadyRecorded) {
+                                $tenant->update([
+                                    'onboarding_status' => $currentStatus === Tenant::ONBOARDING_APPROVED ? Tenant::ONBOARDING_APPROVED : Tenant::ONBOARDING_PENDING_APPROVAL,
+                                    'payment_submitted_at' => $tenant->payment_submitted_at ?? now(),
+                                    'onboarding_payment_channel' => 'stripe',
+                                    'onboarding_stripe_session_id' => (string) ($session->id ?? ''),
+                                    'payment_reference' => (string) ($session->payment_intent ?? $session->id ?? $tenant->payment_reference),
+                                ]);
+
+                                TenantLifecycleLog::create([
+                                    'tenant_id' => $tenant->id,
+                                    'actor_user_id' => $ownerUserId > 0 ? $ownerUserId : null,
+                                    'action' => 'tenant.payment.submitted',
+                                    'reason' => 'Stripe webhook confirmed onboarding payment.',
+                                    'before_state' => $beforeState,
+                                    'after_state' => [
+                                        'onboarding_status' => $tenant->onboarding_status,
+                                        'payment_reference' => $tenant->payment_reference,
+                                        'payment_submitted_at' => $tenant->payment_submitted_at?->toDateTimeString(),
+                                        'onboarding_payment_channel' => $tenant->onboarding_payment_channel,
+                                        'onboarding_stripe_session_id' => $tenant->onboarding_stripe_session_id,
+                                    ],
+                                ]);
+                            }
+                        }
+                    } catch (\Throwable $exception) {
+                        Log::error('Stripe onboarding webhook failed while updating tenant.', [
+                            'event_id' => $event->id,
+                            'tenant_id' => $tenantId,
+                            'owner_user_id' => $ownerUserId,
                             'error' => $exception->getMessage(),
                         ]);
                     }
