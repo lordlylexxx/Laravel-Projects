@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>My Bookings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @php
             $authUser = auth()->user();
@@ -70,12 +80,13 @@
         
         /* Main Layout */
         .main-content {
-            max-width: 1400px;
+            width: min(1800px, 100%);
             margin: 0 auto;
             padding-top: var(--client-nav-offset, 100px);
-            padding-bottom: 40px;
-            padding-left: 40px;
-            padding-right: 40px;
+            padding-bottom: 28px;
+            padding-left: clamp(12px, 2vw, 34px);
+            padding-right: clamp(12px, 2vw, 34px);
+            min-height: calc(100vh - var(--client-nav-offset, 100px));
         }
         
         /* Page Header */
@@ -90,7 +101,7 @@
         .filter-tab.active { background: var(--green-primary); color: white; }
         
         /* Bookings Grid */
-        .bookings-grid { display: grid; gap: 20px; align-items: start; }
+        .bookings-grid { display: grid; gap: 16px; align-items: stretch; }
         
         .booking-card {
             background: var(--white);
@@ -99,7 +110,7 @@
             overflow: hidden;
             transition: all 0.3s;
             align-self: start;
-            height: fit-content;
+            height: 100%;
         }
         
         .booking-card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15); }
@@ -162,7 +173,7 @@
 
         /* Owner compact grid view (4 cards per row) */
         .owner-bookings-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 16px;
         }
         .owner-bookings-grid .booking-header {
@@ -231,7 +242,7 @@
 
         @media (max-width: 1400px) {
             .owner-bookings-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
         }
 
@@ -255,9 +266,9 @@
             @endif
             .main-content {
                 padding-top: calc(var(--client-nav-offset, 100px) - 10px);
-                padding-left: 20px;
-                padding-right: 20px;
-                padding-bottom: 40px;
+                padding-left: 14px;
+                padding-right: 14px;
+                padding-bottom: 24px;
             }
             .booking-body { flex-direction: column; }
             .property-image { width: 100%; height: 200px; }
@@ -310,7 +321,7 @@
     @endif
     
     <!-- Main Content -->
-    <main class="main-content {{ $isTenantManager ? 'with-owner-nav' : '' }}">
+    <main class="main-content {{ $isTenantManager ? 'with-owner-nav' : '' }} w-full">
         @php
             $isOwner = $isTenantManager;
             $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
@@ -319,13 +330,13 @@
             $ownerAccommodationsBase = '/owner/accommodations';
         @endphp
 
-        <div class="page-header">
+        <div class="page-header rounded-2xl border border-emerald-100 bg-white/70 p-4 shadow-sm">
             <h1>My Bookings</h1>
             <p>View and manage your accommodation bookings</p>
         </div>
 
         @if($isOwner)
-            <div style="background: var(--white); border: 1px solid var(--green-soft); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);">
+            <div class="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-sm" style="margin-bottom: 18px;">
                 <h3 style="color: var(--green-dark); margin-bottom: 10px; font-size: 1rem;">GCash QR Code</h3>
                 @if(session('success'))
                     <p style="font-size:0.85rem;color:var(--green-dark);margin-bottom:8px;">{{ session('success') }}</p>
@@ -352,7 +363,7 @@
         @endif
         
         <!-- Filter Tabs -->
-        <div class="filter-tabs">
+        <div class="filter-tabs rounded-2xl border border-emerald-100 bg-white/90 p-3 shadow-sm">
             <a href="{{ $isOwner ? $ownerBookingsBase : route($bookingsIndexRoute) }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">All</a>
             <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=pending') : route($bookingsIndexRoute, ['status' => 'pending']) }}" class="filter-tab {{ request('status') == 'pending' ? 'active' : '' }}">Pending</a>
             <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=confirmed') : route($bookingsIndexRoute, ['status' => 'confirmed']) }}" class="filter-tab {{ request('status') == 'confirmed' ? 'active' : '' }}">Confirmed</a>
@@ -362,15 +373,15 @@
         
         <!-- Bookings List -->
         @if(isset($bookings) && count($bookings) > 0)
-            <div class="bookings-grid {{ $isOwner ? 'owner-bookings-grid' : '' }}">
+            <div class="bookings-grid {{ $isOwner ? 'owner-bookings-grid' : '' }} w-full">
                 @foreach($bookings as $booking)
-                    <div class="booking-card">
+                    <div class="booking-card flex h-full flex-col">
                         <div class="booking-header">
                             <span class="booking-id">Booking #{{ $booking->id }}</span>
                             <span class="booking-date">{{ $booking->created_at->format('M d, Y') }}</span>
                         </div>
                         
-                        <div class="booking-body">
+                        <div class="booking-body flex-1">
                             @if($booking->accommodation && $booking->accommodation->primary_image)
                                 <img src="{{ $booking->accommodation->primary_image_url }}" alt="{{ $booking->accommodation->name }}" class="property-image">
                             @else

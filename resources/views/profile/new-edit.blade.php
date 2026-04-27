@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>Profile Settings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @php
             $authUser = auth()->user();
@@ -71,12 +81,13 @@
         
         /* Main Container */
         .main-container {
-            max-width: 900px;
+            width: min(1700px, 100%);
             margin: 0 auto;
             padding-top: var(--client-nav-offset, 90px);
-            padding-left: 20px;
-            padding-right: 20px;
-            padding-bottom: 40px;
+            padding-left: clamp(12px, 2vw, 28px);
+            padding-right: clamp(12px, 2vw, 28px);
+            padding-bottom: 24px;
+            min-height: calc(100vh - var(--client-nav-offset, 90px));
         }
         
         /* Page Header */
@@ -146,6 +157,16 @@
             padding: 30px;
             margin-bottom: 25px;
             box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .settings-section.danger-wrap {
+            margin-bottom: 0;
         }
         
         .section-header { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--gray-200); }
@@ -263,9 +284,9 @@
             @endif
             .main-container {
                 padding-top: calc(var(--client-nav-offset, 90px) - 10px);
-                padding-left: 15px;
-                padding-right: 15px;
-                padding-bottom: 30px;
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-bottom: 24px;
             }
             .form-row { grid-template-columns: 1fr; }
             .user-card { flex-direction: column; text-align: center; }
@@ -274,6 +295,25 @@
 
         body.owner-nav-page .main-container.with-owner-nav {
             padding-top: 100px;
+        }
+
+        @media (min-width: 1280px) {
+            .settings-grid {
+                grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+                align-items: start;
+            }
+
+            .settings-grid .settings-section:first-child {
+                grid-column: 1 / 2;
+            }
+
+            .settings-grid .settings-section:nth-child(2) {
+                grid-column: 2 / 3;
+            }
+
+            .settings-grid .settings-section.danger-wrap {
+                grid-column: 1 / -1;
+            }
         }
         
         /* Breadcrumb */
@@ -334,7 +374,7 @@
         </div>
         
         <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
             <h1>Profile Settings</h1>
             <p>Manage your account information and preferences</p>
         </div>
@@ -365,7 +405,7 @@
         @endif
         
         <!-- User Info Card -->
-        <div class="user-card">
+        <div class="user-card rounded-2xl border border-emerald-100 bg-white/95">
             @if(Auth::user()->avatar)
                 <div class="user-avatar">
                     <img src="{{ '/storage/avatars/' . Auth::user()->avatar }}" alt="{{ Auth::user()->name }}" onerror="this.onerror=null;this.src='{{ asset('SYSTEMLOGO.png') }}';">
@@ -380,8 +420,9 @@
             </div>
         </div>
         
+        <div class="settings-grid">
         <!-- Profile Information Section -->
-        <div class="settings-section">
+        <div class="settings-section rounded-2xl border border-emerald-100 bg-white/95">
             <div class="section-header">
                 <h2>Personal Information</h2>
                 <p>Update your personal details and contact information</p>
@@ -467,7 +508,7 @@
         </div>
         
         <!-- Password Section -->
-        <div class="settings-section">
+        <div class="settings-section rounded-2xl border border-emerald-100 bg-white/95">
             <div class="section-header">
                 <h2>Change Password</h2>
                 <p>Ensure your account is using a secure password</p>
@@ -522,7 +563,7 @@
         </div>
         
         <!-- Danger Zone -->
-        <div class="settings-section">
+        <div class="settings-section danger-wrap rounded-2xl border border-rose-100 bg-white/95">
             <div class="danger-zone">
                 <h3>Delete Account</h3>
                 <p>Once your account is deleted, all of its resources and data will be permanently deleted. This action cannot be undone.</p>
@@ -539,6 +580,7 @@
                     <button type="submit" class="btn btn-danger">Delete Account</button>
                 </form>
             </div>
+        </div>
         </div>
     </div>
     

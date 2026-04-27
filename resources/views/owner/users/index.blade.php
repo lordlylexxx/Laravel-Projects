@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>User Management - ImpaStay</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     @vite(['resources/css/app.css'])
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -17,8 +27,13 @@
             --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
             --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f8e9; color: #1f2937; }
-        .main-content { max-width: 1200px; margin: 0 auto; padding: 96px 24px 40px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f8e9; color: #1f2937; min-height: 100vh; }
+        .main-content {
+            width: min(1800px, 100%);
+            margin: 0 auto;
+            padding: var(--owner-content-offset) clamp(12px, 2vw, 28px) 24px;
+            min-height: calc(100vh - var(--owner-content-offset));
+        }
         .panel { background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 18px; }
         .panel-header { padding: 18px 20px; border-bottom: 1px solid #e5e7eb; }
         .panel-header h1 { font-size: 1.4rem; color: #14532d; }
@@ -138,7 +153,7 @@
 <body class="owner-nav-page bg-[#f1f8e9] text-slate-800 antialiased">
     @include('owner.partials.top-navbar', ['active' => 'users'])
 
-    <main class="main-content with-owner-nav mx-auto max-w-7xl space-y-4 px-6 pb-10 pt-24">
+    <main class="main-content with-owner-nav space-y-4">
         @if(session('success'))
             <div class="flash success rounded-lg border border-emerald-200 bg-emerald-100 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('success') }}</div>
         @endif

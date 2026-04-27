@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>Messages - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @php
             $authUser = auth()->user();
@@ -49,12 +59,13 @@
         
         /* Main Content */
         .main-content {
-            max-width: 1400px;
+            width: min(1800px, 100%);
             margin: 0 auto;
             padding-top: var(--client-nav-offset, 100px);
-            padding-left: 40px;
-            padding-right: 40px;
-            padding-bottom: 40px;
+            padding-left: clamp(12px, 2vw, 34px);
+            padding-right: clamp(12px, 2vw, 34px);
+            padding-bottom: 24px;
+            min-height: calc(100vh - var(--client-nav-offset, 100px));
         }
         
         .page-header { margin-bottom: 30px; }
@@ -79,9 +90,9 @@
         .btn-compose:hover { filter: brightness(1.05); }
         
         /* Messages Layout */
-        .messages-container { display: grid; grid-template-columns: 350px 1fr; gap: 25px; }
+        .messages-container { display: grid; grid-template-columns: 1fr; gap: 16px; min-height: calc(100vh - var(--client-nav-offset, 100px) - 130px); }
         
-        .message-list { background: var(--white); border-radius: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); overflow: hidden; }
+        .message-list { background: var(--white); border-radius: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); overflow: hidden; height: 100%; min-height: 420px; }
         .message-list-header { padding: 20px; border-bottom: 1px solid var(--green-soft); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .message-list-header h3 { color: var(--green-dark); font-size: 1.1rem; font-weight: 600; margin: 0; }
         .mark-all-read-form { margin: 0; }
@@ -112,12 +123,12 @@
         .message-subject { font-size: 0.9rem; color: var(--green-dark); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .message-preview { font-size: 0.85rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .message-detail { background: var(--white); border-radius: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); overflow: hidden; display: flex; flex-direction: column; }
+        .message-detail { background: var(--white); border-radius: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08); overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 420px; }
         .chat-header { padding: 20px 24px; border-bottom: 1px solid var(--green-soft); background: var(--cream); }
         .chat-header h2 { color: var(--green-dark); font-size: 1.15rem; margin-bottom: 4px; }
         .chat-header p { color: var(--gray-500); font-size: 0.85rem; }
 
-        .chat-body { padding: 20px; min-height: 360px; max-height: 520px; overflow-y: auto; background: #f3f4f6; }
+        .chat-body { padding: 20px; min-height: 280px; height: 100%; overflow-y: auto; background: #f3f4f6; flex: 1; }
         .bubble-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
         .bubble-row.incoming { justify-content: flex-start; }
         .bubble-row.outgoing { justify-content: flex-end; }
@@ -172,7 +183,7 @@
         }
         .btn-delete:hover { background: #FEE2E2; }
         
-        .empty-state { text-align: center; padding: 100px 20px; background: var(--white); border-radius: 16px; }
+        .empty-state { text-align: center; padding: 100px 20px; background: var(--white); border-radius: 16px; min-height: calc(100vh - var(--client-nav-offset, 100px) - 180px); display: flex; flex-direction: column; justify-content: center; }
         .empty-state .icon { font-size: 4rem; margin-bottom: 20px; }
         .empty-state h3 { color: var(--gray-700); margin-bottom: 10px; }
         
@@ -181,12 +192,19 @@
             .navbar { padding: 0 20px; height: 60px; }
             .nav-links { display: none; }
             @endif
-            .messages-container { grid-template-columns: 1fr; }
+            .messages-container { grid-template-columns: 1fr; min-height: auto; }
             .main-content {
                 padding-top: calc(var(--client-nav-offset, 100px) - 10px);
                 padding-left: 20px;
                 padding-right: 20px;
                 padding-bottom: 40px;
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .messages-container {
+                grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+                align-items: stretch;
             }
         }
     </style>

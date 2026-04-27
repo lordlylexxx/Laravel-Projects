@@ -33,9 +33,10 @@
         }
 
         .main-content {
-            max-width: 1280px;
+            width: min(1600px, 100%);
             margin: 0 auto;
-            padding: 28px 32px 50px;
+            padding: var(--owner-content-offset) clamp(12px, 2vw, 32px) 32px;
+            min-height: calc(100vh - var(--owner-content-offset));
         }
 
         .page-header {
@@ -64,6 +65,12 @@
             box-shadow: 0 4px 15px rgba(27, 94, 32, 0.08);
             padding: 16px;
             margin-bottom: 16px;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
         }
 
         .filters {
@@ -135,7 +142,7 @@
 
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 12px;
             margin-bottom: 16px;
         }
@@ -205,6 +212,23 @@
         }
 
         @include('owner.partials.top-navbar-styles')
+
+        @media (min-width: 1280px) {
+            .layout-grid {
+                grid-template-columns: minmax(320px, 420px) 1fr;
+                align-items: start;
+            }
+
+            .filters-card,
+            .kpi-panel {
+                position: sticky;
+                top: calc(var(--owner-topbar-height) + 12px);
+            }
+
+            .kpi-panel .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body class="owner-nav-page">
@@ -216,84 +240,90 @@
             <p>Track monthly sales, total guests catered, and booking activity.</p>
         </div>
 
-        <section class="card">
-            <form method="GET" action="/owner/reports/monthly" class="filters">
-                <div class="field">
-                    <label for="year">Year</label>
-                    <select name="year" id="year">
-                        @for($y = now()->year; $y >= 2020; $y--)
-                            <option value="{{ $y }}" @selected($year === $y)>{{ $y }}</option>
-                        @endfor
-                    </select>
-                </div>
+        <div class="layout-grid">
+            <aside>
+                <section class="card filters-card">
+                    <form method="GET" action="/owner/reports/monthly" class="filters">
+                        <div class="field">
+                            <label for="year">Year</label>
+                            <select name="year" id="year">
+                                @for($y = now()->year; $y >= 2020; $y--)
+                                    <option value="{{ $y }}" @selected($year === $y)>{{ $y }}</option>
+                                @endfor
+                            </select>
+                        </div>
 
-                <div class="field">
-                    <label for="month">Month</label>
-                    <select name="month" id="month">
-                        @for($m = 1; $m <= 12; $m++)
-                            <option value="{{ $m }}" @selected($month === $m)>{{ \Carbon\Carbon::create(2000, $m, 1)->format('F') }}</option>
-                        @endfor
-                    </select>
-                </div>
+                        <div class="field">
+                            <label for="month">Month</label>
+                            <select name="month" id="month">
+                                @for($m = 1; $m <= 12; $m++)
+                                    <option value="{{ $m }}" @selected($month === $m)>{{ \Carbon\Carbon::create(2000, $m, 1)->format('F') }}</option>
+                                @endfor
+                            </select>
+                        </div>
 
-                <button type="submit" class="btn primary"><i class="fas fa-filter"></i> Apply</button>
-                <a href="/owner/reports/monthly/download-sales?year={{ $year }}&month={{ $month }}" class="btn secondary">
-                    <i class="fas fa-file-invoice-dollar"></i> Sales PDF
-                </a>
-                <a href="/owner/reports/monthly/download-guests?year={{ $year }}&month={{ $month }}" class="btn secondary">
-                    <i class="fas fa-users"></i> Guests PDF
-                </a>
-            </form>
-        </section>
+                        <button type="submit" class="btn primary"><i class="fas fa-filter"></i> Apply</button>
+                        <a href="/owner/reports/monthly/download-sales?year={{ $year }}&month={{ $month }}" class="btn secondary">
+                            <i class="fas fa-file-invoice-dollar"></i> Sales PDF
+                        </a>
+                        <a href="/owner/reports/monthly/download-guests?year={{ $year }}&month={{ $month }}" class="btn secondary">
+                            <i class="fas fa-users"></i> Guests PDF
+                        </a>
+                    </form>
+                </section>
 
-        <section class="kpi-grid">
-            <div class="kpi">
-                <div class="kpi-title">Reporting Month</div>
-                <div class="kpi-value" style="font-size: 1.2rem;">{{ $monthName }}</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-title">Monthly Sales</div>
-                <div class="kpi-value">PHP {{ number_format((float) $monthlySales, 2) }}</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-title">People Catered</div>
-                <div class="kpi-value">{{ number_format((int) $monthlyGuests) }}</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-title">Total Bookings</div>
-                <div class="kpi-value">{{ number_format((int) $monthlyBookings) }}</div>
-            </div>
-        </section>
+                <section class="kpi-panel">
+                    <div class="kpi-grid">
+                        <div class="kpi">
+                            <div class="kpi-title">Reporting Month</div>
+                            <div class="kpi-value" style="font-size: 1.2rem;">{{ $monthName }}</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-title">Monthly Sales</div>
+                            <div class="kpi-value">PHP {{ number_format((float) $monthlySales, 2) }}</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-title">People Catered</div>
+                            <div class="kpi-value">{{ number_format((int) $monthlyGuests) }}</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-title">Total Bookings</div>
+                            <div class="kpi-value">{{ number_format((int) $monthlyBookings) }}</div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
 
-        <section class="card">
-            <h2 style="margin-bottom: 10px; color: var(--green-dark);">Daily Breakdown</h2>
-            <div class="table-wrap">
-                @if($dailyBreakdown->count() > 0)
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th class="num">Bookings</th>
-                                <th class="num">Guests</th>
-                                <th class="num">Sales</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($dailyBreakdown as $row)
+            <section class="card">
+                <h2 style="margin-bottom: 10px; color: var(--green-dark);">Daily Breakdown</h2>
+                <div class="table-wrap">
+                    @if($dailyBreakdown->count() > 0)
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>{{ \Carbon\Carbon::parse($row->report_date)->format('M d, Y') }}</td>
-                                    <td class="num">{{ (int) $row->booking_count }}</td>
-                                    <td class="num">{{ (int) $row->total_guests }}</td>
-                                    <td class="num">PHP {{ number_format((float) $row->total_sales, 2) }}</td>
+                                    <th>Date</th>
+                                    <th class="num">Bookings</th>
+                                    <th class="num">Guests</th>
+                                    <th class="num">Sales</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @else
-                    <div class="empty">No qualified bookings found for {{ $monthName }}.</div>
-                @endif
-            </div>
-        </section>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyBreakdown as $row)
+                                    <tr>
+                                        <td>{{ \Carbon\Carbon::parse($row->report_date)->format('M d, Y') }}</td>
+                                        <td class="num">{{ (int) $row->booking_count }}</td>
+                                        <td class="num">{{ (int) $row->total_guests }}</td>
+                                        <td class="num">PHP {{ number_format((float) $row->total_sales, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <div class="empty">No qualified bookings found for {{ $monthName }}.</div>
+                    @endif
+                </div>
+            </section>
+        </div>
     </main>
 </body>
 </html>

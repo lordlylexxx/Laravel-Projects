@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>My Properties - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -95,9 +105,10 @@
         /* Main Content */
         .main-content { 
             padding-top: 90px; 
-            max-width: 1400px; 
+            width: min(1800px, 100%);
             margin: 0 auto; 
-            padding: 90px 40px 60px;
+            padding: var(--owner-content-offset) clamp(12px, 2vw, 34px) 28px;
+            min-height: calc(100vh - var(--owner-content-offset));
         }
         
         /* Page Header */
@@ -147,9 +158,9 @@
         /* Stats Row */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 35px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
         }
         
         .stat-card {
@@ -185,6 +196,7 @@
             border-radius: 20px;
             box-shadow: var(--shadow);
             overflow: hidden;
+            min-height: calc(100vh - var(--owner-content-offset) - 280px);
         }
         
         .table-header {
@@ -334,7 +346,7 @@
             .nav-logo img { width: 38px; height: 38px; }
             .nav-logo span { font-size: 1.1rem; }
             .nav-links { display: none; }
-            .main-content { padding: 80px 20px 40px; }
+            .main-content { padding: calc(var(--owner-content-offset) - 8px) 14px 24px; min-height: auto; }
             .page-header { flex-direction: column; gap: 15px; align-items: flex-start; }
             .page-header h1 { font-size: 1.6rem; }
             .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -349,7 +361,7 @@
     <!-- Main Content -->
     <main class="main-content with-owner-nav">
         <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
             <div>
                 <h1>My Properties</h1>
                 <p>Manage your accommodations and listings</p>
@@ -370,11 +382,11 @@
                 @endif
             </div>
             @if($canCreateListing ?? false)
-                <a href="/owner/accommodations/create" class="add-btn">
+                <a href="/owner/accommodations/create" class="add-btn inline-flex items-center justify-center">
                     ➕ Add Property
                 </a>
             @else
-                <span class="add-btn add-btn-disabled" title="You’ve reached your plan limit or your subscription isn’t active. Upgrade or remove a listing to add more.">
+                <span class="add-btn add-btn-disabled inline-flex items-center justify-center" title="You’ve reached your plan limit or your subscription isn’t active. Upgrade or remove a listing to add more.">
                     ➕ Add Property
                 </span>
             @endif
@@ -419,7 +431,7 @@
             </div>
             
             @if(isset($accommodations) && count($accommodations) > 0)
-                <table class="data-table">
+                <table class="data-table w-full">
                     <thead>
                         <tr>
                             <th>Property</th>
@@ -492,9 +504,9 @@
                     <h3>No Properties Yet</h3>
                     <p>Start by adding your first property to the platform.</p>
                     @if($canCreateListing ?? false)
-                        <a href="/owner/accommodations/create" class="add-btn">➕ Add Your First Property</a>
+                        <a href="/owner/accommodations/create" class="add-btn inline-flex items-center justify-center">➕ Add Your First Property</a>
                     @else
-                        <span class="add-btn add-btn-disabled" title="You’ve reached your plan limit or your subscription isn’t active.">➕ Add Your First Property</span>
+                        <span class="add-btn add-btn-disabled inline-flex items-center justify-center" title="You’ve reached your plan limit or your subscription isn’t active.">➕ Add Your First Property</span>
                     @endif
                 </div>
             @endif
