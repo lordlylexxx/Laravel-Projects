@@ -9,8 +9,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
-            --green-soft: #C8E6C9; --green-white: #E8F5E9;
+            @include('partials.tenant-theme-css-vars')
             --red-light: #fee2e2; --red-dark: #991b1b;
         }
         body {

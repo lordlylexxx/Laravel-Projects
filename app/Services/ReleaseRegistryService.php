@@ -12,16 +12,15 @@ class ReleaseRegistryService
 {
     public function syncFromGitHub(): array
     {
-        $repo = trim((string) config('releases.github_repo', ''));
-        $token = trim((string) config('releases.github_token', ''));
+        $repo = (string) config('releases.github_repo');
+        $token = (string) config('releases.github_token');
 
         if ($repo === '') {
-            return ['synced' => 0, 'updated' => 0, 'skipped' => 0, 'error' => 'GitHub repository is not configured.'];
+            return ['synced' => 0, 'updated' => 0, 'skipped' => 0, 'error' => 'GitHub repository is not configured. Set GITHUB_REPO in .env.'];
         }
 
         $request = Http::acceptJson()
-            ->timeout(30)
-            ->withUserAgent((string) config('app.name', 'Laravel').' release-sync')
+            ->timeout(20)
             ->withOptions([
                 'verify' => $this->resolveTlsVerifyOption(),
             ]);
@@ -30,51 +29,41 @@ class ReleaseRegistryService
         }
 
         try {
-            $response = $request->get("https://api.github.com/repos/{$repo}/releases", [
-                'per_page' => 100,
-            ]);
+            $response = $request->get("https://api.github.com/repos/{$repo}/releases");
         } catch (ConnectionException $exception) {
-            $message = 'GitHub connection failed: '.$exception->getMessage();
-            Log::warning('Failed to sync releases from GitHub.', [
+            Log::warning('GitHub release sync failed due to TLS/connection issue.', [
                 'repo' => $repo,
-                'error' => $message,
+                'error' => $exception->getMessage(),
             ]);
-            return ['synced' => 0, 'updated' => 0, 'skipped' => 0, 'error' => $message];
+
+            return [
+                'synced' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'error' => 'Unable to connect to GitHub over HTTPS. Check CA bundle/certificate settings (GITHUB_CA_BUNDLE or php.ini curl.cainfo).',
+            ];
         }
 
         if (! $response->ok()) {
-            $message = "GitHub request failed with HTTP {$response->status()}.";
             Log::warning('Failed to sync releases from GitHub.', [
                 'repo' => $repo,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
-            return ['synced' => 0, 'updated' => 0, 'skipped' => 0, 'error' => $message];
-        }
-
-        $payloads = (array) $response->json();
-        if ($payloads === []) {
-            // Some environments/tokens intermittently return an empty list.
-            // Fall back to the latest release endpoint so new tags are still discovered.
-            try {
-                $latestResponse = $request->get("https://api.github.com/repos/{$repo}/releases/latest");
-                if ($latestResponse->ok()) {
-                    $latestPayload = (array) $latestResponse->json();
-                    if (($latestPayload['tag_name'] ?? '') !== '') {
-                        $payloads = [$latestPayload];
-                    }
-                }
-            } catch (\Throwable) {
-                // Keep payloads empty and return zero counts below.
-            }
+            return [
+                'synced' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'error' => "GitHub API request failed with status {$response->status()}.",
+            ];
         }
 
         $synced = 0;
         $updated = 0;
         $skipped = 0;
 
-        foreach ($payloads as $releasePayload) {
+        foreach ((array) $response->json() as $releasePayload) {
             $tag = trim((string) ($releasePayload['tag_name'] ?? ''));
             if ($tag === '') {
                 $skipped++;
@@ -148,10 +137,10 @@ class ReleaseRegistryService
 
         if (is_string($verify)) {
             $normalized = strtolower(trim($verify));
-            if (in_array($normalized, ['false', '0', 'off'], true)) {
+            if ($normalized === 'false' || $normalized === '0' || $normalized === 'off') {
                 return false;
             }
-            if (in_array($normalized, ['true', '1', 'on'], true)) {
+            if ($normalized === 'true' || $normalized === '1' || $normalized === 'on') {
                 $verify = true;
             }
         }

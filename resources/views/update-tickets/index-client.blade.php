@@ -18,13 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
-            --green-dark: #1B5E20;
-            --green-primary: #2E7D32;
-            --green-medium: #43A047;
-            --green-soft: #C8E6C9;
-            --green-white: #E8F5E9;
-            --cream: #F1F8E9;
-            --white: #FFFFFF;
+            @include('partials.tenant-theme-css-vars')
             --gray-200: #E5E7EB;
             --gray-500: #6B7280;
             --gray-600: #4B5563;

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\CentralOnboardingGcashSetting;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Stripe\Exception\AuthenticationException;
@@ -24,11 +26,11 @@ class OnboardingPaymentController extends Controller
         }
 
         if ($tenant->onboarding_status === Tenant::ONBOARDING_APPROVED) {
-            return redirect()->route('owner.dashboard');
+            return redirect(route('owner.dashboard', [], false));
         }
 
         if ($tenant->onboarding_status !== Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.status');
+            return redirect(route('owner.onboarding.status', [], false));
         }
 
         $amount = $tenant->mockSubscriptionAmount();
@@ -36,13 +38,27 @@ class OnboardingPaymentController extends Controller
         $currency = $planDetails[$tenant->plan]['currency'] ?? ($planDetails[Tenant::PLAN_BASIC]['currency'] ?? '₱');
         $reference = $this->ensurePaymentReference($tenant);
 
+        $gcashSetting = Schema::hasTable('central_onboarding_gcash_settings')
+            ? CentralOnboardingGcashSetting::query()->first()
+            : null;
+        $onboardingGcashAccountName = filled(trim((string) ($gcashSetting?->gcash_account_name ?? '')))
+            ? trim((string) $gcashSetting->gcash_account_name)
+            : (string) config('impastay.onboarding_gcash_account_name', 'ImpaStay');
+        $onboardingGcashNumber = filled(trim((string) ($gcashSetting?->gcash_number ?? '')))
+            ? trim((string) $gcashSetting->gcash_number)
+            : (string) (config('impastay.onboarding_gcash_number') ?? '');
+        $onboardingGcashQrUrl = filled((string) ($gcashSetting?->gcash_qr_path ?? ''))
+            ? asset('storage/'.$gcashSetting->gcash_qr_path)
+            : null;
+
         return view('owner.onboarding.payment', [
             'tenant' => $tenant,
             'amount' => $amount,
             'currency' => $currency,
             'reference' => $reference,
-            'onboardingGcashAccountName' => (string) config('impastay.onboarding_gcash_account_name', 'ImpaStay'),
-            'onboardingGcashNumber' => (string) config('impastay.onboarding_gcash_number', ''),
+            'onboardingGcashAccountName' => $onboardingGcashAccountName,
+            'onboardingGcashNumber' => $onboardingGcashNumber,
+            'onboardingGcashQrUrl' => $onboardingGcashQrUrl,
         ]);
     }
 
@@ -54,7 +70,7 @@ class OnboardingPaymentController extends Controller
         }
 
         if ($tenant->onboarding_status !== Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.status');
+            return redirect(route('owner.onboarding.status', [], false));
         }
 
         $amountInCentavos = (int) round($tenant->mockSubscriptionAmount() * 100);
@@ -71,8 +87,8 @@ class OnboardingPaymentController extends Controller
             $stripe = new StripeClient($stripeSecret);
             $session = $stripe->checkout->sessions->create([
                 'mode' => 'payment',
-                'success_url' => route('owner.onboarding.payment.stripe.success').'?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => route('owner.onboarding.payment'),
+                'success_url' => url(route('owner.onboarding.payment.stripe.success', [], false)).'?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => url(route('owner.onboarding.payment', [], false)),
                 'line_items' => [[
                     'price_data' => [
                         'currency' => 'php',
@@ -114,7 +130,7 @@ class OnboardingPaymentController extends Controller
         }
 
         if ($tenant->onboarding_status !== Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.status');
+            return redirect(route('owner.onboarding.status', [], false));
         }
 
         $validated = $request->validate([
@@ -123,7 +139,7 @@ class OnboardingPaymentController extends Controller
 
         $stripeSecret = (string) config('services.stripe.secret');
         if ($stripeSecret === '') {
-            return redirect()->route('owner.onboarding.payment')->with('error', 'Stripe is not configured.');
+            return redirect(route('owner.onboarding.payment', [], false))->with('error', 'Stripe is not configured.');
         }
 
         try {
@@ -136,7 +152,7 @@ class OnboardingPaymentController extends Controller
                 'error' => $exception->getMessage(),
             ]);
 
-            return redirect()->route('owner.onboarding.payment')
+            return redirect(route('owner.onboarding.payment', [], false))
                 ->with('error', 'Payment completed but verification failed. Please try again.');
         }
 
@@ -149,7 +165,7 @@ class OnboardingPaymentController extends Controller
             || $sessionOwnerId !== (string) ($request->user()?->id ?? '')
             || $paymentStatus !== 'paid'
         ) {
-            return redirect()->route('owner.onboarding.payment')
+            return redirect(route('owner.onboarding.payment', [], false))
                 ->with('error', 'Stripe payment session validation failed.');
         }
 
@@ -164,7 +180,7 @@ class OnboardingPaymentController extends Controller
             ]
         );
 
-        return redirect()->route('owner.onboarding.status')
+        return redirect(route('owner.onboarding.status', [], false))
             ->with('success', 'Stripe payment verified. Your registration is now pending admin approval.');
     }
 
@@ -176,7 +192,7 @@ class OnboardingPaymentController extends Controller
         }
 
         if ($tenant->onboarding_status !== Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.status');
+            return redirect(route('owner.onboarding.status', [], false));
         }
 
         $request->validate([
@@ -202,8 +218,7 @@ class OnboardingPaymentController extends Controller
             ]
         );
 
-        return redirect()
-            ->route('owner.onboarding.status')
+        return redirect(route('owner.onboarding.status', [], false))
             ->with('success', 'GCash payment proof submitted. We will notify you after admin review.');
     }
 
@@ -215,11 +230,11 @@ class OnboardingPaymentController extends Controller
         }
 
         if ($tenant->onboarding_status === Tenant::ONBOARDING_APPROVED) {
-            return redirect()->route('owner.dashboard');
+            return redirect(route('owner.dashboard', [], false));
         }
 
         if ($tenant->onboarding_status === Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.payment');
+            return redirect(route('owner.onboarding.payment', [], false));
         }
 
         $state = match ($tenant->onboarding_status) {

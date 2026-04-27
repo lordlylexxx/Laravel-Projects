@@ -24,78 +24,8 @@
             margin: 0 auto;
         }
         
-        /* Header */
-        .header {
-            margin-bottom: 3px;
-            border-bottom: 2px solid #2E7D32;
-            padding-bottom: 0;
-        }
-        .header-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2px;
-        }
-        .header-table td {
-            border: none;
-            vertical-align: middle;
-        }
-        .header-left {
-            width: 90px;
-        }
-        .header-center {
-            text-align: center;
-        }
-        .header-right {
-            width: 90px;
-            text-align: right;
-        }
-        .header-side-logo {
-            width: 74px;
-            height: 74px;
-            display: inline-block;
-            object-fit: contain;
-        }
-        .header-right-logo { width: 170px; height: 150px; object-fit: cover; }
+        @include('reports.partials.municipal-pdf-header-styles')
 
-        .header-topline {
-            font-size: 12px;
-            color: #4B5563;
-            margin-bottom: 3px;
-        }
-
-        .header-main {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1F2937;
-            letter-spacing: 0.2px;
-            margin-bottom: 2px;
-        }
-
-        .header-office {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1F2937;
-            margin-bottom: 2px;
-        }
-
-        .header-report-line {
-            font-size: 12px;
-            color: #4B5563;
-            margin-bottom: 1px;
-        }
-        
-        .header h1 {
-            color: #1B5E20;
-            font-size: 16px;
-            margin-bottom: 3px;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 12px;
-            margin: 2px 0;
-        }
-        
         .report-meta {
             display: flex;
             justify-content: space-between;
@@ -264,59 +194,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        @php
-            $leftLogoCandidates = [
-                public_path('report-headers/ca-left-logo.png'),
-                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/logo-07b7d8b6-dfca-41f3-a0f6-cd597cd88a1e.png',
-            ];
-            $leftLogoData = null;
-            foreach ($leftLogoCandidates as $candidatePath) {
-                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
-                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
-                    $leftLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
-                    break;
-                }
-            }
+        @include('reports.partials.municipal-pdf-header', [
+            'pdfReportTitle' => 'Monthly Booking Report',
+            'pdfReportSubtitle' => $monthName.' - Tenant Guest Analytics',
+        ])
 
-            $rightLogoCandidates = [
-                public_path('report-headers/ca-right-logo.png'),
-                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/515313979_729318819730861_9203702352099745495_n-d3bbf38f-364b-44b4-8ce0-e6c997db9063.png',
-            ];
-            $rightLogoData = null;
-            foreach ($rightLogoCandidates as $candidatePath) {
-                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
-                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
-                    $rightLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
-                    break;
-                }
-            }
-        @endphp
-        <div class="header">
-            <table class="header-table">
-                <tr>
-                    <td class="header-left">
-                        @if($leftLogoData)
-                            <img src="{{ $leftLogoData }}" alt="Municipality Logo" class="header-side-logo">
-                        @endif
-                    </td>
-                    <td class="header-center">
-                        <div class="header-topline">Republic of the Philippines</div>
-                        <div class="header-main">Municipality of Impasug-ong, Bukidnon</div>
-                        <div class="header-office">Tourism Management Office</div>
-                        <div class="header-report-line">Tulogan Monthly Report</div>
-                        <h1>Monthly Booking Report</h1>
-                        <p>{{ $monthName }} - Tenant Guest Analytics</p>
-                    </td>
-                    <td class="header-right">
-                        @if($rightLogoData)
-                            <img src="{{ $rightLogoData }}" alt="Impasug-ong Logo" class="header-side-logo header-right-logo">
-                        @endif
-                    </td>
-                </tr>
-            </table>
-        </div>
-        
         <!-- Report Meta - Compact -->
         <div class="report-meta">
             <div class="meta-item">

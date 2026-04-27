@@ -25,9 +25,10 @@ class TenantUpdateService
         $currentPublishedAt = $current?->release?->published_at;
 
         return AppRelease::query()
-            ->where('is_stable', true)
             ->when($currentPublishedAt, fn ($query) => $query->where('published_at', '>', $currentPublishedAt))
+            ->orderByDesc('is_stable')
             ->orderByDesc('published_at')
+            ->orderByDesc('id')
             ->get();
     }
 

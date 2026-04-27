@@ -646,6 +646,16 @@
     <!-- Form Section -->
     <div class="form-section">
         <div class="form-container">
+            @if ($errors->any())
+                <div class="error-banner" role="alert" style="margin-bottom: 16px; padding: 12px 14px; border-radius: 8px; background: #ffebee; border: 1px solid #ffcdd2; color: #b71c1c; font-size: 0.9rem;">
+                    <strong style="display: block; margin-bottom: 6px;">Please fix the following:</strong>
+                    <ul style="margin: 0; padding-left: 1.1rem;">
+                        @foreach ($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <!-- Progress Steps -->
             <div class="progress-steps">
                 <div class="step active" id="step-1-indicator">
@@ -662,7 +672,7 @@
                 </div>
             </div>
             
-            <form method="POST" action="{{ route('register') }}" id="registration-form" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('register', [], false) }}" id="registration-form" enctype="multipart/form-data">
                 @csrf
                 @if($selectedPlanLabel)
                     <input type="hidden" name="subscription_plan" value="{{ $selectedPlan }}">
@@ -965,9 +975,22 @@
             if (currentStep === 1) {
                 currentStep = 2;
             } else if (currentStep === 2) {
+                if (!validateStep2Colors()) {
+                    return;
+                }
                 currentStep = 3;
                 updateSummary();
             } else if (currentStep === 3) {
+                if (!validateStep1()) {
+                    currentStep = 1;
+                    updateUI();
+                    return;
+                }
+                if (!validateStep2Colors()) {
+                    currentStep = 2;
+                    updateUI();
+                    return;
+                }
                 document.getElementById('registration-form').submit();
             }
             
@@ -997,6 +1020,17 @@
                 return false;
             }
             
+            return true;
+        }
+
+        function validateStep2Colors() {
+            const primaryHex = document.getElementById('primary_color_hex').value.trim();
+            const accentHex = document.getElementById('accent_color_hex').value.trim();
+            const hexOk = /^#[0-9A-F]{6}$/i;
+            if (!hexOk.test(primaryHex) || !hexOk.test(accentHex)) {
+                alert('Theme colors must look like #2E7D32 (hash plus six hex digits).');
+                return false;
+            }
             return true;
         }
         

@@ -287,7 +287,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('register') }}">
+            <form method="POST" action="{{ route('register', [], false) }}">
                 @csrf
                 <input type="hidden" name="role" value="owner">
 

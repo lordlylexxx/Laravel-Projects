@@ -161,15 +161,16 @@ class AppServiceProvider extends ServiceProvider
     private static function formatBytes(float $bytes, int $decimals = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $bytes = max(0, $bytes);
+        $bytes = max(0.0, (float) $bytes);
 
-        if ($bytes === 0.0) {
+        // Integer 0 from the DB skips `=== 0.0`; log(0, 1024) is -INF and breaks (int) floor in PHP 8.5.
+        if ($bytes <= 0.0 || ! is_finite($bytes)) {
             return '0 B';
         }
 
-        $power = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $power = (int) max(0, min((int) floor(log($bytes, 1024)), count($units) - 1));
         $bytes /= 1024 ** $power;
 
-        return number_format($bytes, $decimals) . ' ' . $units[$power];
+        return number_format($bytes, $decimals).' '.$units[$power];
     }
 }

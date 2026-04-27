@@ -7,6 +7,7 @@ use App\Mail\TenantDomainStatusChangedMail;
 use App\Mail\TenantSubscriptionChangedMail;
 use App\Models\Accommodation;
 use App\Models\Booking;
+use App\Models\CentralOnboardingGcashSetting;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
@@ -380,7 +381,11 @@ class DashboardController extends Controller
             'per_page' => $perPage,
         ];
 
-        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant', 'tenantFilters'));
+        $gcashSetting = Schema::hasTable('central_onboarding_gcash_settings')
+            ? CentralOnboardingGcashSetting::singleton()
+            : null;
+
+        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant', 'tenantFilters', 'gcashSetting'));
     }
 
     public function users(): RedirectResponse

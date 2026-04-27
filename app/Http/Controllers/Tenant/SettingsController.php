@@ -19,6 +19,18 @@ class SettingsController extends Controller
         abort_unless($tenant, 404);
 
         $current = $tenantUpdateService->getCurrentRelease((int) $tenant->id);
+        if (! $current) {
+            $fallbackRelease = AppRelease::query()
+                ->orderByDesc('is_stable')
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($fallbackRelease) {
+                $current = $tenantUpdateService->backfillCurrentReleaseForTenant($tenant, $fallbackRelease);
+            }
+        }
+
         $available = $tenantUpdateService->getAvailableUpdates((int) $tenant->id);
 
         return view('owner.settings.updates', [
@@ -29,11 +41,7 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function applyUpdate(
-        Request $request,
-        TenantSelfUpdateService $tenantSelfUpdateService,
-        TenantUpdateService $tenantUpdateService
-    ): RedirectResponse
+    public function applyUpdate(Request $request, TenantSelfUpdateService $tenantSelfUpdateService): RedirectResponse
     {
         $tenant = Tenant::current();
         abort_unless($tenant, 404);
@@ -42,15 +50,8 @@ class SettingsController extends Controller
             'release_id' => ['required', 'integer', 'exists:app_releases,id'],
         ]);
 
-        $latestAvailable = $tenantUpdateService
-            ->getAvailableUpdates((int) $tenant->id)
-            ->first();
-
-        if (! $latestAvailable) {
-            return back()->with('success', 'No newer release is available to apply.');
-        }
-
-        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, (int) $latestAvailable->id);
+        $release = AppRelease::query()->findOrFail((int) $validated['release_id']);
+        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, (int) $release->id);
 
         return back()->with($result['ok'] ? 'success' : 'error', $result['message']);
     }

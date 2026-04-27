@@ -6,6 +6,7 @@ use App\Observers\TenantObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\Request;
 use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 
 #[ObservedBy([TenantObserver::class])]
@@ -137,6 +138,28 @@ class Tenant extends BaseTenant
         return 'http://'.$host.$port;
     }
 
+    /**
+     * True when the HTTP host is the central landlord app (owner signup / onboarding).
+     * Must align with PortTenantFinder and routes/web.php central hosts so Spatie's global
+     * tenant resolution never mis-classifies central registration as a tenant-subdomain signup.
+     */
+    public static function isRequestHostForCentralLandlordApp(Request $request): bool
+    {
+        $host = $request->getHost();
+        $centralDomain = (string) env(
+            'CENTRAL_DOMAIN',
+            parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost'
+        );
+
+        foreach (['localhost', '127.0.0.1', '::1', $centralDomain] as $allowed) {
+            if ($allowed !== '' && strcasecmp($host, $allowed) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
@@ -157,12 +180,16 @@ class Tenant extends BaseTenant
     {
         $details = self::getPlanDetails();
         $plan = (string) ($this->plan ?? self::PLAN_BASIC);
+        $basicPrice = (float) ($details[self::PLAN_BASIC]['price'] ?? 299);
 
         if ($plan === self::PLAN_PROMO && $this->promo_price !== null) {
-            return (float) $this->promo_price;
+            $amount = (float) $this->promo_price;
+        } else {
+            $amount = (float) ($details[$plan]['price'] ?? $basicPrice);
         }
 
-        return (float) ($details[$plan]['price'] ?? $details[self::PLAN_BASIC]['price'] ?? 0);
+        // Onboarding Stripe requires at least ₱1; promo catalog defaults to ₱0 without admin-set promo_price.
+        return $amount >= 1.0 ? $amount : $basicPrice;
     }
 
     public function users(): HasMany
@@ -387,8 +414,22 @@ class Tenant extends BaseTenant
     {
         $metadata = is_array($this->metadata) ? $this->metadata : [];
         $landing = is_array($metadata['landing'] ?? null) ? $metadata['landing'] : [];
+        $defaults = $this->defaultLandingSettings();
+        $merged = array_merge($defaults, $landing);
 
-        return array_merge($this->defaultLandingSettings(), $landing);
+        $fromLandingPrimary = isset($landing['primary_color']) ? trim((string) $landing['primary_color']) : '';
+        $fromColumnPrimary = trim((string) ($this->primary_color ?? ''));
+        $merged['primary_color'] = $fromLandingPrimary !== ''
+            ? $fromLandingPrimary
+            : ($fromColumnPrimary !== '' ? $fromColumnPrimary : $defaults['primary_color']);
+
+        $fromLandingAccent = isset($landing['accent_color']) ? trim((string) $landing['accent_color']) : '';
+        $fromColumnAccent = trim((string) ($this->accent_color ?? ''));
+        $merged['accent_color'] = $fromLandingAccent !== ''
+            ? $fromLandingAccent
+            : ($fromColumnAccent !== '' ? $fromColumnAccent : $defaults['accent_color']);
+
+        return $merged;
     }
 
     public function updateLandingSettings(array $settings): void
@@ -414,8 +455,8 @@ class Tenant extends BaseTenant
             'signup_text' => 'Sign Up',
             'about_title' => 'About Our Property Network',
             'about_text' => 'We offer comfortable stays and responsive support for travelers who want a smooth booking experience.',
-            'primary_color' => '#14532d',
-            'accent_color' => '#16a34a',
+            'primary_color' => '#00AA77',
+            'accent_color' => '#0B1FD9',
             'hero_image_url' => asset('SYSTEMLOGO.png'),
         ];
     }

@@ -7,7 +7,7 @@
     <title>Registration status — {{ $tenant->name }}</title>
     <style>
         :root {
-            --primary: #14532d;
+            @include('partials.tenant-theme-css-vars', ['themeTenant' => $tenant])
             --muted: #6b7280;
             --line: #e5e7eb;
         }

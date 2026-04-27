@@ -7,8 +7,7 @@
     <title>Payment setup — {{ $tenant->name }}</title>
     <style>
         :root {
-            --primary: #14532d;
-            --accent: #16a34a;
+            @include('partials.tenant-theme-css-vars', ['themeTenant' => $tenant])
             --ink: #111827;
             --muted: #6b7280;
             --line: #e5e7eb;
@@ -77,6 +76,23 @@
         .note { font-size: 0.82rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
         label { font-size: 0.84rem; font-weight: 700; display: block; margin-bottom: 6px; color: #374151; }
         input[type="file"] { width: 100%; margin-bottom: 12px; }
+        .gcash-qr {
+            margin: 12px 0 16px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px dashed var(--line);
+            background: #f8fafc;
+            text-align: center;
+        }
+        .gcash-qr img {
+            max-width: 100%;
+            max-height: 280px;
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fff;
+        }
     </style>
 </head>
 <body>
@@ -102,7 +118,7 @@
             <section class="section">
                 <h2>Pay with Stripe</h2>
                 <p>Instant online payment via Stripe Checkout (cards, e-wallets supported by Stripe in your region).</p>
-                <form method="POST" action="{{ route('owner.onboarding.payment.stripe.checkout') }}">
+                <form method="POST" action="{{ route('owner.onboarding.payment.stripe.checkout', [], false) }}">
                     @csrf
                     <button type="submit" class="btn">Pay now with Stripe</button>
                 </form>
@@ -115,7 +131,13 @@
                     <strong>Account:</strong> {{ $onboardingGcashAccountName !== '' ? $onboardingGcashAccountName : 'Not configured' }}<br>
                     <strong>GCash number:</strong> {{ $onboardingGcashNumber !== '' ? $onboardingGcashNumber : 'Not configured' }}
                 </p>
-                <form method="POST" action="{{ route('owner.onboarding.payment.submit') }}" enctype="multipart/form-data">
+                @if(!empty($onboardingGcashQrUrl))
+                    <div class="gcash-qr">
+                        <p class="muted" style="margin-bottom:8px;font-size:0.85rem;">Scan to pay with GCash</p>
+                        <img src="{{ $onboardingGcashQrUrl }}" alt="GCash QR code for onboarding payment" loading="lazy">
+                    </div>
+                @endif
+                <form method="POST" action="{{ route('owner.onboarding.payment.submit', [], false) }}" enctype="multipart/form-data">
                     @csrf
                     <label for="gcash_payment_proof">Upload proof screenshot</label>
                     <input id="gcash_payment_proof" name="gcash_payment_proof" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\LandingPlanController;
+use App\Http\Controllers\Admin\OnboardingGcashSettingsController;
 use App\Http\Controllers\Admin\ReleaseController as AdminReleaseController;
 use App\Http\Controllers\Admin\UpdateTicketController as CentralAdminUpdateTicketController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -201,7 +202,8 @@ $registerCentralRoutes = function () {
             // Admin Dashboard with Sales Monitoring
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('/system-updates', [AdminReleaseController::class, 'index'])->name('updates.index');
-            Route::post('/system-updates/sync', [AdminReleaseController::class, 'sync'])->name('releases.sync');
+            Route::get('/system-updates/sync', [AdminReleaseController::class, 'sync'])->name('releases.sync');
+            Route::post('/system-updates/sync', [AdminReleaseController::class, 'sync'])->name('releases.sync.post');
             Route::post('/system-updates/{release}/required', [AdminReleaseController::class, 'markRequired'])->name('releases.required');
             Route::post('/system-updates/{release}/notify-all', [AdminReleaseController::class, 'notifyAll'])->name('releases.notify-all');
             Route::post('/system-updates/{release}/force-mark-all-updated', [AdminReleaseController::class, 'forceMarkAllUpdated'])->name('releases.force-mark-all-updated');
@@ -222,6 +224,8 @@ $registerCentralRoutes = function () {
 
             // Tenant Management
             Route::get('/tenants', [AdminDashboardController::class, 'tenants'])->name('tenants');
+            Route::patch('/tenants/onboarding-gcash', [OnboardingGcashSettingsController::class, 'update'])->name('tenants.onboarding-gcash.update');
+            Route::redirect('/onboarding-gcash', '/admin/tenants');
             Route::get('/tenant-lifecycle-logs', [AdminDashboardController::class, 'tenantLifecycleLogs'])->name('tenants.lifecycle-logs');
             Route::get('/users', function () {
                 return redirect()->route('admin.tenants');
