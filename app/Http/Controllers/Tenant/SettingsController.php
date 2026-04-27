@@ -32,8 +32,7 @@ class SettingsController extends Controller
         Request $request,
         TenantSelfUpdateService $tenantSelfUpdateService,
         TenantUpdateService $tenantUpdateService
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $tenant = Tenant::current();
         abort_unless($tenant, 404);
 
