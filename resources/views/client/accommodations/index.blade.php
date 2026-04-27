@@ -6,20 +6,21 @@
     @include('partials.tenant-favicon')
     <title>Properties - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         :root {
             --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
-            --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
-            --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
-            --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
-            --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
-            --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-            --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.12);
+            --green-soft: #C8E6C9; --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
+            --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937;
         }
         
         @unless(auth()->user()?->isClient())
@@ -68,363 +69,14 @@
         .nav-btn.primary { background: var(--green-primary); color: var(--white); }
         .nav-btn.primary:hover { background: var(--green-dark); transform: translateY(-1px); }
         .nav-btn.secondary { background: var(--green-soft); color: var(--green-dark); }
-        .nav-btn.secondary:hover { background: var(--green-pale); }
+        .nav-btn.secondary:hover { background: var(--green-white); }
         @endunless
 
         @if(auth()->user()?->isClient())
             @include('client.partials.top-navbar-styles')
         @endif
-
-        body {
-            font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-            background: var(--cream);
-            color: var(--gray-800);
-            line-height: 1.6;
-        }
-        
-        /* Main Content — offset matches fixed nav height */
-        .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding-top: var(--client-nav-offset, 90px);
-            padding-left: 40px;
-            padding-right: 40px;
-            padding-bottom: 60px;
-        }
-        
-        /* Page Header */
-        .page-header { 
-            margin-bottom: 40px; 
-            text-align: center;
-        }
-        .page-header-logos {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-        .page-header-logos img {
-            width: 66px;
-            height: 66px;
-            object-fit: contain;
-            border-radius: 12px;
-            background: #fff;
-            padding: 6px;
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-        }
-        .page-header h1 { 
-            font-size: 2.2rem; 
-            color: var(--green-dark); 
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-        .page-header p { 
-            color: var(--gray-500); 
-            font-size: 1.05rem;
-        }
-        
-        /* Filter Bar — single horizontal row (scroll on very narrow widths) */
-        .filter-bar {
-            background: var(--white);
-            padding: 16px 20px;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            margin-bottom: 35px;
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 10px 12px;
-            align-items: center;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .filter-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .filter-group--search {
-            flex: 1 1 160px;
-            min-width: 140px;
-            flex-shrink: 1;
-        }
-        .filter-group--search .filter-input {
-            width: 100%;
-            min-width: 0;
-        }
-        .filter-group label { 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            color: var(--gray-600);
-            white-space: nowrap;
-        }
-        
-        .filter-input {
-            padding: 10px 12px;
-            border: 2px solid var(--gray-200);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.2s;
-            min-width: 0;
-        }
-        .filter-input[type="number"] {
-            width: 6.5rem;
-            min-width: 5.5rem;
-            max-width: 7rem;
-        }
-        .filter-input:focus { border-color: var(--green-primary); }
-        
-        .filter-select {
-            padding: 10px 12px;
-            border: 2px solid var(--gray-200);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            outline: none;
-            background: var(--white);
-            cursor: pointer;
-            transition: all 0.2s;
-            min-width: 0;
-        }
-        .filter-group .filter-select[name="type"] {
-            width: 8.5rem;
-        }
-        .filter-group .filter-select[name="guests"] {
-            width: 6.5rem;
-        }
-        .filter-select:focus { border-color: var(--green-primary); }
-        
-        .filter-btn {
-            padding: 10px 22px;
-            background: var(--green-primary);
-            color: var(--white);
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .filter-btn:hover { background: var(--green-dark); }
-        
-        /* Properties Grid */
-        .properties-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-            gap: 20px;
-        }
-        
-        /* Property Card */
-        .property-card {
-            background: var(--white);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-        .property-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .property-image-wrapper {
-            position: relative;
-            height: 170px;
-            overflow: hidden;
-        }
-        
-        .property-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.4s ease;
-        }
-        .property-card:hover .property-image { transform: scale(1.05); }
-        
-        .property-type-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: var(--green-primary);
-            color: var(--white);
-            padding: 5px 12px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .property-favorite {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 36px;
-            height: 36px;
-            background: var(--white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-            font-size: 1rem;
-            box-shadow: var(--shadow);
-        }
-        .property-favorite:hover {
-            background: var(--green-pale);
-            transform: scale(1.1);
-        }
-        
-        .property-content { padding: 16px; }
-        
-        .property-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--green-primary);
-            margin-bottom: 8px;
-        }
-        .property-price span {
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: var(--gray-500);
-        }
-        
-        .property-title {
-            font-size: 1.05rem;
-            color: var(--gray-800);
-            margin-bottom: 10px;
-            font-weight: 600;
-            line-height: 1.3;
-        }
-        
-        .property-location {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--gray-500);
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-        }
-        
-        .property-location svg {
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-        }
-        
-        .property-description {
-            color: var(--gray-600);
-            font-size: 0.85rem;
-            line-height: 1.45;
-            margin-bottom: 14px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .property-features {
-            display: flex;
-            gap: 14px;
-            padding-top: 12px;
-            border-top: 1px solid var(--gray-200);
-            margin-bottom: 14px;
-        }
-        
-        .feature {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--gray-600);
-            font-size: 0.82rem;
-        }
-        
-        .feature svg {
-            width: 18px;
-            height: 18px;
-            color: var(--green-primary);
-            flex-shrink: 0;
-        }
-        
-        .property-rating {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        
-        .stars {
-            color: #F59E0B;
-            font-size: 0.88rem;
-            letter-spacing: 1px;
-        }
-        
-        .rating-count {
-            color: var(--gray-500);
-            font-size: 0.85rem;
-        }
-        
-        .view-btn {
-            width: 100%;
-            padding: 10px;
-            background: linear-gradient(135deg, var(--green-primary), var(--green-medium));
-            color: var(--white);
-            border: none;
-            border-radius: 10px;
-            font-size: 0.92rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .view-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(46, 125, 50, 0.35);
-        }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 80px 40px;
-            background: var(--white);
-            border-radius: 20px;
-            grid-column: 1 / -1;
-        }
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            color: var(--gray-300);
-            margin-bottom: 20px;
-        }
-        .empty-state h3 {
-            color: var(--gray-700);
-            font-size: 1.4rem;
-            margin-bottom: 10px;
-        }
-        .empty-state p { color: var(--gray-500); }
-        
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 50px;
-        }
-        .pagination a, .pagination span {
-            padding: 12px 18px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .pagination a { background: var(--white); color: var(--gray-700); border: 1px solid var(--gray-200); }
-        .pagination a:hover, .pagination a.active { background: var(--green-primary); color: var(--white); border-color: var(--green-primary); }
         
         /* Responsive */
-        @media (max-width: 1024px) {
-            .properties-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-        }
-        
         @media (max-width: 768px) {
             @unless(auth()->user()?->isClient())
             .navbar { padding: 0 20px; height: 60px; }
@@ -432,40 +84,11 @@
             .nav-logo span { font-size: 1.1rem; }
             .nav-links { display: none; }
             @endunless
-            .main-content {
-                padding-top: calc(var(--client-nav-offset, 90px) - 10px);
-                padding-left: 20px;
-                padding-right: 20px;
-                padding-bottom: 40px;
-            }
-            .page-header-logos img { width: 54px; height: 54px; }
-            .page-header h1 { font-size: 1.8rem; }
-            .filter-bar {
-                flex-wrap: wrap;
-                flex-direction: column;
-                align-items: stretch;
-                overflow-x: visible;
-            }
-            .filter-group,
-            .filter-group--search {
-                flex-shrink: 1;
-                width: 100%;
-            }
-            .filter-group .filter-select[name="type"],
-            .filter-group .filter-select[name="guests"] {
-                width: 100%;
-            }
-            .filter-input[type="number"] {
-                width: 100%;
-                max-width: none;
-            }
-            .filter-btn { width: 100%; }
-            .properties-grid { grid-template-columns: 1fr; }
         }
 
     </style>
 </head>
-<body>
+<body class="min-h-screen bg-gradient-to-br from-green-50 via-lime-50 to-white text-gray-800">
     <!-- Navigation -->
     @if(auth()->user()?->isClient())
     @include('client.partials.top-navbar', ['active' => 'accommodations'])
@@ -500,22 +123,22 @@
     @endif
     
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="mx-auto min-h-screen w-full max-w-[1800px] px-4 pb-10 sm:px-6 lg:px-10" style="padding-top: calc(var(--client-nav-offset, 108px) + 24px);">
         <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-header-logos">
-                <img src="/Love%20Impasugong.png" alt="Love Impasugong Logo">
-                <img src="/SYSTEMLOGO.png" alt="System Logo">
+        <div class="mb-6 rounded-2xl border border-green-100 bg-white/85 p-6 text-center shadow-sm backdrop-blur-sm">
+            <div class="mb-3 flex items-center justify-center gap-3">
+                <img src="/Love%20Impasugong.png" alt="Love Impasugong Logo" class="h-14 w-14 rounded-xl bg-white p-1.5 shadow-sm sm:h-16 sm:w-16">
+                <img src="/SYSTEMLOGO.png" alt="System Logo" class="h-14 w-14 rounded-xl bg-white p-1.5 shadow-sm sm:h-16 sm:w-16">
             </div>
-            <h1>Find Your Perfect Stay</h1>
-            <p>Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
+            <h1 class="mb-1 text-2xl font-bold text-green-900 sm:text-3xl">Find Your Perfect Stay</h1>
+            <p class="text-sm text-gray-600 sm:text-base">Discover traveller-inns, Airbnb stays, and daily rentals in Impasugong</p>
         </div>
         
         <!-- Filter Bar -->
-        <form action="{{ route('accommodations.index') }}" method="GET" class="filter-bar">
-            <div class="filter-group">
-                <label>Type:</label>
-                <select name="type" class="filter-select">
+        <form action="{{ route('accommodations.index') }}" method="GET" class="mb-6 grid gap-3 rounded-2xl border border-green-100 bg-white p-4 shadow-sm lg:grid-cols-12 lg:items-end">
+            <div class="lg:col-span-2">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600">Type</label>
+                <select name="type" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100">
                     <option value="">All Types</option>
                     <option value="traveller-inn" {{ request('type') == 'traveller-inn' ? 'selected' : '' }}>Traveller-Inn</option>
                     <option value="airbnb" {{ request('type') == 'airbnb' ? 'selected' : '' }}>Airbnb</option>
@@ -523,19 +146,19 @@
                 </select>
             </div>
             
-            <div class="filter-group">
-                <label>Min Price:</label>
-                <input type="number" name="min_price" class="filter-input" placeholder="₱0" value="{{ request('min_price') }}">
+            <div class="lg:col-span-2">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600">Min Price</label>
+                <input type="number" name="min_price" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100" placeholder="PHP 0" value="{{ request('min_price') }}">
             </div>
             
-            <div class="filter-group">
-                <label>Max Price:</label>
-                <input type="number" name="max_price" class="filter-input" placeholder="₱10,000" value="{{ request('max_price') }}">
+            <div class="lg:col-span-2">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600">Max Price</label>
+                <input type="number" name="max_price" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100" placeholder="PHP 10000" value="{{ request('max_price') }}">
             </div>
             
-            <div class="filter-group">
-                <label>Guests:</label>
-                <select name="guests" class="filter-select">
+            <div class="lg:col-span-2">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600">Guests</label>
+                <select name="guests" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100">
                     <option value="">Any</option>
                     <option value="1" {{ request('guests') == '1' ? 'selected' : '' }}>1 Guest</option>
                     <option value="2" {{ request('guests') == '2' ? 'selected' : '' }}>2 Guests</option>
@@ -545,68 +168,71 @@
                 </select>
             </div>
             
-            <div class="filter-group filter-group--search">
-                <input type="text" name="search" class="filter-input" placeholder="Search properties..." value="{{ request('search') }}" aria-label="Search properties">
+            <div class="lg:col-span-3">
+                <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600">Search</label>
+                <input type="text" name="search" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100" placeholder="Search properties..." value="{{ request('search') }}" aria-label="Search properties">
             </div>
             
-            <button type="submit" class="filter-btn">🔍 Search</button>
+            <div class="lg:col-span-1">
+                <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800">Search</button>
+            </div>
         </form>
         
         <!-- Properties Grid -->
         @if(isset($accommodations) && count($accommodations) > 0)
-            <div class="properties-grid">
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 @foreach($accommodations as $accommodation)
-                    <div class="property-card">
-                        <div class="property-image-wrapper">
+                    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+                        <div class="relative h-44 overflow-hidden">
                             @if($accommodation->primary_image)
-                                <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="property-image">
+                                <img src="{{ $accommodation->primary_image_url }}" alt="{{ $accommodation->name }}" class="h-full w-full object-cover transition duration-300 hover:scale-105">
                             @else
-                                <img src="/COMMUNAL.jpg" alt="{{ $accommodation->name }}" class="property-image">
+                                <img src="/COMMUNAL.jpg" alt="{{ $accommodation->name }}" class="h-full w-full object-cover transition duration-300 hover:scale-105">
                             @endif
-                            <span class="property-type-badge">{{ str_replace('-', ' ', $accommodation->type) }}</span>
-                            <button class="property-favorite" title="Add to favorites">♡</button>
+                            <span class="absolute left-3 top-3 rounded-full bg-green-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">{{ str_replace('-', ' ', $accommodation->type) }}</span>
+                            <button class="property-favorite absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-base shadow-sm transition hover:scale-110 hover:bg-green-50" title="Add to favorites">♡</button>
                         </div>
                         
-                        <div class="property-content">
-                            <div class="property-price">₱{{ number_format($accommodation->price_per_night, 0, '.', ',') }} <span>/ night</span></div>
-                            <h3 class="property-title">{{ $accommodation->name }}</h3>
-                            <div class="property-location">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="p-4">
+                            <div class="mb-2 text-xl font-bold text-green-700">₱{{ number_format($accommodation->price_per_night, 0, '.', ',') }} <span class="text-sm font-normal text-gray-500">/ night</span></div>
+                            <h3 class="mb-2 text-lg font-semibold text-gray-800">{{ $accommodation->name }}</h3>
+                            <div class="mb-3 flex items-center gap-2 text-sm text-gray-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 {{ $accommodation->address }}, Brgy. {{ $accommodation->barangay }}
                             </div>
                             
-                            <p class="property-description">{{ Str::limit($accommodation->description, 100) }}</p>
+                            <p class="mb-3 line-clamp-2 text-sm text-gray-600">{{ Str::limit($accommodation->description, 100) }}</p>
                             
-                            <div class="property-features">
-                                <div class="feature">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="mb-3 flex flex-wrap gap-3 border-t border-gray-200 pt-3">
+                                <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                     </svg>
                                     {{ $accommodation->bedrooms ?? 1 }} Bed
                                 </div>
-                                <div class="feature">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                                     </svg>
                                     {{ $accommodation->bathrooms ?? 1 }} Bath
                                 </div>
-                                <div class="feature">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                     {{ $accommodation->max_guests ?? 2 }} Guests
                                 </div>
                             </div>
                             
-                            <div class="property-rating">
-                                <span class="stars">★★★★★</span>
-                                <span class="rating-count">({{ $accommodation->total_reviews ?? 0 }} reviews)</span>
+                            <div class="mb-3 flex items-center gap-2">
+                                <span class="text-sm tracking-wide text-amber-500">★★★★★</span>
+                                <span class="text-xs text-gray-500">({{ $accommodation->total_reviews ?? 0 }} reviews)</span>
                             </div>
                             
-                            <a href="{{ route('accommodations.show', $accommodation) }}" class="view-btn">View Details</a>
+                            <a href="{{ route('accommodations.show', $accommodation) }}" class="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-green-700 to-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-green-800 hover:to-green-700">View Details</a>
                         </div>
                     </div>
                 @endforeach
@@ -614,17 +240,17 @@
             
             <!-- Pagination -->
             @if(isset($accommodations) && method_exists($accommodations, 'links'))
-                <div class="pagination">
+                <div class="mt-8">
                     {{ $accommodations->links() }}
                 </div>
             @endif
         @else
-            <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-5 h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                <h3>No Properties Found</h3>
-                <p>Try adjusting your filters or search criteria.</p>
+                <h3 class="mb-2 text-2xl font-bold text-gray-700">No Properties Found</h3>
+                <p class="text-gray-500">Try adjusting your filters or search criteria.</p>
             </div>
         @endif
     </main>

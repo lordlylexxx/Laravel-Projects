@@ -219,7 +219,7 @@
                             <h1>Global Release Registry</h1>
                             <p>Track releases from GitHub and tenant adoption in one place.</p>
                         </div>
-                        <form method="POST" action="{{ route('admin.releases.sync') }}">
+                        <form method="POST" action="{{ route('admin.releases.sync', [], false) }}">
                             @csrf
                             <button class="btn-admin-primary" type="submit">
                                 <i class="fas fa-rotate"></i>
@@ -288,7 +288,7 @@
                             </div>
 
                             <div class="actions-row">
-                                <form class="inline-form" method="POST" action="{{ route('admin.releases.required', $release) }}">
+                                <form class="inline-form" method="POST" action="{{ route('admin.releases.required', $release, false) }}">
                                     @csrf
                                     <input
                                         class="grace-input"
@@ -302,12 +302,12 @@
                                     <button class="btn-admin-sm btn-admin-sm-amber" type="submit">Mark Required</button>
                                 </form>
 
-                                <form method="POST" action="{{ route('admin.releases.notify-all', $release) }}">
+                                <form method="POST" action="{{ route('admin.releases.notify-all', $release, false) }}">
                                     @csrf
                                     <button class="btn-admin-sm btn-admin-sm-emerald" type="submit">Notify All</button>
                                 </form>
 
-                                <form method="POST" action="{{ route('admin.releases.force-mark-all-updated', $release) }}" onsubmit="return confirm('Force mark all tenants as updated to this release?');">
+                                <form method="POST" action="{{ route('admin.releases.force-mark-all-updated', $release, false) }}" onsubmit="return confirm('Force mark all tenants as updated to this release?');">
                                     @csrf
                                     <button class="btn-admin-sm btn-admin-sm-danger" type="submit">Force Mark All Updated</button>
                                 </form>

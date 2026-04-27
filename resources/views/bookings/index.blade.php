@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>My Bookings - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @php
             $authUser = auth()->user();
@@ -70,12 +80,13 @@
         
         /* Main Layout */
         .main-content {
-            max-width: 1400px;
+            width: min(1800px, 100%);
             margin: 0 auto;
             padding-top: var(--client-nav-offset, 100px);
-            padding-bottom: 40px;
-            padding-left: 40px;
-            padding-right: 40px;
+            padding-bottom: 28px;
+            padding-left: clamp(12px, 2vw, 34px);
+            padding-right: clamp(12px, 2vw, 34px);
+            min-height: calc(100vh - var(--client-nav-offset, 100px));
         }
         
         /* Page Header */
@@ -90,7 +101,7 @@
         .filter-tab.active { background: var(--green-primary); color: white; }
         
         /* Bookings Grid */
-        .bookings-grid { display: grid; gap: 20px; align-items: start; }
+        .bookings-grid { display: grid; gap: 16px; align-items: stretch; }
         
         .booking-card {
             background: var(--white);
@@ -99,7 +110,7 @@
             overflow: hidden;
             transition: all 0.3s;
             align-self: start;
-            height: fit-content;
+            height: 100%;
         }
         
         .booking-card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(27, 94, 32, 0.15); }
@@ -162,7 +173,7 @@
 
         /* Owner compact grid view (4 cards per row) */
         .owner-bookings-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 16px;
         }
         .owner-bookings-grid .booking-header {
@@ -231,7 +242,7 @@
 
         @media (max-width: 1400px) {
             .owner-bookings-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
         }
 
@@ -255,9 +266,9 @@
             @endif
             .main-content {
                 padding-top: calc(var(--client-nav-offset, 100px) - 10px);
-                padding-left: 20px;
-                padding-right: 20px;
-                padding-bottom: 40px;
+                padding-left: 14px;
+                padding-right: 14px;
+                padding-bottom: 24px;
             }
             .booking-body { flex-direction: column; }
             .property-image { width: 100%; height: 200px; }
@@ -310,7 +321,10 @@
     @endif
     
     <!-- Main Content -->
-    <main class="main-content {{ $isTenantManager ? 'with-owner-nav' : '' }}">
+    <main
+        class="{{ $isTenantManager ? 'main-content with-owner-nav w-full' : 'mx-auto min-h-screen w-full max-w-[1800px] px-4 pb-10 sm:px-6 lg:px-10' }}"
+        @if(!$isTenantManager) style="padding-top: calc(var(--client-nav-offset, 108px) + 24px);" @endif
+    >
         @php
             $isOwner = $isTenantManager;
             $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
@@ -319,13 +333,16 @@
             $ownerAccommodationsBase = '/owner/accommodations';
         @endphp
 
-        <div class="page-header">
-            <h1>My Bookings</h1>
-            <p>View and manage your accommodation bookings</p>
+        <div class="{{ $isOwner ? 'page-header rounded-2xl border border-emerald-100 bg-white/70 p-4 shadow-sm' : 'mb-6 rounded-2xl border border-green-100 bg-white/85 p-6 shadow-sm backdrop-blur-sm' }}">
+            <h1 class="{{ $isOwner ? '' : 'mb-2 text-2xl font-bold text-green-900 sm:text-3xl' }}">
+                @if(!$isOwner)<i class="fas fa-calendar-check mr-2 text-green-700"></i>@endif
+                My Bookings
+            </h1>
+            <p class="{{ $isOwner ? '' : 'text-sm text-gray-600 sm:text-base' }}">View and manage your accommodation bookings</p>
         </div>
 
         @if($isOwner)
-            <div style="background: var(--white); border: 1px solid var(--green-soft); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);">
+            <div class="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-sm" style="margin-bottom: 18px;">
                 <h3 style="color: var(--green-dark); margin-bottom: 10px; font-size: 1rem;">GCash QR Code</h3>
                 @if(session('success'))
                     <p style="font-size:0.85rem;color:var(--green-dark);margin-bottom:8px;">{{ session('success') }}</p>
@@ -352,53 +369,53 @@
         @endif
         
         <!-- Filter Tabs -->
-        <div class="filter-tabs">
-            <a href="{{ $isOwner ? $ownerBookingsBase : route($bookingsIndexRoute) }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">All</a>
-            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=pending') : route($bookingsIndexRoute, ['status' => 'pending']) }}" class="filter-tab {{ request('status') == 'pending' ? 'active' : '' }}">Pending</a>
-            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=confirmed') : route($bookingsIndexRoute, ['status' => 'confirmed']) }}" class="filter-tab {{ request('status') == 'confirmed' ? 'active' : '' }}">Confirmed</a>
-            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=completed') : route($bookingsIndexRoute, ['status' => 'completed']) }}" class="filter-tab {{ request('status') == 'completed' ? 'active' : '' }}">Completed</a>
-            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=cancelled') : route($bookingsIndexRoute, ['status' => 'cancelled']) }}" class="filter-tab {{ request('status') == 'cancelled' ? 'active' : '' }}">Cancelled</a>
+        <div class="{{ $isOwner ? 'filter-tabs rounded-2xl border border-emerald-100 bg-white/90 p-3 shadow-sm' : 'mb-6 flex flex-wrap gap-2 rounded-2xl border border-green-100 bg-white p-3 shadow-sm' }}">
+            <a href="{{ $isOwner ? $ownerBookingsBase : route($bookingsIndexRoute) }}" class="{{ $isOwner ? 'filter-tab' : 'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition' }} {{ !request('status') ? ($isOwner ? 'active' : 'bg-green-700 text-white') : ($isOwner ? '' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700') }}">All</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=pending') : route($bookingsIndexRoute, ['status' => 'pending']) }}" class="{{ $isOwner ? 'filter-tab' : 'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition' }} {{ request('status') == 'pending' ? ($isOwner ? 'active' : 'bg-green-700 text-white') : ($isOwner ? '' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700') }}">Pending</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=confirmed') : route($bookingsIndexRoute, ['status' => 'confirmed']) }}" class="{{ $isOwner ? 'filter-tab' : 'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition' }} {{ request('status') == 'confirmed' ? ($isOwner ? 'active' : 'bg-green-700 text-white') : ($isOwner ? '' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700') }}">Confirmed</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=completed') : route($bookingsIndexRoute, ['status' => 'completed']) }}" class="{{ $isOwner ? 'filter-tab' : 'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition' }} {{ request('status') == 'completed' ? ($isOwner ? 'active' : 'bg-green-700 text-white') : ($isOwner ? '' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700') }}">Completed</a>
+            <a href="{{ $isOwner ? ($ownerBookingsBase . '?status=cancelled') : route($bookingsIndexRoute, ['status' => 'cancelled']) }}" class="{{ $isOwner ? 'filter-tab' : 'inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition' }} {{ request('status') == 'cancelled' ? ($isOwner ? 'active' : 'bg-green-700 text-white') : ($isOwner ? '' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700') }}">Cancelled</a>
         </div>
         
         <!-- Bookings List -->
         @if(isset($bookings) && count($bookings) > 0)
-            <div class="bookings-grid {{ $isOwner ? 'owner-bookings-grid' : '' }}">
+            <div class="bookings-grid {{ $isOwner ? 'owner-bookings-grid' : 'grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3' }} w-full">
                 @foreach($bookings as $booking)
-                    <div class="booking-card">
-                        <div class="booking-header">
-                            <span class="booking-id">Booking #{{ $booking->id }}</span>
-                            <span class="booking-date">{{ $booking->created_at->format('M d, Y') }}</span>
+                    <div class="{{ $isOwner ? 'booking-card flex h-full flex-col' : 'flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md' }}">
+                        <div class="{{ $isOwner ? 'booking-header' : 'flex items-center justify-between border-b border-gray-200 px-4 py-3' }}">
+                            <span class="{{ $isOwner ? 'booking-id' : 'text-xs font-semibold text-gray-500' }}">Booking #{{ $booking->id }}</span>
+                            <span class="{{ $isOwner ? 'booking-date' : 'text-xs text-gray-600' }}">{{ $booking->created_at->format('M d, Y') }}</span>
                         </div>
                         
-                        <div class="booking-body">
+                        <div class="{{ $isOwner ? 'booking-body flex-1' : 'flex flex-1 flex-col gap-3 p-4 md:flex-row md:gap-4' }}">
                             @if($booking->accommodation && $booking->accommodation->primary_image)
-                                <img src="{{ $booking->accommodation->primary_image_url }}" alt="{{ $booking->accommodation->name }}" class="property-image">
+                                <img src="{{ $booking->accommodation->primary_image_url }}" alt="{{ $booking->accommodation->name }}" class="{{ $isOwner ? 'property-image' : 'h-28 w-full rounded-lg object-cover md:h-24 md:w-36 md:flex-shrink-0' }}">
                             @else
-                                <img src="/COMMUNAL.jpg" alt="Property" class="property-image">
+                                <img src="/COMMUNAL.jpg" alt="Property" class="{{ $isOwner ? 'property-image' : 'h-28 w-full rounded-lg object-cover md:h-24 md:w-36 md:flex-shrink-0' }}">
                             @endif
                             
-                            <div class="booking-details">
-                                <h3 class="property-name">{{ $booking->accommodation->name ?? 'N/A' }}</h3>
-                                <div class="property-location">
-                                    📍 {{ $booking->accommodation->address ?? 'Impasugong' }}
+                            <div class="{{ $isOwner ? 'booking-details' : 'flex-1' }}">
+                                <h3 class="{{ $isOwner ? 'property-name' : 'mb-1 text-lg font-bold text-green-900' }}">{{ $booking->accommodation->name ?? 'N/A' }}</h3>
+                                <div class="{{ $isOwner ? 'property-location' : 'mb-3 text-xs text-gray-500' }}">
+                                    <i class="fas fa-location-dot mr-1"></i> {{ $booking->accommodation->address ?? 'Impasugong' }}
                                 </div>
                                 
-                                <div class="booking-info">
-                                    <div class="info-item">
-                                        <div class="info-label">Check-In</div>
-                                        <div class="info-value">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d, Y') }}</div>
+                                <div class="{{ $isOwner ? 'booking-info' : 'grid grid-cols-2 gap-2' }}">
+                                    <div class="{{ $isOwner ? 'info-item' : 'rounded-lg bg-green-50 p-2.5' }}">
+                                        <div class="{{ $isOwner ? 'info-label' : 'mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500' }}">Check-In</div>
+                                        <div class="{{ $isOwner ? 'info-value' : 'text-sm font-semibold text-gray-800' }}">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d, Y') }}</div>
                                     </div>
-                                    <div class="info-item">
-                                        <div class="info-label">Check-Out</div>
-                                        <div class="info-value">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('M d, Y') }}</div>
+                                    <div class="{{ $isOwner ? 'info-item' : 'rounded-lg bg-green-50 p-2.5' }}">
+                                        <div class="{{ $isOwner ? 'info-label' : 'mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500' }}">Check-Out</div>
+                                        <div class="{{ $isOwner ? 'info-value' : 'text-sm font-semibold text-gray-800' }}">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('M d, Y') }}</div>
                                     </div>
-                                    <div class="info-item">
-                                        <div class="info-label">Guests</div>
-                                        <div class="info-value">{{ $booking->number_of_guests ?? 1 }}</div>
+                                    <div class="{{ $isOwner ? 'info-item' : 'rounded-lg bg-green-50 p-2.5' }}">
+                                        <div class="{{ $isOwner ? 'info-label' : 'mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500' }}">Guests</div>
+                                        <div class="{{ $isOwner ? 'info-value' : 'text-sm font-semibold text-gray-800' }}">{{ $booking->number_of_guests ?? 1 }}</div>
                                     </div>
-                                    <div class="info-item">
-                                        <div class="info-label">Total</div>
-                                        <div class="info-value">₱{{ number_format($booking->total_price, 2) }}</div>
+                                    <div class="{{ $isOwner ? 'info-item' : 'rounded-lg bg-green-50 p-2.5' }}">
+                                        <div class="{{ $isOwner ? 'info-label' : 'mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500' }}">Total</div>
+                                        <div class="{{ $isOwner ? 'info-value' : 'text-sm font-semibold text-gray-800' }}">₱{{ number_format($booking->total_price, 2) }}</div>
                                     </div>
                                     @if($isOwner)
                                         <div class="info-item">
@@ -424,14 +441,14 @@
                             </div>
                         </div>
                         
-                        <div class="booking-footer">
+                        <div class="{{ $isOwner ? 'booking-footer' : 'flex flex-col justify-between gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center' }}">
                             @php
                                 $paymentUi = $booking->payment_ui_state;
                                 $paymentToneClass = $paymentUi['tone'] === 'pending_review' ? 'pending-review' : $paymentUi['tone'];
                             @endphp
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <span class="status-badge {{ $booking->status }}">{{ ucfirst($booking->status) }}</span>
-                                <span class="payment-badge {{ $paymentToneClass }}">{{ $paymentUi['label'] }}</span>
+                            <div class="flex flex-col gap-2">
+                                <span class="{{ $isOwner ? 'status-badge ' . $booking->status : 'inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ' . ($booking->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($booking->status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : ($booking->status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'))) }}">{{ ucfirst($booking->status) }}</span>
+                                <span class="{{ $isOwner ? 'payment-badge ' . $paymentToneClass : 'inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ' . ($paymentToneClass === 'pending-review' ? 'bg-orange-100 text-orange-800' : ($paymentToneClass === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700')) }}">{{ $paymentUi['label'] }}</span>
                             </div>
                             @if($isOwner)
                                 <button type="button" class="toggle-actions-btn" data-target="owner-actions-{{ $booking->id }}" aria-expanded="false">
@@ -455,16 +472,16 @@
                                     @endif
                                 </div>
                             @else
-                                <div class="action-btns">
-                                    <a href="{{ route($bookingsShowRoute, $booking) }}" class="btn btn-primary">View Details</a>
+                                <div class="{{ $isOwner ? 'action-btns' : 'flex flex-wrap gap-2' }}">
+                                    <a href="{{ route($bookingsShowRoute, $booking) }}" class="{{ $isOwner ? 'btn btn-primary' : 'inline-flex items-center rounded-lg bg-green-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-800' }}">View Details</a>
                                     @if(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
                                         @if($booking->status === 'confirmed')
-                                            <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">Pay Now</a>
+                                            <a href="{{ route('bookings.payment', $booking) }}" class="inline-flex items-center rounded-lg bg-green-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-800">Pay Now</a>
                                         @endif
                                         <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">
                                             @csrf
                                             @method('PUT')
-                                            <button type="submit" class="btn btn-outline" onclick="return confirm('Are you sure you want to cancel this booking?')">Cancel</button>
+                                            <button type="submit" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100" onclick="return confirm('Are you sure you want to cancel this booking?')">Cancel</button>
                                         </form>
                                     @endif
                                 </div>
@@ -476,17 +493,17 @@
             
             <!-- Pagination -->
             @if(isset($bookings) && method_exists($bookings, 'links'))
-                <div style="margin-top: 30px;">
+                <div class="mt-8">
                     {{ $bookings->links() }}
                 </div>
             @endif
         @else
             <!-- Empty State -->
-            <div class="empty-state">
-                <div class="empty-icon">📅</div>
-                <h3>No Bookings Found</h3>
-                <p>You haven't made any bookings yet. Start exploring accommodations!</p>
-                <a href="{{ $isOwner ? $ownerAccommodationsBase : route((\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="btn btn-primary">Browse Properties</a>
+            <div class="{{ $isOwner ? 'empty-state' : 'rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm' }}">
+                <div class="{{ $isOwner ? 'empty-icon' : 'mb-4 text-5xl' }}">📅</div>
+                <h3 class="{{ $isOwner ? '' : 'mb-2 text-2xl font-bold text-gray-800' }}">No Bookings Found</h3>
+                <p class="{{ $isOwner ? '' : 'mb-6 text-gray-500' }}">You haven't made any bookings yet. Start exploring accommodations!</p>
+                <a href="{{ $isOwner ? $ownerAccommodationsBase : route((\Illuminate\Support\Facades\Route::has('accommodations.index') ? 'accommodations.index' : 'dashboard')) }}" class="{{ $isOwner ? 'btn btn-primary' : 'inline-flex items-center rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800' }}">Browse Properties</a>
             </div>
         @endif
     </main>

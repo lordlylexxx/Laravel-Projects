@@ -108,7 +108,7 @@
                                 @endif
 
                                 <div class="mt-3 flex flex-wrap gap-2">
-                                    <form method="POST" action="{{ route('settings.updates.apply') }}">
+                                    <form method="POST" action="{{ route('settings.updates.apply', [], false) }}">
                                         @csrf
                                         <input type="hidden" name="release_id" value="{{ $release->id }}">
                                         <button
