@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppRelease;
 use App\Models\Tenant;
 use App\Services\TenantSelfUpdateService;
 use App\Services\TenantUpdateService;
