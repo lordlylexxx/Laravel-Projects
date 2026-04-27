@@ -266,30 +266,18 @@
     <div class="container">
         <!-- Header -->
         @php
-            $leftLogoCandidates = [
-                public_path('report-headers/ca-left-logo.png'),
-                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/logo-07b7d8b6-dfca-41f3-a0f6-cd597cd88a1e.png',
-            ];
+            $leftLogoPath = public_path('report-headers/ca-left-logo.png');
             $leftLogoData = null;
-            foreach ($leftLogoCandidates as $candidatePath) {
-                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
-                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
-                    $leftLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
-                    break;
-                }
+            if (is_file($leftLogoPath)) {
+                $mime = function_exists('mime_content_type') ? (mime_content_type($leftLogoPath) ?: 'image/png') : 'image/png';
+                $leftLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($leftLogoPath));
             }
 
-            $rightLogoCandidates = [
-                public_path('report-headers/ca-right-logo.png'),
-                '/Users/yanreyestrada/.cursor/projects/Users-yanreyestrada-Documents-Systems-Laravel-Projects/assets/515313979_729318819730861_9203702352099745495_n-d3bbf38f-364b-44b4-8ce0-e6c997db9063.png',
-            ];
+            $rightLogoPath = public_path('report-headers/ca-right-logo.png');
             $rightLogoData = null;
-            foreach ($rightLogoCandidates as $candidatePath) {
-                if (is_string($candidatePath) && $candidatePath !== '' && file_exists($candidatePath)) {
-                    $mime = function_exists('mime_content_type') ? (mime_content_type($candidatePath) ?: 'image/png') : 'image/png';
-                    $rightLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($candidatePath));
-                    break;
-                }
+            if (is_file($rightLogoPath)) {
+                $mime = function_exists('mime_content_type') ? (mime_content_type($rightLogoPath) ?: 'image/png') : 'image/png';
+                $rightLogoData = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($rightLogoPath));
             }
         @endphp
         <div class="header">
