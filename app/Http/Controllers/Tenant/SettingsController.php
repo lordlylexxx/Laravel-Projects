@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppRelease;
 use App\Models\Tenant;
 use App\Services\TenantSelfUpdateService;
 use App\Services\TenantUpdateService;
@@ -29,8 +28,11 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function applyUpdate(Request $request, TenantSelfUpdateService $tenantSelfUpdateService): RedirectResponse
-    {
+    public function applyUpdate(
+        Request $request,
+        TenantSelfUpdateService $tenantSelfUpdateService,
+        TenantUpdateService $tenantUpdateService
+    ): RedirectResponse {
         $tenant = Tenant::current();
         abort_unless($tenant, 404);
 
@@ -38,8 +40,17 @@ class SettingsController extends Controller
             'release_id' => ['required', 'integer', 'exists:app_releases,id'],
         ]);
 
-        $release = AppRelease::query()->findOrFail((int) $validated['release_id']);
-        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, (int) $release->id);
+        $releaseId = (int) $validated['release_id'];
+        $availableIds = $tenantUpdateService
+            ->getAvailableUpdates((int) $tenant->id)
+            ->pluck('id')
+            ->all();
+
+        if ($availableIds === [] || ! in_array($releaseId, $availableIds, true)) {
+            return back()->with('error', 'That release is not available to apply for this tenant.');
+        }
+
+        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, $releaseId);
 
         return back()->with($result['ok'] ? 'success' : 'error', $result['message']);
     }
