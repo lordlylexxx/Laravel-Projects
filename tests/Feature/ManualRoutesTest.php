@@ -39,7 +39,7 @@ class ManualRouteTest extends TestCase
     public function test_tenant_landing_displays_tenant_name()
     {
         try {
-            $tenant = Tenant::query()->first();
+            $tenant = Tenant::query()->whereNotNull('domain')->where('domain', '!=', '')->first();
         } catch (\Throwable) {
             $this->markTestSkipped('Landlord / tenants table unavailable.');
         }
@@ -48,10 +48,19 @@ class ManualRouteTest extends TestCase
             $this->markTestSkipped('No tenant in database.');
         }
 
-        $centralPort = (int) env('CENTRAL_PORT', 8000);
-        $response = $this->get('http://'.$tenant->domain.':'.$centralPort.'/');
+        if (! is_string($tenant->domain) || trim($tenant->domain) === '') {
+            $this->markTestSkipped('Tenant domain is missing for route test.');
+        }
+
+        Tenant::forgetCurrent();
+        $tenant->makeCurrent();
+
+        $tenantPort = (int) env('TENANT_PORT', env('CENTRAL_PORT', 8000));
+        $response = $this->get('http://'.$tenant->domain.':'.$tenantPort.'/');
         $response->assertStatus(200);
         $response->assertSee($tenant->name);
+
+        Tenant::forgetCurrent();
     }
 
     /**
