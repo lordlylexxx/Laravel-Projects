@@ -117,3 +117,31 @@ it('exposes release registry methods required by two-layer flow', function () {
     expect(method_exists($service, 'getLatestStableRelease'))->toBeTrue();
     expect(method_exists($service, 'markAsRequired'))->toBeTrue();
 });
+
+it('includes prerelease app releases in available tenant updates', function () {
+    try {
+        $fixture = createUpdateTenantFixture('prerelease-available');
+    } catch (QueryException $exception) {
+        $this->markTestSkipped('Landlord test database is unavailable in this environment.');
+    }
+
+    $currentRelease = AppRelease::query()->create([
+        'tag' => 'v1.0.7-dev',
+        'title' => 'v1.0.7-dev',
+        'is_stable' => false,
+        'published_at' => now()->subDays(3),
+    ]);
+    $prereleaseNewer = AppRelease::query()->create([
+        'tag' => 'v1.0.10-dev',
+        'title' => 'v1.0.10-dev',
+        'is_stable' => false,
+        'published_at' => now()->subDay(),
+    ]);
+
+    $tenantUpdateService = app(TenantUpdateService::class);
+    $tenantUpdateService->markAsUpdated((int) $fixture['tenant']->id, (int) $currentRelease->id);
+
+    $available = $tenantUpdateService->getAvailableUpdates((int) $fixture['tenant']->id);
+
+    expect($available->pluck('id')->all())->toContain((int) $prereleaseNewer->id);
+});

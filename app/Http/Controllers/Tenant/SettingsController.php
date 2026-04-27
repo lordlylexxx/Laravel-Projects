@@ -42,15 +42,17 @@ class SettingsController extends Controller
             'release_id' => ['required', 'integer', 'exists:app_releases,id'],
         ]);
 
-        $latestAvailable = $tenantUpdateService
+        $releaseId = (int) $validated['release_id'];
+        $availableIds = $tenantUpdateService
             ->getAvailableUpdates((int) $tenant->id)
-            ->first();
+            ->pluck('id')
+            ->all();
 
-        if (! $latestAvailable) {
-            return back()->with('success', 'No newer release is available to apply.');
+        if ($availableIds === [] || ! in_array($releaseId, $availableIds, true)) {
+            return back()->with('error', 'That release is not available to apply for this tenant.');
         }
 
-        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, (int) $latestAvailable->id);
+        $result = $tenantSelfUpdateService->applyUpdate((int) $tenant->id, $releaseId);
 
         return back()->with($result['ok'] ? 'success' : 'error', $result['message']);
     }
