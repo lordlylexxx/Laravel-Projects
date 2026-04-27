@@ -22,53 +22,51 @@
     $landingHref = '/';
 @endphp
 
-<nav class="navbar" id="appNavbar">
-    <a href="{{ $landingHref }}" class="nav-logo">
-        <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
-        <span class="nav-brand-text">
-            <span class="nav-brand-title">IMPASUGONG TOURISM</span>
-            <span class="nav-brand-subtitle">Admin Dashboard</span>
-        </span>
-    </a>
+@if($isTenantContext)
+    @include('owner.partials.top-navbar', ['active' => $current])
+@else
+    <nav class="navbar" id="appNavbar">
+        <a href="{{ $landingHref }}" class="nav-logo">
+            <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
+            <span class="nav-brand-text">
+                <span class="nav-brand-title">IMPASUGONG TOURISM</span>
+                <span class="nav-brand-subtitle">Admin Dashboard</span>
+            </span>
+        </a>
 
-    <button type="button" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false"
-            onclick="var n=document.getElementById('appNavbar');var o=n.classList.toggle('nav-open');this.setAttribute('aria-expanded',o?'true':'false');">
-        <i class="fas fa-bars"></i>
-    </button>
+        <button type="button" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false"
+                onclick="var n=document.getElementById('appNavbar');var o=n.classList.toggle('nav-open');this.setAttribute('aria-expanded',o?'true':'false');">
+            <i class="fas fa-bars"></i>
+        </button>
 
-    <ul class="nav-links">
-        <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-        <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> Tulogans</a></li>
-        @if($isTenantContext)
-            <li><a href="{{ $reportsHref }}" class="{{ $current === 'reports' ? 'active' : '' }}"><i class="fas fa-chart-column"></i> Reports</a></li>
-            <li><a href="{{ $bookingsHref }}" class="{{ $current === 'bookings' ? 'active' : '' }}"><i class="fas fa-calendar-check"></i> Bookings</a></li>
-        @endif
-        @if(! $isTenantContext)
+        <ul class="nav-links">
+            <li><a href="{{ $dashboardHref }}" class="{{ $current === 'dashboard' ? 'active' : '' }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="{{ $unitsHref }}" class="{{ $current === 'tenants' ? 'active' : '' }}"><i class="fas fa-building-user"></i> Tulogans</a></li>
             <li><a href="{{ $landingPlansHref }}" class="{{ $current === 'landing-plans' ? 'active' : '' }}"><i class="fas fa-tags"></i> Plans</a></li>
-        @endif
-        <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
-        @if($updateTicketsHref)
-            <li><a href="{{ $updateTicketsHref }}" class="{{ $current === 'update-tickets' ? 'active' : '' }}"><i class="fas fa-life-ring"></i> Support</a></li>
-        @endif
-        <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>
-        <li><a href="{{ $settingsHref }}" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
-    </ul>
-
-    <div class="nav-actions">
-        <div class="user-display">
-            @if(Auth::user()->avatar)
-                <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
-            @else
-                <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
+            <li><a href="{{ $updatesHref }}" class="{{ $current === 'updates' ? 'active' : '' }}"><i class="fas fa-cloud-download-alt"></i> Updates</a></li>
+            @if($updateTicketsHref)
+                <li><a href="{{ $updateTicketsHref }}" class="{{ $current === 'update-tickets' ? 'active' : '' }}"><i class="fas fa-life-ring"></i> Support</a></li>
             @endif
-            <div class="user-info">
-                <div class="user-name">{{ Auth::user()->name }}</div>
-                <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
+            <li><a href="{{ $messagesHref }}" class="{{ $current === 'messages' ? 'active' : '' }}"><i class="fas fa-envelope"></i> Messages @if(($unreadMessagesCount ?? 0) > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;padding:0 5px;background:#EF4444;color:#fff;font-size:0.68rem;font-weight:700;margin-left:6px;">{{ $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount }}</span>@endif</a></li>
+            <li><a href="{{ $settingsHref }}" class="{{ $current === 'settings' ? 'active' : '' }}"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+
+        <div class="nav-actions">
+            <div class="user-display">
+                @if(Auth::user()->avatar)
+                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar . '?v=' . time()) }}" alt="{{ Auth::user()->name }}" class="user-avatar" style="object-fit: cover;">
+                @else
+                    <div class="user-avatar">{{ substr(Auth::user()->name, 0, 2) }}</div>
+                @endif
+                <div class="user-info">
+                    <div class="user-name">{{ Auth::user()->name }}</div>
+                    <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
+                </div>
             </div>
+            <form action="/logout" method="POST">
+                @csrf
+                <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </form>
         </div>
-        <form action="/logout" method="POST">
-            @csrf
-            <button type="submit" class="nav-btn primary"><i class="fas fa-sign-out-alt"></i> Logout</button>
-        </form>
-    </div>
-</nav>
+    </nav>
+@endif

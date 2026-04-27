@@ -10,26 +10,60 @@
         @include('admin.partials.admin-shell-styles')
 
         .main-content {
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            min-height: calc(100vh - 82px);
+        }
+
+        .page-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
         }
 
         .page-header-row {
             align-items: center;
+            margin-bottom: 0;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, rgba(27, 94, 32, 0.96), rgba(46, 125, 50, 0.94));
+            border-radius: 16px;
+            border: 1px solid rgba(200, 230, 201, 0.5);
+            box-shadow: 0 12px 26px rgba(27, 94, 32, 0.2);
+            padding: 20px 22px;
+            color: #ffffff;
+        }
+
+        .hero-card .page-header h1,
+        .hero-card .page-header p {
+            color: #ffffff;
+        }
+
+        .hero-card .page-header p {
+            opacity: 0.92;
+        }
+
+        .hero-card .btn-admin-primary {
+            background: #ffffff;
+            color: var(--green-dark);
+            box-shadow: 0 8px 16px rgba(13, 66, 18, 0.2);
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 0;
         }
 
         .stat-tile {
             background: var(--white);
             border: 1px solid var(--green-soft);
             border-radius: 12px;
-            padding: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 18px rgba(27, 94, 32, 0.08);
         }
 
         .stat-label {
@@ -57,7 +91,7 @@
             border: 1px solid var(--green-soft);
             border-radius: 14px;
             box-shadow: 0 8px 24px rgba(27, 94, 32, 0.08);
-            padding: 16px;
+            padding: 18px;
         }
 
         .release-head {
@@ -152,6 +186,14 @@
         }
 
         @media (max-width: 768px) {
+            .main-content {
+                padding: 18px;
+            }
+
+            .hero-card {
+                padding: 16px;
+            }
+
             .release-head {
                 flex-direction: column;
                 align-items: flex-start;
@@ -170,119 +212,123 @@
     @include('admin.partials.top-navbar', ['active' => 'updates'])
     <div class="dashboard-layout">
         <main class="main-content">
-            <div class="page-header-row">
-                <div class="page-header">
-                    <h1>Global Release Registry</h1>
-                    <p>Track releases from GitHub and tenant adoption in one place.</p>
-                </div>
-                <form method="POST" action="{{ route('admin.releases.sync') }}">
-                    @csrf
-                    <button class="btn-admin-primary" type="submit">
-                        <i class="fas fa-rotate"></i>
-                        Sync from GitHub
-                    </button>
-                </form>
-            </div>
+            <div class="page-shell">
+                <section class="hero-card">
+                    <div class="page-header-row">
+                        <div class="page-header">
+                            <h1>Global Release Registry</h1>
+                            <p>Track releases from GitHub and tenant adoption in one place.</p>
+                        </div>
+                        <form method="POST" action="{{ route('admin.releases.sync') }}">
+                            @csrf
+                            <button class="btn-admin-primary" type="submit">
+                                <i class="fas fa-rotate"></i>
+                                Sync from GitHub
+                            </button>
+                        </form>
+                    </div>
+                </section>
 
-            @if(session('success'))
-                <div class="flash">{{ session('success') }}</div>
-            @endif
-            @if(session('error'))
-                <div class="flash" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;">{{ session('error') }}</div>
-            @endif
+                @if(session('success'))
+                    <div class="flash">{{ session('success') }}</div>
+                @endif
+                @if(session('error'))
+                    <div class="flash" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;">{{ session('error') }}</div>
+                @endif
 
-            <section class="card card-padded">
-                <div class="stats-grid">
-                    <div class="stat-tile">
-                        <div class="stat-label">Total Tenants</div>
-                        <div class="stat-value">{{ $stats['total_tenants'] ?? 0 }}</div>
+                <section class="card card-padded">
+                    <div class="stats-grid">
+                        <div class="stat-tile">
+                            <div class="stat-label">Total Tenants</div>
+                            <div class="stat-value">{{ $stats['total_tenants'] ?? 0 }}</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-label">On Latest</div>
+                            <div class="stat-value">{{ $stats['tenants_on_latest'] ?? 0 }}</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-label">Pending Latest</div>
+                            <div class="stat-value">{{ $stats['tenants_pending_latest'] ?? 0 }}</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-label">Required Overdue</div>
+                            <div class="stat-value">{{ $stats['tenants_required_overdue'] ?? 0 }}</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-label">Failed Updates</div>
+                            <div class="stat-value">{{ $stats['tenants_with_failed_updates'] ?? 0 }}</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-label">Latest Tag</div>
+                            <div class="stat-value">{{ $stats['latest_release_tag'] ?? 'N/A' }}</div>
+                        </div>
                     </div>
-                    <div class="stat-tile">
-                        <div class="stat-label">On Latest</div>
-                        <div class="stat-value">{{ $stats['tenants_on_latest'] ?? 0 }}</div>
-                    </div>
-                    <div class="stat-tile">
-                        <div class="stat-label">Pending Latest</div>
-                        <div class="stat-value">{{ $stats['tenants_pending_latest'] ?? 0 }}</div>
-                    </div>
-                    <div class="stat-tile">
-                        <div class="stat-label">Required Overdue</div>
-                        <div class="stat-value">{{ $stats['tenants_required_overdue'] ?? 0 }}</div>
-                    </div>
-                    <div class="stat-tile">
-                        <div class="stat-label">Failed Updates</div>
-                        <div class="stat-value">{{ $stats['tenants_with_failed_updates'] ?? 0 }}</div>
-                    </div>
-                    <div class="stat-tile">
-                        <div class="stat-label">Latest Tag</div>
-                        <div class="stat-value">{{ $stats['latest_release_tag'] ?? 'N/A' }}</div>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            <section class="release-list">
-                @forelse($releases as $release)
-                    <article class="release-card">
-                        <div class="release-head">
-                            <div>
-                                <div class="release-tag">{{ $release->tag }}</div>
-                                <div class="release-title">{{ $release->title }}</div>
+                <section class="release-list">
+                    @forelse($releases as $release)
+                        <article class="release-card">
+                            <div class="release-head">
+                                <div>
+                                    <div class="release-tag">{{ $release->tag }}</div>
+                                    <div class="release-title">{{ $release->title }}</div>
+                                </div>
+                                <div class="badges">
+                                    @if($release->is_required)
+                                        <span class="badge badge-required">Required</span>
+                                    @endif
+                                    @if(! $release->is_stable)
+                                        <span class="badge badge-prerelease">Pre-release</span>
+                                    @endif
+                                </div>
                             </div>
-                            <div class="badges">
-                                @if($release->is_required)
-                                    <span class="badge badge-required">Required</span>
-                                @endif
-                                @if(! $release->is_stable)
-                                    <span class="badge badge-prerelease">Pre-release</span>
+
+                            <div class="release-meta">
+                                Published: {{ optional($release->published_at)->format('M d, Y h:i A') ?: 'N/A' }}
+                            </div>
+
+                            <div class="actions-row">
+                                <form class="inline-form" method="POST" action="{{ route('admin.releases.required', $release) }}">
+                                    @csrf
+                                    <input
+                                        class="grace-input"
+                                        type="number"
+                                        name="grace_days"
+                                        min="0"
+                                        max="60"
+                                        value="7"
+                                        aria-label="Grace days"
+                                    >
+                                    <button class="btn-admin-sm btn-admin-sm-amber" type="submit">Mark Required</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.releases.notify-all', $release) }}">
+                                    @csrf
+                                    <button class="btn-admin-sm btn-admin-sm-emerald" type="submit">Notify All</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.releases.force-mark-all-updated', $release) }}" onsubmit="return confirm('Force mark all tenants as updated to this release?');">
+                                    @csrf
+                                    <button class="btn-admin-sm btn-admin-sm-danger" type="submit">Force Mark All Updated</button>
+                                </form>
+
+                                @if($release->release_url)
+                                    <a href="{{ $release->release_url }}" target="_blank" class="btn-admin-sm btn-admin-sm-blue">
+                                        Open GitHub Release
+                                    </a>
                                 @endif
                             </div>
+                        </article>
+                    @empty
+                        <div class="card card-padded empty-state">
+                            No releases synced yet. Click <strong>Sync from GitHub</strong> to populate this page.
                         </div>
+                    @endforelse
+                </section>
 
-                        <div class="release-meta">
-                            Published: {{ optional($release->published_at)->format('M d, Y h:i A') ?: 'N/A' }}
-                        </div>
-
-                        <div class="actions-row">
-                            <form class="inline-form" method="POST" action="{{ route('admin.releases.required', $release) }}">
-                                @csrf
-                                <input
-                                    class="grace-input"
-                                    type="number"
-                                    name="grace_days"
-                                    min="0"
-                                    max="60"
-                                    value="7"
-                                    aria-label="Grace days"
-                                >
-                                <button class="btn-admin-sm btn-admin-sm-amber" type="submit">Mark Required</button>
-                            </form>
-
-                            <form method="POST" action="{{ route('admin.releases.notify-all', $release) }}">
-                                @csrf
-                                <button class="btn-admin-sm btn-admin-sm-emerald" type="submit">Notify All</button>
-                            </form>
-
-                            <form method="POST" action="{{ route('admin.releases.force-mark-all-updated', $release) }}" onsubmit="return confirm('Force mark all tenants as updated to this release?');">
-                                @csrf
-                                <button class="btn-admin-sm btn-admin-sm-danger" type="submit">Force Mark All Updated</button>
-                            </form>
-
-                            @if($release->release_url)
-                                <a href="{{ $release->release_url }}" target="_blank" class="btn-admin-sm btn-admin-sm-blue">
-                                    Open GitHub Release
-                                </a>
-                            @endif
-                        </div>
-                    </article>
-                @empty
-                    <div class="card card-padded empty-state">
-                        No releases synced yet. Click <strong>Sync from GitHub</strong> to populate this page.
-                    </div>
-                @endforelse
-            </section>
-
-            <div class="pagination-wrap">
-                {{ $releases->links() }}
+                <div class="pagination-wrap">
+                    {{ $releases->links() }}
+                </div>
             </div>
         </main>
     </div>
