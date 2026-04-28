@@ -119,6 +119,66 @@ it('exposes release registry methods required by two-layer flow', function () {
     expect(method_exists($service, 'markAsRequired'))->toBeTrue();
 });
 
+it('offers newer unstable tags when tenant is already on a dev-track tag even if offer_prereleases is false', function () {
+    try {
+        $fixture = createUpdateTenantFixture('dev-track-newer-unstable');
+    } catch (QueryException $exception) {
+        $this->markTestSkipped('Landlord test database is unavailable in this environment.');
+    }
+
+    config(['releases.offer_prereleases_to_tenants' => false]);
+
+    $currentRelease = AppRelease::query()->create([
+        'tag' => 'v1.0.12-dev',
+        'title' => 'v1.0.12-dev',
+        'is_stable' => true,
+        'published_at' => now()->subDay(),
+    ]);
+    $newerUnstable = AppRelease::query()->create([
+        'tag' => 'v1.0.13-dev',
+        'title' => 'v1.0.13-dev',
+        'is_stable' => false,
+        'published_at' => now(),
+    ]);
+
+    $tenantUpdateService = app(TenantUpdateService::class);
+    $tenantUpdateService->markAsUpdated((int) $fixture['tenant']->id, (int) $currentRelease->id);
+
+    $available = $tenantUpdateService->getAvailableUpdates((int) $fixture['tenant']->id);
+
+    expect($available->pluck('id')->all())->toContain((int) $newerUnstable->id);
+});
+
+it('hides newer unstable tags for tenants on stable releases when offer_prereleases is false', function () {
+    try {
+        $fixture = createUpdateTenantFixture('stable-tenant-no-beta');
+    } catch (QueryException $exception) {
+        $this->markTestSkipped('Landlord test database is unavailable in this environment.');
+    }
+
+    config(['releases.offer_prereleases_to_tenants' => false]);
+
+    $currentRelease = AppRelease::query()->create([
+        'tag' => 'v1.0.0',
+        'title' => 'v1.0.0',
+        'is_stable' => true,
+        'published_at' => now()->subDays(2),
+    ]);
+    $newerUnstable = AppRelease::query()->create([
+        'tag' => 'v1.1.0-beta',
+        'title' => 'v1.1.0-beta',
+        'is_stable' => false,
+        'published_at' => now(),
+    ]);
+
+    $tenantUpdateService = app(TenantUpdateService::class);
+    $tenantUpdateService->markAsUpdated((int) $fixture['tenant']->id, (int) $currentRelease->id);
+
+    $available = $tenantUpdateService->getAvailableUpdates((int) $fixture['tenant']->id);
+
+    expect($available->pluck('id')->all())->not->toContain((int) $newerUnstable->id);
+});
+
 it('includes prerelease app releases in available tenant updates', function () {
     try {
         $fixture = createUpdateTenantFixture('prerelease-available');

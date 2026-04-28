@@ -398,8 +398,14 @@ class ReleaseRegistryService
 
     private function tagLooksLikePrerelease(string $tag): bool
     {
-        return (bool) preg_match('/-(dev|alpha|beta|rc|pre|snapshot)([.\d]|$)/i', $tag)
-            || str_contains(strtolower($tag), 'nightly');
+        $t = strtolower($tag);
+        foreach (['-snapshot', '-preview', '-pre', '-dev', '-alpha', '-beta', '-rc', '-canary', 'nightly'] as $needle) {
+            if (str_contains($t, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

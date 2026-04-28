@@ -23,24 +23,38 @@ class TenantUpdateService
     public function getAvailableUpdates(int $tenantId)
     {
         $current = $this->getCurrentRelease($tenantId);
-        $currentTag = $current?->release?->tag;
+        $currentRelease = $current?->release;
+        $currentTag = $currentRelease?->tag;
+
+        $offerPrereleases = (bool) config('releases.offer_prereleases_to_tenants', false);
+        $onDevOrPrereleaseTrack = $this->tenantCurrentReleaseIsOnPrereleaseOrDevTrack($currentRelease);
 
         $candidates = AppRelease::query()
-            ->when(
-                ! config('releases.offer_prereleases_to_tenants', false),
-                fn ($query) => $query->where('is_stable', true)
-            )
             ->get()
-            ->filter(function (AppRelease $release) use ($currentTag): bool {
-                if ($currentTag === null || $currentTag === '') {
+            ->filter(function (AppRelease $release) use ($currentTag, $offerPrereleases, $onDevOrPrereleaseTrack): bool {
+                if ($currentTag !== null && $currentTag !== '') {
+                    if (version_compare(
+                        SemanticVersion::normalize((string) $release->tag),
+                        SemanticVersion::normalize((string) $currentTag),
+                        '<='
+                    )) {
+                        return false;
+                    }
+                }
+
+                if ($offerPrereleases || $release->is_stable) {
                     return true;
                 }
 
-                return version_compare(
-                    SemanticVersion::normalize((string) $release->tag),
-                    SemanticVersion::normalize((string) $currentTag),
-                    '>'
-                );
+                // Stable-only mode: still offer newer prereleases when the tenant is already on a
+                // dev/beta/rc line (or is_stable is false). Otherwise GitHub prerelease / tag-only
+                // rows (is_stable=false) never appear even though semver is newer (e.g. 1.0.13-dev
+                // after 1.0.12-dev).
+                if ($onDevOrPrereleaseTrack) {
+                    return true;
+                }
+
+                return false;
             });
 
         return $candidates
@@ -51,6 +65,26 @@ class TenantUpdateService
                 );
             })
             ->values();
+    }
+
+    /**
+     * True when the tenant's recorded "current" release is on a non-stable train, so we should
+     * still list newer semver tags that GitHub stores as prerelease / unstable.
+     */
+    private function tenantCurrentReleaseIsOnPrereleaseOrDevTrack(?AppRelease $currentRelease): bool
+    {
+        if (! $currentRelease) {
+            return false;
+        }
+
+        if (! $currentRelease->is_stable) {
+            return true;
+        }
+
+        return (bool) preg_match(
+            '/-(dev|alpha|beta|rc|preview|pre|snapshot|nightly)([.\d\-]|$)/i',
+            (string) $currentRelease->tag
+        );
     }
 
     public function markAsUpdated(int $tenantId, int $releaseId): TenantUpdate
