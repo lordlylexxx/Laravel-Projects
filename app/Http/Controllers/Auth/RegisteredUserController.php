@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
+use App\Services\CentralAdminNotifier;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -157,6 +158,12 @@ class RegisteredUserController extends Controller
                         'user_id' => $user->id,
                         'message' => $e->getMessage(),
                     ]);
+                }
+
+                try {
+                    app(CentralAdminNotifier::class)->notifyNewOwnerRegistered($provisionedTenant, $user);
+                } catch (\Throwable) {
+                    // Non-fatal: registration already completed.
                 }
             }
         }

@@ -9,11 +9,12 @@ use App\Services\TenantSelfUpdateService;
 use App\Services\TenantUpdateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function index(Request $request, TenantUpdateService $tenantUpdateService): View
+    public function index(TenantUpdateService $tenantUpdateService): View
     {
         $tenant = Tenant::current();
         abort_unless($tenant, 404);
@@ -27,7 +28,9 @@ class SettingsController extends Controller
                 ->first();
 
             if ($fallbackRelease) {
-                $current = $tenantUpdateService->backfillCurrentReleaseForTenant($tenant, $fallbackRelease);
+                $current = $tenantUpdateService
+                    ->backfillCurrentReleaseForTenant($tenant, $fallbackRelease)
+                    ->load('release');
             }
         }
 
@@ -50,7 +53,7 @@ class SettingsController extends Controller
         abort_unless($tenant, 404);
 
         $validated = $request->validate([
-            'release_id' => ['required', 'integer', 'exists:app_releases,id'],
+            'release_id' => ['required', 'integer', Rule::exists(AppRelease::class, 'id')],
         ]);
 
         $releaseId = (int) $validated['release_id'];

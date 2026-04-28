@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\StripeRefundService;
 use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Message;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Notifications\Tenant\ClientImportantNotification;
+use App\Notifications\Tenant\StaffImportantNotification;
+use App\Services\StripeRefundService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -145,6 +148,36 @@ class BookingController extends Controller
             'content' => $validated['client_message'] ?? 'I would like to book this accommodation.',
             'type' => Message::TYPE_BOOKING_INQUIRY,
         ]);
+
+        $owner = $accommodation->owner;
+
+        $notifyStaff = static function (User $recipient) use ($accommodation, $booking): void {
+            try {
+                $recipient->notify(new StaffImportantNotification(
+                    title: 'New booking request',
+                    body: 'A guest requested '.$accommodation->name.'. Review and confirm when payment is ready.',
+                    actionUrl: '/owner/bookings/'.$booking->id,
+                    actionLabel: 'View booking',
+                ));
+            } catch (\Throwable $exception) {
+                Log::warning('Staff in-app notification failed for new booking.', [
+                    'booking_id' => $booking->id,
+                    'user_id' => $recipient->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        };
+
+        if ($owner) {
+            $notifyStaff($owner);
+        }
+
+        User::query()
+            ->where('tenant_id', (int) $booking->tenant_id)
+            ->where('role', User::ROLE_ADMIN)
+            ->where('is_active', true)
+            ->when($owner, fn ($query) => $query->whereKeyNot($owner->id))
+            ->each(fn (User $tenantAdmin) => $notifyStaff($tenantAdmin));
 
         return redirect()->route('bookings.show', $booking)
             ->with('success', 'Booking request submitted. The host will review and approve or decline it. You can complete payment after approval.');
@@ -516,6 +549,33 @@ class BookingController extends Controller
                 'content' => $validated['owner_response'],
                 'type' => Message::TYPE_BOOKING_RESPONSE,
             ]);
+        }
+
+        $booking->loadMissing('accommodation', 'client');
+        $client = $booking->client;
+        if ($client) {
+            try {
+                if ($validated['status'] === 'confirmed') {
+                    $client->notify(new ClientImportantNotification(
+                        title: 'Booking confirmed',
+                        body: 'Your stay at '.$booking->accommodation->name.' is confirmed. Complete payment if you have not already.',
+                        actionUrl: '/bookings/'.$booking->id,
+                        actionLabel: 'View booking',
+                    ));
+                } elseif ($validated['status'] === 'cancelled') {
+                    $client->notify(new ClientImportantNotification(
+                        title: 'Booking cancelled',
+                        body: 'Your booking for '.$booking->accommodation->name.' was cancelled by the host.',
+                        actionUrl: '/bookings/'.$booking->id,
+                        actionLabel: 'View booking',
+                    ));
+                }
+            } catch (\Throwable $exception) {
+                Log::warning('Client in-app notification failed for booking status change.', [
+                    'booking_id' => $booking->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         }
 
         return back()->with('success', 'Booking status updated successfully!');

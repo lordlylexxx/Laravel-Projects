@@ -8,6 +8,7 @@ use App\Services\AdminReleaseService;
 use App\Services\ReleaseRegistryService;
 use App\Services\TenantUpdateService;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 function createUpdateTenantFixture(string $nameSuffix = 'A'): array
@@ -144,4 +145,41 @@ it('includes prerelease app releases in available tenant updates', function () {
     $available = $tenantUpdateService->getAvailableUpdates((int) $fixture['tenant']->id);
 
     expect($available->pluck('id')->all())->toContain((int) $prereleaseNewer->id);
+});
+
+it('syncs tag-only versions from GitHub when no release exists for that tag', function () {
+    try {
+        AppRelease::query()->where('tag', 'v9.9.9-dev-tagonly-test')->delete();
+    } catch (QueryException $exception) {
+        $this->markTestSkipped('Landlord test database is unavailable in this environment.');
+    }
+
+    config([
+        'releases.github_repo' => 'test/testing',
+        'releases.github_token' => '',
+    ]);
+
+    Http::fake([
+        'https://api.github.com/repos/test/testing/releases*' => Http::response([], 200),
+        'https://api.github.com/repos/test/testing/tags*' => Http::response([[
+            'name' => 'v9.9.9-dev-tagonly-test',
+            'commit' => [
+                'sha' => 'abcdef1234567890abcdef1234567890abcdef12',
+                'url' => 'https://api.github.com/repos/test/testing/commits/abcdef1234567890abcdef1234567890abcdef12',
+            ],
+        ]], 200),
+        'https://api.github.com/repos/test/testing/commits/*' => Http::response([
+            'commit' => ['committer' => ['date' => '2026-04-28T12:00:00Z']],
+        ], 200),
+    ]);
+
+    $result = app(ReleaseRegistryService::class)->syncFromGitHub();
+
+    expect($result['error'] ?? null)->toBeNull();
+    $row = AppRelease::query()->where('tag', 'v9.9.9-dev-tagonly-test')->first();
+    expect($row)->not->toBeNull();
+    expect($row->changelog)->toBe('');
+    expect($row->is_stable)->toBeFalse();
+
+    AppRelease::query()->where('tag', 'v9.9.9-dev-tagonly-test')->delete();
 });

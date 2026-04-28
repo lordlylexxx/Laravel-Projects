@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\NotificationBellController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\OnboardingPaymentController;
 use App\Http\Controllers\Owner\TenantUserController;
@@ -118,6 +119,11 @@ $registerCentralRoutes = function () {
                 Route::put('/{message}/archive', [\App\Http\Controllers\MessageController::class, 'archive'])->name('archive');
                 Route::delete('/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('destroy');
             });
+
+            Route::get('/notifications', [NotificationBellController::class, 'index']);
+            Route::post('/notifications/read-all', [NotificationBellController::class, 'markAllRead']);
+            Route::post('/notifications/{id}/read', [NotificationBellController::class, 'markRead'])
+                ->where('id', '[0-9a-fA-F-]{36}');
 
             // Central dashboard redirect (no client pages on central app)
             Route::get('/dashboard', function () {
@@ -373,6 +379,13 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
         Route::middleware(['auth', 'tenant.manager'])->group(function () {
             Route::get('/settings/updates', [TenantSettingsController::class, 'index'])->name('settings.updates.index');
             Route::post('/settings/updates/apply', [TenantSettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
+        });
+
+        Route::middleware(['auth'])->group(function () {
+            Route::get('/notifications', [NotificationBellController::class, 'index']);
+            Route::post('/notifications/read-all', [NotificationBellController::class, 'markAllRead']);
+            Route::post('/notifications/{id}/read', [NotificationBellController::class, 'markRead'])
+                ->where('id', '[0-9a-fA-F-]{36}');
         });
 
         Route::middleware(['auth', 'tenant.client_guest_rbac'])->group(function () {

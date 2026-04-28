@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CentralOnboardingGcashSetting;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
+use App\Services\CentralAdminNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -305,6 +306,12 @@ class OnboardingPaymentController extends Controller
                 'onboarding_stripe_session_id' => $tenant->onboarding_stripe_session_id,
             ],
         ]);
+
+        try {
+            app(CentralAdminNotifier::class)->notifyOnboardingPaymentPendingReview($tenant);
+        } catch (\Throwable) {
+            // Non-fatal: lifecycle log already recorded submission.
+        }
     }
 
     private function buildPaymentReference(Tenant $tenant): string
