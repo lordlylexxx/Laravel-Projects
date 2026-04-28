@@ -20,20 +20,10 @@ class SettingsController extends Controller
         $tenant = Tenant::current();
         abort_unless($tenant, 404);
 
+        // Do not auto-backfill "current" from the newest registry row: that makes the tenant appear
+        // already on the latest tag (by semver), so getAvailableUpdates() returns nothing even
+        // though they never applied. Use tenants:backfill-updates or apply flow to set current.
         $current = $tenantUpdateService->getCurrentRelease((int) $tenant->id);
-        if (! $current) {
-            $fallbackRelease = AppRelease::query()
-                ->orderByDesc('is_stable')
-                ->orderByDesc('published_at')
-                ->orderByDesc('id')
-                ->first();
-
-            if ($fallbackRelease) {
-                $current = $tenantUpdateService
-                    ->backfillCurrentReleaseForTenant($tenant, $fallbackRelease)
-                    ->load('release');
-            }
-        }
 
         $available = $tenantUpdateService->getAvailableUpdates((int) $tenant->id);
 

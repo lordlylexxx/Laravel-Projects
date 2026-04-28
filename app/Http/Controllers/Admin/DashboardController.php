@@ -932,6 +932,10 @@ class DashboardController extends Controller
 
     public function exportDemographicsReport(Request $request)
     {
+        if ($request->has('tenant_id') && $request->input('tenant_id') === '') {
+            $request->merge(['tenant_id' => null]);
+        }
+
         $validated = $request->validate([
             'format' => ['required', 'in:pdf,csv'],
             'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],

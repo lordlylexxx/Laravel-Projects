@@ -21,6 +21,7 @@ use App\Http\Controllers\Owner\OnboardingPaymentController;
 use App\Http\Controllers\Owner\TenantUserController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Tenant\ModuleController as TenantModuleController;
 use App\Http\Controllers\Tenant\SettingsController as TenantSettingsController;
 use App\Http\Controllers\TenantLandingController;
 use App\Http\Controllers\UpdateTicketController;
@@ -353,6 +354,7 @@ Route::middleware(['tenant.port', 'tenant.required', 'tenant.permissions_team', 
                 ->name('accommodations.index');
             Route::resource('/accommodations', \App\Http\Controllers\AccommodationController::class)
                 ->except(['index']);
+            Route::resource('/modules', TenantModuleController::class);
 
             Route::prefix('bookings')->name('bookings.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');

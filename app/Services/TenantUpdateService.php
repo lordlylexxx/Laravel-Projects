@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\AppRelease;
 use App\Models\Tenant;
 use App\Models\TenantUpdate;
-use App\Support\SemanticVersion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -23,68 +22,16 @@ class TenantUpdateService
     public function getAvailableUpdates(int $tenantId)
     {
         $current = $this->getCurrentRelease($tenantId);
-        $currentRelease = $current?->release;
-        $currentTag = $currentRelease?->tag;
+        $currentPublishedAt = $current?->release?->published_at;
 
-        $offerPrereleases = (bool) config('releases.offer_prereleases_to_tenants', false);
-        $onDevOrPrereleaseTrack = $this->tenantCurrentReleaseIsOnPrereleaseOrDevTrack($currentRelease);
-
-        $candidates = AppRelease::query()
-            ->get()
-            ->filter(function (AppRelease $release) use ($currentTag, $offerPrereleases, $onDevOrPrereleaseTrack): bool {
-                if ($currentTag !== null && $currentTag !== '') {
-                    if (version_compare(
-                        SemanticVersion::normalize((string) $release->tag),
-                        SemanticVersion::normalize((string) $currentTag),
-                        '<='
-                    )) {
-                        return false;
-                    }
-                }
-
-                if ($offerPrereleases || $release->is_stable) {
-                    return true;
-                }
-
-                // Stable-only mode: still offer newer prereleases when the tenant is already on a
-                // dev/beta/rc line (or is_stable is false). Otherwise GitHub prerelease / tag-only
-                // rows (is_stable=false) never appear even though semver is newer (e.g. 1.0.13-dev
-                // after 1.0.12-dev).
-                if ($onDevOrPrereleaseTrack) {
-                    return true;
-                }
-
-                return false;
-            });
-
-        return $candidates
-            ->sort(function (AppRelease $a, AppRelease $b): int {
-                return -version_compare(
-                    SemanticVersion::normalize((string) $a->tag),
-                    SemanticVersion::normalize((string) $b->tag)
-                );
-            })
-            ->values();
-    }
-
-    /**
-     * True when the tenant's recorded "current" release is on a non-stable train, so we should
-     * still list newer semver tags that GitHub stores as prerelease / unstable.
-     */
-    private function tenantCurrentReleaseIsOnPrereleaseOrDevTrack(?AppRelease $currentRelease): bool
-    {
-        if (! $currentRelease) {
-            return false;
-        }
-
-        if (! $currentRelease->is_stable) {
-            return true;
-        }
-
-        return (bool) preg_match(
-            '/-(dev|alpha|beta|rc|preview|pre|snapshot|nightly)([.\d\-]|$)/i',
-            (string) $currentRelease->tag
-        );
+        // Include prereleases: GitHub marks typical `-dev` releases as prerelease, which we store as
+        // is_stable=false. Tenants still need to see and apply those tags.
+        return AppRelease::query()
+            ->when($currentPublishedAt, fn ($query) => $query->where('published_at', '>', $currentPublishedAt))
+            ->orderByDesc('is_stable')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function markAsUpdated(int $tenantId, int $releaseId): TenantUpdate

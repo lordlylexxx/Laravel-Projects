@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('admin.partials.favicon')
     <title>Demographics Report - IMPASUGONG TOURISM</title>
     <style>
@@ -75,7 +76,9 @@
                 <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}">
                     @csrf
                     <input type="hidden" name="format" value="pdf">
-                    <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                    @if($selectedTenantId !== null)
+                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                    @endif
                     <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
                     <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
                     <button class="btn export" type="submit">Export PDF</button>
@@ -83,7 +86,9 @@
                 <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}">
                     @csrf
                     <input type="hidden" name="format" value="csv">
-                    <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                    @if($selectedTenantId !== null)
+                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                    @endif
                     <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
                     <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
                     <button class="btn export" type="submit">Export CSV</button>

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\AppRelease;
 use App\Models\Tenant;
 use App\Models\TenantUpdate;
-use App\Support\SemanticVersion;
 use Illuminate\Support\Carbon;
 
 class AdminReleaseService
@@ -96,13 +95,11 @@ class AdminReleaseService
             ->where('is_current', true)
             ->get();
 
-        $latestStable = SemanticVersion::newestRelease(
-            AppRelease::query()->where('is_stable', true)->get()
-        );
-
-        $newestInRegistry = SemanticVersion::newestRelease(
-            AppRelease::query()->get()
-        );
+        $latestStable = AppRelease::query()
+            ->where('is_stable', true)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->first();
 
         $onLatest = 0;
         if ($latestStable) {
@@ -127,8 +124,6 @@ class AdminReleaseService
             'total_tenants' => $totalTenants,
             'latest_release_id' => $latestStable?->id,
             'latest_release_tag' => $latestStable?->tag,
-            'newest_registry_id' => $newestInRegistry?->id,
-            'newest_registry_tag' => $newestInRegistry?->tag,
             'tenants_on_latest' => $onLatest,
             'tenants_pending_latest' => max(0, $totalTenants - $onLatest),
             'tenants_required_overdue' => $requiredOverdue,
