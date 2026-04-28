@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('admin.partials.favicon')
     <title>System Updates — Release Registry</title>
     @vite(['resources/js/app.js', 'resources/css/app.css'])
@@ -32,13 +33,26 @@
                             </p>
                         </div>
                         <div class="flex shrink-0 flex-wrap items-center gap-3">
-                            <a
-                                href="{{ route('admin.releases.sync', [], false) }}"
-                                class="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                            <form
+                                method="POST"
+                                action="{{ route('admin.releases.sync.post', [], false) }}"
+                                class="inline-flex"
+                                data-swal-confirm
+                                data-swal-icon="question"
+                                data-swal-title="Sync from GitHub?"
+                                data-swal-text="This will fetch the latest releases and tags from GitHub and update the registry. Continue?"
+                                data-swal-confirm-button="Yes, sync now"
+                                data-swal-cancel-button="Cancel"
                             >
-                                <i class="fas fa-rotate" aria-hidden="true"></i>
-                                Sync from GitHub
-                            </a>
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/15 transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                                >
+                                    <i class="fas fa-rotate" aria-hidden="true"></i>
+                                    Sync from GitHub
+                                </button>
+                            </form>
                         </div>
                     </header>
 
@@ -62,15 +76,16 @@
                     {{-- Stats --}}
                     <section class="mb-8 shrink-0">
                         <h2 class="sr-only">Update statistics</h2>
-                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 2xl:grid-cols-7">
                             @php
                                 $statTiles = [
-                                    ['label' => 'Total tenants', 'value' => $stats['total_tenants'] ?? 0],
-                                    ['label' => 'On latest', 'value' => $stats['tenants_on_latest'] ?? 0],
-                                    ['label' => 'Pending latest', 'value' => $stats['tenants_pending_latest'] ?? 0],
-                                    ['label' => 'Required overdue', 'value' => $stats['tenants_required_overdue'] ?? 0],
-                                    ['label' => 'Failed updates', 'value' => $stats['tenants_with_failed_updates'] ?? 0],
-                                    ['label' => 'Latest tag', 'value' => $stats['latest_release_tag'] ?? 'N/A'],
+                                    ['label' => 'Total tenants', 'value' => $stats['total_tenants'] ?? 0, 'hint' => null],
+                                    ['label' => 'On latest (stable)', 'value' => $stats['tenants_on_latest'] ?? 0, 'hint' => null],
+                                    ['label' => 'Pending latest', 'value' => $stats['tenants_pending_latest'] ?? 0, 'hint' => null],
+                                    ['label' => 'Required overdue', 'value' => $stats['tenants_required_overdue'] ?? 0, 'hint' => null],
+                                    ['label' => 'Failed updates', 'value' => $stats['tenants_with_failed_updates'] ?? 0, 'hint' => null],
+                                    ['label' => 'Latest stable tag', 'value' => $stats['latest_release_tag'] ?? 'N/A', 'hint' => 'Rollups use highest stable semver in registry'],
+                                    ['label' => 'Newest in registry', 'value' => $stats['newest_registry_tag'] ?? 'N/A', 'hint' => 'Highest semver (any stability)'],
                                 ];
                             @endphp
                             @foreach ($statTiles as $tile)
@@ -81,6 +96,11 @@
                                     <div class="mt-1 truncate text-lg font-bold text-emerald-900 sm:text-xl" title="{{ is_scalar($tile['value']) ? (string) $tile['value'] : '' }}">
                                         {{ $tile['value'] }}
                                     </div>
+                                    @if (! empty($tile['hint']))
+                                        <div class="mt-1 text-[0.65rem] leading-snug text-slate-500">
+                                            {{ $tile['hint'] }}
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -127,6 +147,11 @@
                                             class="flex flex-wrap items-center gap-2"
                                             method="POST"
                                             action="{{ route('admin.releases.required', ['release' => $release], false) }}"
+                                            data-swal-confirm
+                                            data-swal-title="Mark release as required?"
+                                            data-swal-text="Tenants not yet on {{ $release->tag }} will be flagged with a required update (using the grace period you set). Continue?"
+                                            data-swal-confirm-button="Yes, mark required"
+                                            data-swal-cancel-button="Cancel"
                                         >
                                             @csrf
                                             <label class="sr-only" for="grace-{{ $release->getKey() }}">Grace days</label>
@@ -147,7 +172,15 @@
                                             </button>
                                         </form>
 
-                                        <form method="POST" action="{{ route('admin.releases.notify-all', ['release' => $release], false) }}">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('admin.releases.notify-all', ['release' => $release], false) }}"
+                                            data-swal-confirm
+                                            data-swal-title="Notify all tenants?"
+                                            data-swal-text="This creates update-available records for {{ $release->tag }} for every tenant that does not already have one. Continue?"
+                                            data-swal-confirm-button="Yes, notify all"
+                                            data-swal-cancel-button="Cancel"
+                                        >
                                             @csrf
                                             <button
                                                 type="submit"
@@ -160,7 +193,13 @@
                                         <form
                                             method="POST"
                                             action="{{ route('admin.releases.force-mark-all-updated', ['release' => $release], false) }}"
-                                            onsubmit="return confirm('Force mark all tenants as updated to this release?');"
+                                            data-swal-confirm
+                                            data-swal-icon="warning"
+                                            data-swal-title="Force mark all tenants updated?"
+                                            data-swal-text="Every tenant will be recorded as running {{ $release->tag }}, regardless of their real state. This cannot be undone from here. Continue?"
+                                            data-swal-confirm-button="Yes, force mark"
+                                            data-swal-cancel-button="Cancel"
+                                            data-swal-confirm-color="#b91c1c"
                                         >
                                             @csrf
                                             <button
@@ -199,5 +238,6 @@
             </div>
         </main>
     </div>
+    @include('partials.sweetalert-form-confirm')
 </body>
 </html>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AppRelease;
 use App\Models\Tenant;
 use App\Models\TenantUpdate;
+use App\Support\SemanticVersion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,16 +23,34 @@ class TenantUpdateService
     public function getAvailableUpdates(int $tenantId)
     {
         $current = $this->getCurrentRelease($tenantId);
-        $currentPublishedAt = $current?->release?->published_at;
+        $currentTag = $current?->release?->tag;
 
-        // Include prereleases: GitHub marks typical `-dev` releases as prerelease, which we store as
-        // is_stable=false. Tenants still need to see and apply those tags.
-        return AppRelease::query()
-            ->when($currentPublishedAt, fn ($query) => $query->where('published_at', '>', $currentPublishedAt))
-            ->orderByDesc('is_stable')
-            ->orderByDesc('published_at')
-            ->orderByDesc('id')
-            ->get();
+        $candidates = AppRelease::query()
+            ->when(
+                ! config('releases.offer_prereleases_to_tenants', false),
+                fn ($query) => $query->where('is_stable', true)
+            )
+            ->get()
+            ->filter(function (AppRelease $release) use ($currentTag): bool {
+                if ($currentTag === null || $currentTag === '') {
+                    return true;
+                }
+
+                return version_compare(
+                    SemanticVersion::normalize((string) $release->tag),
+                    SemanticVersion::normalize((string) $currentTag),
+                    '>'
+                );
+            });
+
+        return $candidates
+            ->sort(function (AppRelease $a, AppRelease $b): int {
+                return -version_compare(
+                    SemanticVersion::normalize((string) $a->tag),
+                    SemanticVersion::normalize((string) $b->tag)
+                );
+            })
+            ->values();
     }
 
     public function markAsUpdated(int $tenantId, int $releaseId): TenantUpdate

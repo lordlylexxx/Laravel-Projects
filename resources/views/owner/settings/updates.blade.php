@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('partials.tenant-favicon')
     <title>Updates - Owner Settings</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -47,10 +48,14 @@
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                 <h1 class="text-3xl font-bold text-green-900">Updates</h1>
-                <p class="mt-1 text-sm text-slate-600">Track and apply app releases for this tenant.</p>
+                <p class="mt-1 max-w-2xl text-sm text-slate-600">Applying an update downloads the release, runs central post-install steps, migrates this tenant’s database, and re-syncs roles and permissions with the <strong>currently deployed</strong> server layout. Deploy new application code on the host before tenants apply.</p>
                 </div>
                 <div class="rounded-lg border border-emerald-200 bg-white/80 px-3 py-2 text-xs text-slate-600">
                     Available releases: <span class="font-semibold text-slate-800">{{ $availableReleases->count() }}</span>
+                    @if(! empty($newestAvailableTag))
+                        <span class="mx-1 text-slate-400">|</span>
+                        Latest to apply: <span class="font-semibold text-emerald-800">{{ $newestAvailableTag }}</span>
+                    @endif
                 </div>
             </div>
 
@@ -102,7 +107,16 @@
                                 @endif
 
                                 <div class="mt-3 flex flex-wrap gap-2">
-                                    <form method="POST" action="{{ route('settings.updates.apply', [], false) }}">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('settings.updates.apply', [], false) }}"
+                                        data-swal-confirm
+                                        data-swal-icon="question"
+                                        data-swal-title="Apply this update?"
+                                        data-swal-text="You are about to apply {{ $release->tag }} ({{ $release->title }}) for this tenant. Only continue if the server already has this release deployed (or you accept the self-update installer copying it in)."
+                                        data-swal-confirm-button="Yes, apply update"
+                                        data-swal-cancel-button="Cancel"
+                                    >
                                         @csrf
                                         <input type="hidden" name="release_id" value="{{ $release->id }}">
                                         <button
@@ -132,5 +146,6 @@
             </div>
         </div>
     </main>
+    @include('partials.sweetalert-form-confirm')
 </body>
 </html>

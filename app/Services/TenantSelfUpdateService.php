@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AppRelease;
 use App\Models\Tenant;
+use App\Support\SemanticVersion;
+use Database\Seeders\TenantRbacSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -24,14 +26,25 @@ class TenantSelfUpdateService
             return ['ok' => false, 'message' => 'Tenant not found.'];
         }
 
+        if (! $tenant->database || ! $tenant->database_provisioned) {
+            return ['ok' => false, 'message' => 'Tenant database is not provisioned yet. Complete provisioning before applying updates.'];
+        }
+
         $release = AppRelease::query()->find($releaseId);
         if (! $release) {
             return ['ok' => false, 'message' => 'Release not found.'];
         }
 
         $current = $this->tenantUpdateService->getCurrentRelease($tenantId)?->release;
-        if ($current && $current->published_at && $release->published_at && $release->published_at->lte($current->published_at)) {
-            return ['ok' => false, 'message' => "Refusing to apply {$release->tag} because it is not newer than current {$current->tag}."];
+        if ($current) {
+            $cmp = version_compare(
+                SemanticVersion::normalize((string) $release->tag),
+                SemanticVersion::normalize((string) $current->tag),
+                '<='
+            );
+            if ($cmp) {
+                return ['ok' => false, 'message' => "Refusing to apply {$release->tag} because it is not newer than current {$current->tag}."];
+            }
         }
 
         try {
@@ -40,12 +53,34 @@ class TenantSelfUpdateService
 
             $exit = Artisan::call('tenants:migrate', ['tenantId' => (string) $tenantId]);
             if ($exit !== 0) {
-                $message = 'Tenant migration failed while applying update.';
+                $message = trim(Artisan::output()) ?: 'Tenant migration failed while applying update.';
                 $this->tenantUpdateService->markAsFailed($tenantId, $releaseId, $message);
+
                 return ['ok' => false, 'message' => $message];
             }
 
+            if (config('releases.sync_rbac_after_tenant_apply', true)) {
+                $tenant->makeCurrent();
+
+                try {
+                    $seedExit = Artisan::call('db:seed', [
+                        '--class' => TenantRbacSeeder::class,
+                        '--force' => true,
+                    ]);
+
+                    if ($seedExit !== 0) {
+                        $message = trim(Artisan::output()) ?: 'Permission sync failed after migration.';
+                        $this->tenantUpdateService->markAsFailed($tenantId, $releaseId, $message);
+
+                        return ['ok' => false, 'message' => $message];
+                    }
+                } finally {
+                    Tenant::forgetCurrent();
+                }
+            }
+
             $this->tenantUpdateService->markAsUpdated($tenantId, $releaseId);
+
             return ['ok' => true, 'message' => "Update {$release->tag} downloaded, installed, and applied successfully."];
         } catch (\Throwable $exception) {
             Log::error('Tenant self-update failed.', [
