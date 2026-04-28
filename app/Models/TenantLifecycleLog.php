@@ -10,6 +10,11 @@ class TenantLifecycleLog extends Model
 {
     use HasFactory;
 
+    /**
+     * Same database as {@see Tenant} and central {@see User} rows (landlord).
+     */
+    protected $connection = 'landlord';
+
     protected $fillable = [
         'tenant_id',
         'actor_user_id',

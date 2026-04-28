@@ -76,6 +76,7 @@
     </ul>
 
     <div class="nav-actions">
+        @include('partials.notification-bell')
         <div class="user-display">
             @if($authUser?->avatar)
                 <img src="{{ asset('storage/avatars/' . $authUser->avatar . '?v=' . time()) }}" alt="{{ $authUser->name }}" class="user-avatar" style="object-fit: cover;">

@@ -137,6 +137,8 @@
                 <p>Plans, domains, subscriptions, and bandwidth from the central admin app.</p>
             </div>
 
+            @include('admin.partials.tenants-onboarding-gcash')
+
             @php
                 $in = 'w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 shadow-sm placeholder:text-gray-400 transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30';
                 $sel = $in;
@@ -371,7 +373,7 @@
                                             <span class="{{ $cardIcon }}"><i class="fa-solid fa-building"></i></span>
                                             Tenant profile
                                         </div>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-profile', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-profile', $tenant, false) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="{{ $formFields }}">
@@ -410,7 +412,7 @@
                                             Owner credentials
                                         </div>
                                         <p class="mb-1.5 shrink-0 text-[10px] leading-snug text-gray-500">New random password emailed to owner.</p>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.resend-onboarding-email', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.resend-onboarding-email', $tenant, false) }}" method="POST">
                                             @csrf
                                             <div class="{{ $formFields }}">
                                                 <div>
@@ -430,7 +432,7 @@
                                             <span class="{{ $cardIcon }}"><i class="fa-solid fa-layer-group"></i></span>
                                             Subscription plan
                                         </div>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-plan', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-plan', $tenant, false) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="{{ $formFields }}">
@@ -466,7 +468,7 @@
                                             <span class="{{ $cardIcon }}"><i class="fa-solid fa-globe"></i></span>
                                             Domain access
                                         </div>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.toggle-domain', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.toggle-domain', $tenant, false) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="domain_enabled" value="{{ $domainEnabled ? 0 : 1 }}">
@@ -492,7 +494,7 @@
                                             <span class="{{ $cardIcon }}"><i class="fa-solid fa-credit-card"></i></span>
                                             Billing status
                                         </div>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-subscription', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-subscription', $tenant, false) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="{{ $formFields }}">
@@ -529,7 +531,7 @@
                                             <span class="{{ $cardIcon }}"><i class="fa-solid fa-chart-simple"></i></span>
                                             Bandwidth quota
                                         </div>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-bandwidth-quota', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.update-bandwidth-quota', $tenant, false) }}" method="POST">
                                             @csrf
                                             @method('PUT')
                                             <div class="{{ $formFields }}">
@@ -568,7 +570,7 @@
                                                 <p class="mb-2 shrink-0 text-[10px]"><a class="font-semibold text-emerald-700 underline" href="{{ $tenant->onboardingGcashProofUrl }}" target="_blank" rel="noopener">View GCash proof</a></p>
                                             @endif
                                             <div class="flex flex-col gap-2">
-                                                <form class="flex flex-col gap-1.5" action="{{ route('admin.tenants.approve-onboarding', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                                <form class="flex flex-col gap-1.5" action="{{ route('admin.tenants.approve-onboarding', $tenant, false) }}" method="POST">
                                                     @csrf
                                                     <div>
                                                         <label class="{{ $lbl }}" for="t{{ $tenant->id }}-appr">Reason</label>
@@ -576,7 +578,7 @@
                                                     </div>
                                                     <button type="submit" class="{{ $btnP }}"><i class="fa-solid fa-thumbs-up"></i> Approve</button>
                                                 </form>
-                                                <form class="flex flex-col gap-1.5 border-t border-amber-100 pt-2" action="{{ route('admin.tenants.reject-onboarding', ['tenant' => $tenant->getKey()], false) }}" method="POST">
+                                                <form class="flex flex-col gap-1.5 border-t border-amber-100 pt-2" action="{{ route('admin.tenants.reject-onboarding', $tenant, false) }}" method="POST">
                                                     @csrf
                                                     <div>
                                                         <label class="{{ $lbl }}" for="t{{ $tenant->id }}-rej">Reason</label>
@@ -595,7 +597,7 @@
                                             Delete tenant
                                         </div>
                                         <p class="mb-2 shrink-0 text-[9px] leading-tight text-red-800/90">DB dropped. Irreversible.</p>
-                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.destroy', ['tenant' => $tenant->getKey()], false) }}" method="POST" onsubmit="return confirm('Permanently delete this tenant? Database will be dropped if it exists. Cannot be undone.');">
+                                        <form class="{{ $formCol }}" action="{{ route('admin.tenants.destroy', $tenant, false) }}" method="POST" onsubmit="return confirm('Permanently delete this tenant? Database will be dropped if it exists. Cannot be undone.');">
                                             @csrf
                                             @method('DELETE')
                                             <div class="{{ $formFields }}">

@@ -10,8 +10,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-soft: #C8E6C9;
-            --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
+            @include('partials.tenant-theme-css-vars')
             --gray-200: #E5E7EB; --gray-500: #6B7280; --gray-700: #374151; --gray-800: #1F2937;
             --red-500: #EF4444;
         }

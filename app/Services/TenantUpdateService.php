@@ -28,6 +28,7 @@ class TenantUpdateService
         // is_stable=false. Tenants still need to see and apply those tags.
         return AppRelease::query()
             ->when($currentPublishedAt, fn ($query) => $query->where('published_at', '>', $currentPublishedAt))
+            ->orderByDesc('is_stable')
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->get();

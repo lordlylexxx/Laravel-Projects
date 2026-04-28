@@ -7,6 +7,7 @@ use App\Mail\TenantDomainStatusChangedMail;
 use App\Mail\TenantSubscriptionChangedMail;
 use App\Models\Accommodation;
 use App\Models\Booking;
+use App\Models\CentralOnboardingGcashSetting;
 use App\Models\Tenant;
 use App\Models\TenantLifecycleLog;
 use App\Models\User;
@@ -380,7 +381,11 @@ class DashboardController extends Controller
             'per_page' => $perPage,
         ];
 
-        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant', 'tenantFilters'));
+        $gcashSetting = Schema::hasTable('central_onboarding_gcash_settings')
+            ? CentralOnboardingGcashSetting::singleton()
+            : null;
+
+        return view('admin.tenants', compact('tenants', 'databaseUsageMbByDatabase', 'latestLifecycleByTenant', 'tenantFilters', 'gcashSetting'));
     }
 
     public function users(): RedirectResponse
@@ -927,6 +932,10 @@ class DashboardController extends Controller
 
     public function exportDemographicsReport(Request $request)
     {
+        if ($request->has('tenant_id') && $request->input('tenant_id') === '') {
+            $request->merge(['tenant_id' => null]);
+        }
+
         $validated = $request->validate([
             'format' => ['required', 'in:pdf,csv'],
             'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],

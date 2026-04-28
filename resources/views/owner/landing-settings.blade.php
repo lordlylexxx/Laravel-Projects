@@ -7,8 +7,7 @@
     <title>Landing Page Settings</title>
     <style>
         :root {
-            --primary: #14532d;
-            --accent: #16a34a;
+            @include('partials.tenant-theme-css-vars', ['themeTenant' => $tenant])
             --paper: #f1f5f9;
             --ink: #111827;
             --muted: #6b7280;

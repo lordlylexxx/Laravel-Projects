@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('admin.partials.favicon')
     <title>Admin Dashboard - IMPASUGONG TOURISM</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -309,6 +310,16 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @if ($errors->any())
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 10px 12px; border-radius: 10px; margin-bottom: 16px; font-weight: 600;">
+                    <strong>Could not complete that action.</strong>
+                    <ul style="margin: 8px 0 0 18px; font-weight: 500;">
+                        @foreach ($errors->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <!-- Page Header -->
             <div class="page-header animate">
@@ -348,7 +359,9 @@
                     <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="format" value="pdf">
-                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        @if($selectedTenantId !== null)
+                            <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        @endif
                         <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
                         <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
                         <button type="submit" class="btn-filter secondary"><i class="fas fa-file-pdf"></i> Export PDF</button>
@@ -356,7 +369,9 @@
                     <form method="POST" action="{{ route('admin.reports.demographics.export', [], false) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="format" value="csv">
-                        <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        @if($selectedTenantId !== null)
+                            <input type="hidden" name="tenant_id" value="{{ $selectedTenantId }}">
+                        @endif
                         <input type="hidden" name="start_date" value="{{ optional($demographicsStartDate)->toDateString() }}">
                         <input type="hidden" name="end_date" value="{{ optional($demographicsEndDate)->toDateString() }}">
                         <button type="submit" class="btn-filter secondary"><i class="fas fa-file-csv"></i> Export CSV</button>

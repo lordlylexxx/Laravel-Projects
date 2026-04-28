@@ -6,6 +6,16 @@
     @include('partials.tenant-favicon')
     <title>Booking Details - Impasugong Accommodations</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind = {
+            config: {
+                corePlugins: {
+                    preflight: false,
+                },
+            },
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @php
             $authUser = auth()->user();
@@ -17,16 +27,14 @@
             $useLegacyBookingsNav = ! $isTenantManager && ! $authUser?->isClient();
         @endphp
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
-            --green-dark: #1B5E20; --green-primary: #2E7D32; --green-medium: #43A047;
-            --green-light: #66BB6A; --green-pale: #81C784; --green-soft: #C8E6C9;
-            --green-white: #E8F5E9; --white: #FFFFFF; --cream: #F1F8E9;
+            @include('partials.tenant-theme-css-vars')
             --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
             --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151;
             --gray-800: #1F2937;
         }
-        
+
         @if($useLegacyBookingsNav)
         .navbar {
             background: var(--white);
@@ -63,112 +71,23 @@
 
         body {
             font-family: var(--client-nav-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-            background: linear-gradient(135deg, var(--green-white) 0%, var(--cream) 50%, var(--green-soft) 100%);
             min-height: 100vh;
             color: var(--gray-800);
         }
-        
-        /* Main Layout */
-        .main-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-top: var(--client-nav-offset, 100px);
-            padding-bottom: 40px;
-            padding-left: 40px;
-            padding-right: 40px;
-        }
-        
-        /* Back Button */
-        .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--green-primary); text-decoration: none; font-weight: 500; margin-bottom: 20px; transition: all 0.3s; }
-        .back-link:hover { color: var(--green-dark); }
-        
-        /* Booking Card */
-        .booking-card { background: var(--white); border-radius: 20px; box-shadow: 0 4px 30px rgba(27, 94, 32, 0.1); overflow: hidden; }
-        
-        .booking-header { background: linear-gradient(135deg, var(--green-dark), var(--green-primary)); padding: 30px; color: white; }
-        .booking-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .booking-id { font-size: 0.9rem; opacity: 0.8; }
-        .status-badge { display: inline-block; padding: 8px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; background: white; color: var(--green-dark); }
-        .payment-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; margin-top: 8px; }
-        .payment-badge.neutral { background: #F3F4F6; color: #374151; }
-        .payment-badge.pending-review { background: #FFF7ED; color: #9A3412; }
-        .payment-badge.paid { background: #ECFDF5; color: #166534; }
-        .booking-title { font-size: 1.8rem; margin-bottom: 5px; }
-        .booking-date { opacity: 0.9; }
-        
-        .booking-body { padding: 30px; }
-        
-        .section-title { font-size: 1.1rem; color: var(--green-dark); margin-bottom: 15px; font-weight: 600; }
-        
-        /* Property Info */
-        .property-info { display: flex; gap: 25px; margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid var(--gray-200); }
-        .property-image { width: 200px; height: 150px; border-radius: 15px; object-fit: cover; }
-        .property-details { flex: 1; }
-        .property-name { font-size: 1.4rem; color: var(--gray-800); margin-bottom: 8px; font-weight: 600; }
-        .property-location { display: flex; align-items: center; gap: 6px; color: var(--gray-500); margin-bottom: 15px; }
-        
-        /* Info Grid */
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .info-box { background: var(--cream); padding: 20px; border-radius: 15px; }
-        .info-label { font-size: 0.8rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-        .info-value { font-size: 1.1rem; color: var(--gray-800); font-weight: 600; }
-        
-        /* Price Box */
-        .price-box { background: linear-gradient(135deg, var(--green-dark), var(--green-primary)); padding: 25px; border-radius: 15px; color: white; text-align: center; }
-        .price-label { font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px; }
-        .price-value { font-size: 2rem; font-weight: 700; }
-        
-        /* Messages Section */
-        .messages-section { margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--gray-200); }
-        .message-item { background: var(--cream); padding: 20px; border-radius: 15px; margin-bottom: 15px; }
-        .message-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .message-sender { font-weight: 600; color: var(--green-dark); }
-        .message-time { font-size: 0.8rem; color: var(--gray-500); }
-        .message-content { color: var(--gray-700); line-height: 1.6; }
-        
-        /* Action Buttons */
-        .action-btns { display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap; align-items: center; }
-        .btn { padding: 14px 28px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-        .btn-primary { background: var(--green-primary); color: white; }
-        .btn-primary:hover { background: var(--green-dark); transform: translateY(-2px); }
-        .btn-outline { background: transparent; border: 2px solid var(--green-primary); color: var(--green-primary); }
-        .btn-outline:hover { background: var(--green-primary); color: white; }
-        .btn-danger { background: #EF4444; color: white; }
-        .btn-danger:hover { background: #DC2626; }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            @if($useLegacyBookingsNav)
-            .navbar { padding: 0 20px; height: 60px; }
-            .nav-links { display: none; }
-            @endif
-            .main-content {
-                padding-top: calc(var(--client-nav-offset, 100px) - 10px);
-                padding-left: 20px;
-                padding-right: 20px;
-                padding-bottom: 40px;
-            }
-            .property-info { flex-direction: column; }
-            .property-image { width: 100%; height: 200px; }
-            .booking-header-top { flex-direction: column; gap: 15px; }
-            .action-btns { flex-direction: column; }
-        }
-
     </style>
 </head>
-<body>
-    <!-- Navigation -->
+<body class="{{ $isTenantManager ? 'owner-nav-page' : '' }} flex min-h-screen flex-col bg-gradient-to-br from-emerald-50 via-lime-50/90 to-emerald-100 text-slate-900 antialiased">
     @if($isTenantManager)
-    @include('owner.partials.top-navbar')
+        @include('owner.partials.top-navbar')
     @elseif(auth()->user()?->isClient())
-    @include('client.partials.top-navbar', ['active' => 'bookings'])
+        @include('client.partials.top-navbar', ['active' => 'bookings'])
     @else
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="nav-logo">
             <img src="/SYSTEMLOGO.png" alt="ImpaStay Logo">
             <span>Impasugong</span>
         </a>
-        
+
         <ul class="nav-links">
             @auth
                 @if(Auth::user()->isAdmin())
@@ -187,7 +106,7 @@
             <li><a href="{{ route('messages.index', [], false) }}" class="{{ request()->routeIs('messages.*') ? 'active' : '' }}">Messages</a></li>
             <li><a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}">Settings</a></li>
         </ul>
-        
+
         <div class="nav-actions">
             <form action="{{ route('profile.edit') }}" method="GET">
                 @csrf
@@ -200,246 +119,320 @@
         </div>
     </nav>
     @endif
-    
-    <!-- Main Content -->
-    <main class="main-content">
-        @php
-            $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
-        @endphp
 
-        @if (session('success'))
-            <div style="margin-bottom: 16px; padding: 14px 18px; border-radius: 12px; background: var(--green-soft); color: var(--green-dark); font-weight: 500;">
-                {{ session('success') }}
-            </div>
-        @endif
-        @if (session('error'))
-            <div style="margin-bottom: 16px; padding: 14px 18px; border-radius: 12px; background: #FFEBEE; color: #C62828; font-weight: 500;">
-                {{ session('error') }}
-            </div>
-        @endif
+    @php
+        $bookingsIndexRoute = Auth::check() && $isTenantManager ? 'owner.bookings.index' : 'bookings.index';
+    @endphp
 
-        <a href="{{ route($bookingsIndexRoute) }}" class="back-link">← Back to My Bookings</a>
-
-        @if(Auth::check() && $isTenantManager)
-            <div style="background: var(--white); border: 1px solid var(--green-soft); border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(27, 94, 32, 0.08);">
-                <h3 style="color: var(--green-dark); margin-bottom: 10px; font-size: 1rem;">GCash QR Code</h3>
-                @if($currentTenant?->getGcashQrUrl())
-                    <div style="display:flex;align-items:center;gap:12px; margin-bottom:10px;">
-                        <img src="{{ $currentTenant->getGcashQrUrl() }}" alt="GCash QR" style="width:100px;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--gray-200);">
-                        <form method="POST" action="/owner/bookings/payment-settings/gcash-qr">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Remove QR</button>
-                        </form>
-                    </div>
-                @endif
-                <form method="POST" action="/owner/bookings/payment-settings/gcash-qr" enctype="multipart/form-data" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    @csrf
-                    <input type="file" name="gcash_qr" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
-                    <button type="submit" class="btn btn-primary">{{ $currentTenant?->getGcashQrUrl() ? 'Replace' : 'Upload' }} GCash QR Photo</button>
-                </form>
-                @error('gcash_qr')
-                    <p style="font-size:0.82rem;color:#C62828;margin-top:8px;">{{ $message }}</p>
-                @enderror
-            </div>
-        @endif
-        
-        @if(isset($booking))
-            <div class="booking-card">
-                <div class="booking-header">
-                    <div class="booking-header-top">
-                        <div>
-                            <span class="booking-id">Booking #{{ $booking->id }}</span>
-                            <h1 class="booking-title">{{ $booking->accommodation->name ?? 'N/A' }}</h1>
-                            <p class="booking-date">Booked on {{ $booking->created_at->format('F d, Y') }}</p>
-                        </div>
-                        @php
-                            $paymentUi = $booking->payment_ui_state;
-                            $paymentToneClass = $paymentUi['tone'] === 'pending_review' ? 'pending-review' : $paymentUi['tone'];
-                        @endphp
-                        <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                            <span class="status-badge">{{ ucfirst($booking->status) }}</span>
-                            <span class="payment-badge {{ $paymentToneClass }}">{{ $paymentUi['label'] }}</span>
-                        </div>
-                    </div>
+    <main
+        class="flex w-full flex-1 flex-col {{ $isTenantManager ? 'main-content with-owner-nav' : '' }} min-h-0 min-h-[calc(100dvh-5rem)] px-4 pb-10 pt-6 sm:px-6 lg:min-h-[calc(100dvh-6rem)] lg:px-8"
+        @if(! $isTenantManager) style="padding-top: calc(var(--client-nav-offset, 108px) + 16px);" @endif
+    >
+        <div class="mx-auto flex w-full max-w-[1920px] flex-1 flex-col gap-4">
+            @if (session('success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 shadow-sm">
+                    {{ session('success') }}
                 </div>
-                
-                <div class="booking-body">
-                    <!-- Property Info -->
-                    <div class="property-info">
-                        @if($booking->accommodation && $booking->accommodation->primary_image)
-                            <img src="{{ $booking->accommodation->primary_image_url }}" alt="{{ $booking->accommodation->name }}" class="property-image">
-                        @else
-                            <img src="/COMMUNAL.jpg" alt="Property" class="property-image">
-                        @endif
-                        
-                        <div class="property-details">
-                            <h2 class="property-name">{{ $booking->accommodation->name ?? 'N/A' }}</h2>
-                            <div class="property-location">
-                                📍 {{ $booking->accommodation->address ?? 'Impasugong, Bukidnon' }}
-                            </div>
-                            <p style="color: var(--gray-600); line-height: 1.6;">
-                                {{ $booking->accommodation->description ?? 'No description available.' }}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <!-- Booking Details -->
-                    <h3 class="section-title">Booking Details</h3>
-                    <div class="info-grid">
-                        <div class="info-box">
-                            <div class="info-label">Check-In Date</div>
-                            <div class="info-value">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('F d, Y') }}</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Check-Out Date</div>
-                            <div class="info-value">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('F d, Y') }}</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Number of Guests</div>
-                            <div class="info-value">{{ $booking->number_of_guests ?? 1 }} Guest(s)</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Booking Type</div>
-                            <div class="info-value">{{ ucfirst(str_replace('-', ' ', $booking->accommodation->type ?? 'Standard')) }}</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pricing -->
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;">
-                        <div class="price-box" style="text-align: left;">
-                            <div class="price-label">Total Amount Paid</div>
-                            <div class="price-value">₱{{ number_format($booking->total_price, 2) }}</div>
-                        </div>
-                        
-                        <div style="background: var(--cream); padding: 20px; border-radius: 15px;">
-                            <div style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 5px;">Price per night</div>
-                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--gray-800);">
-                                ₱{{ number_format($booking->accommodation->price_per_night ?? 0, 2) }}
-                            </div>
-                        </div>
-                    </div>
+            @endif
+            @if (session('error'))
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 shadow-sm">
+                    {{ session('error') }}
+                </div>
+            @endif
 
-                    <div style="margin-top:18px; background:#F8FAFC; border:1px solid var(--gray-200); border-radius:12px; padding:14px;">
-                        <div style="font-size:0.85rem; color:var(--gray-500); margin-bottom:8px;">Payment Summary</div>
-                        <div style="font-weight:700; color:var(--gray-800); margin-bottom:8px;">{{ $paymentUi['label'] }}</div>
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Channel</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['channel'] }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Method</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['method'] }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Reference</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['reference'] }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Paid At</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['paid_at'] ? $paymentUi['paid_at']->format('M d, Y h:i A') : 'N/A' }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Proof Submitted At</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['submitted_at'] ? $paymentUi['submitted_at']->format('M d, Y h:i A') : 'N/A' }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:0.78rem; color:var(--gray-500);">Reviewed At</div>
-                                <div style="font-weight:600; color:var(--gray-800);">{{ $paymentUi['reviewed_at'] ? $paymentUi['reviewed_at']->format('M d, Y h:i A') : 'N/A' }}</div>
-                            </div>
-                        </div>
-                    </div>
+            <a
+                href="{{ route($bookingsIndexRoute, [], false) }}"
+                class="inline-flex w-max items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+            >
+                <i class="fas fa-arrow-left text-xs"></i>
+                Back to My Bookings
+            </a>
 
-                    @if(Auth::check() && $isTenantManager)
-                        <div style="margin-top:18px;">
-                            <h3 class="section-title">Client Payment Proof</h3>
-                            @if($booking->gcash_payment_proof_url)
-                                <a href="{{ $booking->gcash_payment_proof_url }}" target="_blank">
-                                    <img src="{{ $booking->gcash_payment_proof_url }}" alt="Payment proof" style="max-width:220px; width:100%; border-radius:10px; border:1px solid var(--gray-200);">
-                                </a>
-                            @else
-                                <p style="color:var(--gray-500); font-size:0.92rem;">No proof screenshot uploaded yet.</p>
-                            @endif
-                        </div>
-                    @endif
-                    
-                    <!-- Messages Thread -->
-                    @if(isset($booking->messages) && count($booking->messages) > 0)
-                        <div class="messages-section">
-                            <h3 class="section-title">Conversation</h3>
-                            @foreach($booking->messages as $message)
-                                <div class="message-item">
-                                    <div class="message-header">
-                                        <span class="message-sender">{{ $message->sender->name ?? 'Unknown' }}</span>
-                                        <span class="message-time">{{ $message->created_at->format('M d, Y h:i A') }}</span>
-                                    </div>
-                                    <div class="message-content">{{ $message->content }}</div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                    
-                    <!-- Action Buttons -->
-                    @if(Auth::check() && $isTenantManager && $booking->status === 'pending')
-                        <div class="action-btns">
-                            <form action="/owner/bookings/{{ $booking->id }}/status" method="POST" style="display: inline;">
+            @if(Auth::check() && $isTenantManager)
+                <section class="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-sm sm:p-5">
+                    <h3 class="mb-3 text-base font-bold text-emerald-900">GCash QR Code</h3>
+                    @if($currentTenant?->getGcashQrUrl())
+                        <div class="mb-3 flex flex-wrap items-center gap-3">
+                            <img
+                                src="{{ $currentTenant->getGcashQrUrl() }}"
+                                alt="GCash QR"
+                                class="h-24 w-24 rounded-xl border border-slate-200 object-cover"
+                            >
+                            <form method="POST" action="{{ route('owner.bookings.payment-settings.gcash-qr.remove', [], false) }}">
                                 @csrf
-                                @method('PUT')
-                                <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="btn btn-primary">Approve Booking</button>
-                            </form>
-                            <form action="/owner/bookings/{{ $booking->id }}/status" method="POST" style="display: inline;">
-                                @csrf
-                                @method('PUT')
-                                <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Decline this booking request?')">
-                                    Decline Booking
+                                @method('DELETE')
+                                <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
+                                    Remove QR
                                 </button>
                             </form>
                         </div>
-                    @elseif(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
-                        <div class="action-btns">
+                    @endif
+                    <form
+                        method="POST"
+                        action="{{ route('owner.bookings.payment-settings.gcash-qr.upload', [], false) }}"
+                        enctype="multipart/form-data"
+                        class="flex flex-wrap items-center gap-3"
+                    >
+                        @csrf
+                        <input
+                            type="file"
+                            name="gcash_qr"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            required
+                            class="max-w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700"
+                        >
+                        <button type="submit" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800">
+                            {{ $currentTenant?->getGcashQrUrl() ? 'Replace' : 'Upload' }} GCash QR Photo
+                        </button>
+                    </form>
+                    @error('gcash_qr')
+                        <p class="mt-2 text-sm text-red-700">{{ $message }}</p>
+                    @enderror
+                </section>
+            @endif
+
+            @if(isset($booking))
+                @php
+                    $paymentUi = $booking->payment_ui_state;
+                    $paymentToneClass = $paymentUi['tone'] === 'pending_review' ? 'bg-amber-50 text-amber-900 ring-amber-200' : ($paymentUi['tone'] === 'paid' ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : 'bg-slate-100 text-slate-800 ring-slate-200');
+                @endphp
+                <article class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-emerald-100/90 bg-white shadow-lg">
+                    <header class="bg-gradient-to-r from-emerald-900 to-emerald-700 px-5 py-6 text-white sm:px-8 sm:py-8">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm text-emerald-100">Booking #{{ $booking->id }}</p>
+                                <h1 class="mt-1 text-2xl font-bold leading-tight sm:text-3xl">
+                                    {{ $booking->accommodation->name ?? 'N/A' }}
+                                </h1>
+                                <p class="mt-2 text-sm text-emerald-100">
+                                    Booked on {{ $booking->created_at->format('F d, Y') }}
+                                </p>
+                            </div>
+                            <div class="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                                <span class="inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-bold text-emerald-900 shadow-sm">
+                                    {{ ucfirst($booking->status) }}
+                                </span>
+                                <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset {{ $paymentToneClass }}">
+                                    {{ $paymentUi['label'] }}
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="flex flex-1 flex-col gap-8 p-5 sm:p-8 lg:gap-10">
+                        <div class="flex flex-col gap-6 border-b border-slate-100 pb-8 lg:flex-row lg:gap-10">
+                            <div class="shrink-0 lg:w-72">
+                                @if($booking->accommodation && $booking->accommodation->primary_image)
+                                    <img
+                                        src="{{ $booking->accommodation->primary_image_url }}"
+                                        alt="{{ $booking->accommodation->name }}"
+                                        class="h-48 w-full rounded-2xl object-cover shadow-md ring-1 ring-slate-200/80 lg:h-56"
+                                    >
+                                @else
+                                    <img
+                                        src="/COMMUNAL.jpg"
+                                        alt="Property"
+                                        class="h-48 w-full rounded-2xl object-cover shadow-md ring-1 ring-slate-200/80 lg:h-56"
+                                    >
+                                @endif
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h2 class="text-xl font-bold text-slate-900 sm:text-2xl">
+                                    {{ $booking->accommodation->name ?? 'N/A' }}
+                                </h2>
+                                <p class="mt-2 flex items-start gap-2 text-sm text-slate-600">
+                                    <i class="fas fa-location-dot mt-0.5 text-emerald-600"></i>
+                                    {{ $booking->accommodation->address ?? 'Impasugong, Bukidnon' }}
+                                </p>
+                                <p class="mt-4 text-sm leading-relaxed text-slate-600">
+                                    {{ $booking->accommodation->description ?? 'No description available.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <section>
+                            <h3 class="mb-4 text-lg font-bold text-emerald-900">Booking details</h3>
+                            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Check-in</p>
+                                    <p class="mt-1 text-base font-bold text-slate-900">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('F d, Y') }}</p>
+                                </div>
+                                <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Check-out</p>
+                                    <p class="mt-1 text-base font-bold text-slate-900">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('F d, Y') }}</p>
+                                </div>
+                                <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Guests</p>
+                                    <p class="mt-1 text-base font-bold text-slate-900">{{ $booking->number_of_guests ?? 1 }} guest(s)</p>
+                                </div>
+                                <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Type</p>
+                                    <p class="mt-1 text-base font-bold text-slate-900">{{ ucfirst(str_replace('-', ' ', $booking->accommodation->type ?? 'Standard')) }}</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="grid gap-4 lg:grid-cols-3">
+                            <div class="rounded-2xl bg-gradient-to-br from-emerald-900 to-emerald-700 p-6 text-white shadow-inner lg:col-span-2">
+                                <p class="text-sm text-emerald-100">Total amount</p>
+                                <p class="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">₱{{ number_format($booking->total_price, 2) }}</p>
+                            </div>
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Price per night</p>
+                                <p class="mt-2 text-2xl font-bold text-slate-900">
+                                    ₱{{ number_format($booking->accommodation->price_per_night ?? 0, 2) }}
+                                </p>
+                            </div>
+                        </section>
+
+                        <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Payment summary</p>
+                            <p class="mt-1 text-lg font-bold text-slate-900">{{ $paymentUi['label'] }}</p>
+                            <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <div>
+                                    <dt class="text-xs text-slate-500">Channel</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['channel'] }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-slate-500">Method</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['method'] }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-slate-500">Reference</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['reference'] }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-slate-500">Paid at</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['paid_at'] ? $paymentUi['paid_at']->format('M d, Y h:i A') : 'N/A' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-slate-500">Proof submitted</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['submitted_at'] ? $paymentUi['submitted_at']->format('M d, Y h:i A') : 'N/A' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-slate-500">Reviewed at</dt>
+                                    <dd class="mt-0.5 font-semibold text-slate-900">{{ $paymentUi['reviewed_at'] ? $paymentUi['reviewed_at']->format('M d, Y h:i A') : 'N/A' }}</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        @if(Auth::check() && $isTenantManager)
+                            <section>
+                                <h3 class="mb-3 text-lg font-bold text-emerald-900">Client payment proof</h3>
+                                @if($booking->gcash_payment_proof_url)
+                                    <a href="{{ $booking->gcash_payment_proof_url }}" target="_blank" rel="noopener noreferrer" class="inline-block">
+                                        <img
+                                            src="{{ $booking->gcash_payment_proof_url }}"
+                                            alt="Payment proof"
+                                            class="max-h-64 max-w-full rounded-xl border border-slate-200 object-contain shadow-sm"
+                                        >
+                                    </a>
+                                @else
+                                    <p class="text-sm text-slate-500">No proof screenshot uploaded yet.</p>
+                                @endif
+                            </section>
+                        @endif
+
+                        @if(isset($booking->messages) && count($booking->messages) > 0)
+                            <section class="border-t border-slate-100 pt-8">
+                                <h3 class="mb-4 text-lg font-bold text-emerald-900">Conversation</h3>
+                                <ul class="space-y-3">
+                                    @foreach($booking->messages as $message)
+                                        <li class="rounded-xl border border-emerald-100/80 bg-emerald-50/40 p-4 shadow-sm">
+                                            <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                                <span class="font-semibold text-emerald-900">{{ $message->sender->name ?? 'Unknown' }}</span>
+                                                <time class="text-xs text-slate-500">{{ $message->created_at->format('M d, Y h:i A') }}</time>
+                                            </div>
+                                            <p class="mt-2 text-sm leading-relaxed text-slate-700">{{ $message->content }}</p>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endif
+
+                        @if(Auth::check() && $isTenantManager && $booking->status === 'pending')
+                            <div class="flex flex-wrap gap-3 border-t border-slate-100 pt-8">
+                                <form action="{{ route('owner.bookings.update-status', $booking, false) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <button type="submit" class="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-800">
+                                        Approve booking
+                                    </button>
+                                </form>
+                                <form action="{{ route('owner.bookings.update-status', $booking, false) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-red-700"
+                                        onclick="return confirm('Decline this booking request?')"
+                                    >
+                                        Decline booking
+                                    </button>
+                                </form>
+                            </div>
+                        @elseif(Auth::check() && Auth::user()->isClient() && ($booking->status == 'pending' || $booking->status == 'confirmed'))
                             @php
                                 $isPaymentRecorded = ($paymentUi['tone'] ?? 'neutral') === 'paid';
                             @endphp
-                            @if($booking->status === 'pending')
-                                <p style="width: 100%; color: var(--gray-600); font-size: 0.95rem; margin-bottom: 8px;">
-                                    Please pay first (Stripe or GCash proof upload), then the host will review and approve.
-                                </p>
-                                @if(! $isPaymentRecorded)
-                                    <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
-                                        Pay / Upload Proof
+                            <div class="flex flex-col flex-wrap gap-3 border-t border-slate-100 pt-8 sm:flex-row sm:items-center">
+                                @if($booking->status === 'pending')
+                                    <p class="w-full text-sm text-slate-600 sm:max-w-xl">
+                                        Please pay first (Stripe or GCash proof upload), then the host will review and approve.
+                                    </p>
+                                    @if(! $isPaymentRecorded)
+                                        <a
+                                            href="{{ route('bookings.payment', $booking, false) }}"
+                                            class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-800"
+                                        >
+                                            Pay / Upload proof
+                                        </a>
+                                    @endif
+                                @endif
+                                @if($booking->status === 'confirmed' && ! $isPaymentRecorded)
+                                    <a
+                                        href="{{ route('bookings.payment', $booking, false) }}"
+                                        class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-800"
+                                    >
+                                        Pay via Stripe
                                     </a>
                                 @endif
-                            @endif
-                            @if($booking->status === 'confirmed' && ! $isPaymentRecorded)
-                                <a href="{{ route('bookings.payment', $booking) }}" class="btn btn-primary">
-                                    Pay via Stripe
+                                <form action="{{ route('bookings.cancel', $booking, false) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('PUT')
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl border-2 border-red-200 bg-white px-6 py-3 text-sm font-bold text-red-700 shadow-sm transition hover:bg-red-50"
+                                        onclick="return confirm('Are you sure you want to cancel this booking? This action cannot be undone.')"
+                                    >
+                                        Cancel booking
+                                    </button>
+                                </form>
+                                <a
+                                    href="{{ route('messages.index', [], false) }}"
+                                    class="inline-flex items-center justify-center rounded-xl border-2 border-emerald-600 bg-white px-6 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
+                                >
+                                    Contact host
                                 </a>
-                            @endif
-                            <form action="{{ route('bookings.cancel', $booking) }}" method="POST" style="display: inline;">
-                                @csrf
-                                @method('PUT')
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this booking? This action cannot be undone.')">
-                                    Cancel Booking
-                                </button>
-                            </form>
-                            <a href="{{ route('messages.index', [], false) }}" class="btn btn-outline">
-                                Contact Host
-                            </a>
-                        </div>
-                    @endif
+                            </div>
+                        @endif
+                    </div>
+                </article>
+            @else
+                <div class="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/90 p-12 text-center shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-800">Booking not found</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-600">The booking you are looking for does not exist or has been removed.</p>
+                    <a
+                        href="{{ route($bookingsIndexRoute, [], false) }}"
+                        class="mt-6 inline-flex rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-800"
+                    >
+                        Back to My Bookings
+                    </a>
                 </div>
-            </div>
-        @else
-            <div class="booking-card" style="padding: 60px; text-align: center;">
-                <h2 style="color: var(--gray-700); margin-bottom: 15px;">Booking Not Found</h2>
-                <p style="color: var(--gray-500); margin-bottom: 25px;">The booking you're looking for doesn't exist or has been removed.</p>
-                <a href="{{ route($bookingsIndexRoute) }}" class="btn btn-primary">Back to My Bookings</a>
-            </div>
-        @endif
+            @endif
+        </div>
     </main>
 </body>
 </html>
-

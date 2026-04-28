@@ -10,6 +10,7 @@ return [
 
     /*
     | Central onboarding payment details shown on the owner onboarding page.
+    | Values saved on Admin → Tulogans (tenant management) override these when set (see central_onboarding_gcash_settings).
     */
     'onboarding_gcash_account_name' => env('IMPASTAY_ONBOARDING_GCASH_ACCOUNT_NAME', 'ImpaStay'),
     'onboarding_gcash_number' => env('IMPASTAY_ONBOARDING_GCASH_NUMBER'),

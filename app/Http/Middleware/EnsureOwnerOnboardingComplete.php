@@ -31,7 +31,13 @@ class EnsureOwnerOnboardingComplete
         $tenant = $user->ownedTenant;
 
         if (! $tenant instanceof Tenant) {
-            return $next($request);
+            if ($user->isOwner() && Tenant::isRequestHostForCentralLandlordApp($request)) {
+                $tenant = $user->ensureTenant();
+            }
+
+            if (! $tenant instanceof Tenant) {
+                return $next($request);
+            }
         }
 
         if ((string) $tenant->onboarding_status === Tenant::ONBOARDING_APPROVED) {
@@ -39,9 +45,9 @@ class EnsureOwnerOnboardingComplete
         }
 
         if ($tenant->onboarding_status === Tenant::ONBOARDING_AWAITING_PAYMENT) {
-            return redirect()->route('owner.onboarding.payment');
+            return redirect(route('owner.onboarding.payment', [], false));
         }
 
-        return redirect()->route('owner.onboarding.status');
+        return redirect(route('owner.onboarding.status', [], false));
     }
 }

@@ -6,11 +6,10 @@
     <title>Monthly Guests Catered Report - {{ $monthName }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; color: #1F2937; }
-        .container { padding: 18px; }
-        .header { border-bottom: 2px solid #2E7D32; padding-bottom: 8px; margin-bottom: 12px; }
-        .header h1 { color: #1B5E20; font-size: 20px; margin-bottom: 3px; }
-        .header p { color: #6B7280; font-size: 12px; }
+        body { font-family: "Times New Roman", Times, serif; color: #333; line-height: 1.6; font-size: 12px; }
+        .container { padding: 20px; max-width: 1120px; margin: 0 auto; }
+
+        @include('reports.partials.municipal-pdf-header-styles')
         .kpi { display: flex; gap: 8px; margin-bottom: 12px; }
         .kpi-card {
             flex: 1;
@@ -32,10 +31,10 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Monthly Guests Catered Report</h1>
-            <p>Reporting month: {{ $monthName }}</p>
-        </div>
+        @include('reports.partials.municipal-pdf-header', [
+            'pdfReportTitle' => 'Monthly Guests Catered Report',
+            'pdfReportSubtitle' => 'Reporting month: '.$monthName,
+        ])
 
         <div class="kpi">
             <div class="kpi-card">
