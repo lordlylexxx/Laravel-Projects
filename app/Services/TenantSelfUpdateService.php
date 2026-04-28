@@ -97,14 +97,39 @@ class TenantSelfUpdateService
 
     private function resolveDownloadUrl(AppRelease $release): string
     {
-        $repo = trim((string) config('releases.github_repo', ''));
+        $repo = $this->normalizeGithubRepo((string) config('releases.github_repo', ''));
         $tag = trim((string) $release->tag);
 
         if ($repo === '' || $tag === '' || substr_count($repo, '/') !== 1) {
             throw new \RuntimeException('GitHub repository or release tag is not configured correctly.');
         }
 
-        return "https://api.github.com/repos/{$repo}/zipball/{$tag}";
+        return sprintf(
+            'https://api.github.com/repos/%s/%s/zipball/%s',
+            rawurlencode(explode('/', $repo, 2)[0]),
+            rawurlencode(explode('/', $repo, 2)[1]),
+            rawurlencode($tag)
+        );
+    }
+
+    /**
+     * Match {@see ReleaseRegistryService} so GITHUB_REPO may be a full github.com URL or owner/repo.
+     */
+    private function normalizeGithubRepo(string $repo): string
+    {
+        $repo = trim($repo);
+        if ($repo === '') {
+            return '';
+        }
+
+        $repo = (string) preg_replace('#^https?://github\.com/#i', '', $repo);
+        $repo = (string) preg_replace('#^github\.com/#i', '', $repo);
+        $repo = rtrim($repo, '/');
+        if (str_ends_with(strtolower($repo), '.git')) {
+            $repo = substr($repo, 0, -4);
+        }
+
+        return trim($repo);
     }
 
     private function downloadAndApplyRelease(string $downloadUrl, string $tag): void
